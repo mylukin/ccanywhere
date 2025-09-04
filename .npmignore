@@ -1,0 +1,47 @@
+# Source files (only dist is published)
+src/
+*.ts
+!*.d.ts
+
+# Test files
+__tests__/
+*.test.*
+*.spec.*
+jest.config.js
+tsconfig.test.json
+
+# Development files
+.eslintrc.js
+.prettierrc
+.editorconfig
+
+# Build files
+tsconfig.json
+tsconfig.tsbuildinfo
+
+# Documentation source
+docs/README_bash_version.md
+
+# Git and IDE
+.git/
+.claude/
+.vscode/
+.idea/
+
+# Logs and temp files
+*.log
+*.tmp
+.DS_Store
+
+# Development dependencies config
+node_modules/
+package-lock.json
+
+# Local config
+.env
+.env.local
+ccanywhere.config.js
+ccanywhere.config.json
+
+# Examples (included separately)
+# Keep examples/ and templates/

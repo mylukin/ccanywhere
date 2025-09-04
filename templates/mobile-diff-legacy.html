@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Diff Review - {{{commit.hashAbbrev}}}</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css">
+    {{{cssBundle}}}
+    
+    <style>
+        :root {
+            --mobile-padding: 8px;
+            --btn-primary: #0366d6;
+            --btn-hover: #0256c7;
+            --border-color: #e1e4e8;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+        }
+        
+        .d2h-wrapper {
+            font-size: 14px;
+        }
+        
+        .diff-header {
+            position: sticky;
+            top: 0;
+            background: white;
+            border-bottom: 1px solid var(--border-color);
+            padding: var(--mobile-padding);
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .diff-header h1 {
+            margin: 0 0 8px 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: #24292e;
+        }
+        
+        .diff-stats {
+            display: flex;
+            gap: 16px;
+            font-size: 14px;
+            color: #586069;
+        }
+        
+        .diff-stats .additions {
+            color: #28a745;
+        }
+        
+        .diff-stats .deletions {
+            color: #d73a49;
+        }
+        
+        .file-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px var(--mobile-padding);
+            background: #f6f8fa;
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 60px;
+            z-index: 999;
+        }
+        
+        .file-path {
+            font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+            font-size: 13px;
+            color: #24292e;
+            word-break: break-all;
+            flex: 1;
+        }
+        
+        .view-full-btn {
+            padding: 4px 12px;
+            background: var(--btn-primary);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            white-space: nowrap;
+            text-decoration: none;
+            display: inline-block;
+            margin-left: 8px;
+        }
+        
+        .view-full-btn:hover {
+            background: var(--btn-hover);
+        }
+        
+        @media (max-width: 768px) {
+            .d2h-wrapper {
+                font-size: 12px;
+            }
+            
+            .d2h-file-header {
+                padding: 8px !important;
+            }
+            
+            .d2h-code-line {
+                font-size: 11px !important;
+                padding: 2px 4px !important;
+            }
+            
+            .d2h-code-linenumber {
+                padding: 2px 4px !important;
+                min-width: 30px !important;
+            }
+            
+            .d2h-code-side-linenumber {
+                padding: 2px 4px !important;
+                min-width: 30px !important;
+            }
+            
+            table.d2h-diff-table {
+                font-size: 11px;
+            }
+            
+            .d2h-file-side-diff {
+                display: block !important;
+                width: 100% !important;
+            }
+            
+            .d2h-file-diff {
+                overflow-x: auto;
+            }
+        }
+        
+        .d2h-code-line-ctn {
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+        
+        .line-link {
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .line-link:hover {
+            background: rgba(3, 102, 214, 0.1);
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #28a745;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            z-index: 10000;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .toast.show {
+            opacity: 1;
+        }
+        
+        .quick-nav {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1001;
+        }
+        
+        .nav-btn {
+            display: block;
+            width: 48px;
+            height: 48px;
+            margin-bottom: 8px;
+            background: var(--btn-primary);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        
+        .nav-btn:hover {
+            background: var(--btn-hover);
+        }
+    </style>
+</head>
+<body>
+    <div class="diff-header">
+        <h1>Code Review: <span id="commit-sha">{{commit.hashAbbrev}}</span></h1>
+        <div class="diff-stats">
+            <span>{{files.length}} files changed</span>
+            <span class="additions">+<span id="additions">0</span></span>
+            <span class="deletions">-<span id="deletions">0</span></span>
+        </div>
+    </div>
+    
+    <div id="diff-container">
+        {{{diff}}}
+    </div>
+    
+    <div class="quick-nav">
+        <button class="nav-btn" onclick="scrollToTop()" title="Back to top">↑</button>
+        <button class="nav-btn" onclick="toggleFiles()" title="Toggle all files">☰</button>
+    </div>
+    
+    <div id="toast" class="toast"></div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+    {{{jsBundle}}}
+    
+    <script>
+        const REPO_KIND = window.REPO_KIND || 'github';
+        const REPO_URL = window.REPO_URL || 'https://github.com/example/repo';
+        const REV = window.REV || 'main';
+        
+        function getRepoBaseUrl() {
+            const url = REPO_URL.replace(/\.git$/, '').replace(/\/$/, '');
+            return url;
+        }
+        
+        function getFileUrl(filePath, lineNumber) {
+            const baseUrl = getRepoBaseUrl();
+            
+            if (REPO_KIND === 'github') {
+                return lineNumber 
+                    ? `${baseUrl}/blob/${REV}/${filePath}#L${lineNumber}`
+                    : `${baseUrl}/blob/${REV}/${filePath}`;
+            } else if (REPO_KIND === 'gitlab') {
+                return lineNumber
+                    ? `${baseUrl}/-/blob/${REV}/${filePath}#L${lineNumber}`
+                    : `${baseUrl}/-/blob/${REV}/${filePath}`;
+            }
+            return '#';
+        }
+        
+        function enhanceFileHeaders() {
+            const fileHeaders = document.querySelectorAll('.d2h-file-header');
+            
+            fileHeaders.forEach(header => {
+                const fileNameElement = header.querySelector('.d2h-file-name');
+                if (fileNameElement) {
+                    const filePath = fileNameElement.textContent.trim();
+                    
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'file-header';
+                    
+                    const pathSpan = document.createElement('span');
+                    pathSpan.className = 'file-path';
+                    pathSpan.textContent = filePath;
+                    
+                    const viewBtn = document.createElement('a');
+                    viewBtn.className = 'view-full-btn';
+                    viewBtn.href = getFileUrl(filePath);
+                    viewBtn.target = '_blank';
+                    viewBtn.textContent = 'View Full';
+                    
+                    wrapper.appendChild(pathSpan);
+                    wrapper.appendChild(viewBtn);
+                    
+                    header.innerHTML = '';
+                    header.appendChild(wrapper);
+                }
+            });
+        }
+        
+        function enhanceLineNumbers() {
+            const lineNumbers = document.querySelectorAll('.d2h-code-linenumber, .d2h-code-side-linenumber');
+            
+            lineNumbers.forEach(elem => {
+                const lineNum = elem.textContent.trim();
+                if (lineNum && !isNaN(lineNum)) {
+                    elem.classList.add('line-link');
+                    elem.title = 'Click to copy link to this line';
+                    
+                    elem.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const fileHeader = elem.closest('.d2h-file-wrapper').querySelector('.file-path');
+                        if (fileHeader) {
+                            const filePath = fileHeader.textContent.trim();
+                            const lineUrl = getFileUrl(filePath, lineNum);
+                            
+                            navigator.clipboard.writeText(lineUrl).then(() => {
+                                showToast('Line link copied!');
+                            }).catch(() => {
+                                window.open(lineUrl, '_blank');
+                            });
+                        }
+                    });
+                }
+            });
+        }
+        
+        function calculateStats() {
+            let additions = 0;
+            let deletions = 0;
+            
+            document.querySelectorAll('.d2h-ins').forEach(() => additions++);
+            document.querySelectorAll('.d2h-del').forEach(() => deletions++);
+            
+            document.getElementById('additions').textContent = additions;
+            document.getElementById('deletions').textContent = deletions;
+        }
+        
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2000);
+        }
+        
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        
+        let filesExpanded = true;
+        function toggleFiles() {
+            const files = document.querySelectorAll('.d2h-file-wrapper');
+            filesExpanded = !filesExpanded;
+            
+            files.forEach(file => {
+                const diff = file.querySelector('.d2h-file-diff');
+                if (diff) {
+                    diff.style.display = filesExpanded ? 'block' : 'none';
+                }
+            });
+        }
+        
+        function injectRepoConfig() {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('repo_url')) {
+                window.REPO_URL = params.get('repo_url');
+            }
+            if (params.get('repo_kind')) {
+                window.REPO_KIND = params.get('repo_kind');
+            }
+            if (params.get('rev')) {
+                window.REV = params.get('rev');
+                document.getElementById('commit-sha').textContent = window.REV.substring(0, 7);
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            injectRepoConfig();
+            enhanceFileHeaders();
+            enhanceLineNumbers();
+            calculateStats();
+            
+            if (typeof hljs !== 'undefined') {
+                hljs.highlightAll();
+            }
+        });
+    </script>
+</body>
+</html>
