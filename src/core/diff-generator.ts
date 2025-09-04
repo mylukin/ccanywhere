@@ -2,13 +2,18 @@
  * Diff HTML generator module
  */
 
-import { resolve, join } from 'path';
+import { resolve, join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+import { promises as fs } from 'fs';
 import fsExtra from 'fs-extra';
 const { readFile, writeFile, ensureDir } = fsExtra;
 import { execa } from 'execa';
 import * as diff2html from 'diff2html';
 import type { DiffGenerator, BuildArtifact, RuntimeContext, CommitInfo } from '../types/index.js';
 import { BuildError } from '../types/index.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 export class HtmlDiffGenerator implements DiffGenerator {
   private readonly templatePath: string;
@@ -46,7 +51,7 @@ export class HtmlDiffGenerator implements DiffGenerator {
       await writeFile(filePath, htmlContent, 'utf8');
 
       // Get file size
-      const stats = await require('fs').promises.stat(filePath);
+      const stats = await fs.stat(filePath);
 
       const artifact: BuildArtifact = {
         type: 'diff',
@@ -68,16 +73,41 @@ export class HtmlDiffGenerator implements DiffGenerator {
   }
 
   /**
-   * Check if there are changes between base and head
+   * Check if there are changes between base and head, or uncommitted changes in working directory
    */
   private async hasChanges(base: string, head: string, workDir: string): Promise<boolean> {
     try {
-      const result = await execa('git', ['diff', '--quiet', `${base}...${head}`], {
+      // Check for committed changes between base and head
+      const committedResult = await execa('git', ['diff', '--quiet', `${base}...${head}`], {
         cwd: workDir,
         reject: false
       });
+      
+      // Check for uncommitted changes in working directory (staged and unstaged)
+      const workingDirResult = await execa('git', ['diff', '--quiet', 'HEAD'], {
+        cwd: workDir,
+        reject: false
+      });
+      
+      // Check for staged changes
+      const stagedResult = await execa('git', ['diff', '--quiet', '--cached'], {
+        cwd: workDir,
+        reject: false
+      });
+      
+      // Check for untracked files
+      const untrackedResult = await execa('git', ['ls-files', '--others', '--exclude-standard'], {
+        cwd: workDir,
+        reject: false
+      });
+      
       // git diff --quiet returns 1 if there are differences, 0 if identical
-      return result.exitCode !== 0;
+      const hasCommittedChanges = committedResult.exitCode !== 0;
+      const hasWorkingDirChanges = workingDirResult.exitCode !== 0;
+      const hasStagedChanges = stagedResult.exitCode !== 0;
+      const hasUntrackedFiles = untrackedResult.stdout.trim().length > 0;
+      
+      return hasCommittedChanges || hasWorkingDirChanges || hasStagedChanges || hasUntrackedFiles;
     } catch (error) {
       throw new BuildError(
         `Failed to check for changes: ${error instanceof Error ? error.message : String(error)}`
@@ -86,16 +116,74 @@ export class HtmlDiffGenerator implements DiffGenerator {
   }
 
   /**
-   * Get git diff content
+   * Get git diff content including both committed changes and working directory changes
    */
   private async getDiffContent(base: string, head: string, workDir: string): Promise<string> {
     try {
-      const result = await execa('git', ['diff', '--minimal', `${base}...${head}`], {
-        cwd: workDir
+      const diffParts: string[] = [];
+      
+      // Get committed changes between base and head
+      const committedResult = await execa('git', ['diff', '--minimal', `${base}...${head}`], {
+        cwd: workDir,
+        reject: false
       });
-
-      return result.stdout;
+      if (committedResult.stdout.trim()) {
+        diffParts.push(committedResult.stdout);
+      }
+      
+      // Get staged changes
+      const stagedResult = await execa('git', ['diff', '--minimal', '--cached'], {
+        cwd: workDir,
+        reject: false
+      });
+      if (stagedResult.stdout.trim()) {
+        diffParts.push(stagedResult.stdout);
+      }
+      
+      // Get working directory changes (unstaged)
+      const workingDirResult = await execa('git', ['diff', '--minimal'], {
+        cwd: workDir,
+        reject: false
+      });
+      if (workingDirResult.stdout.trim()) {
+        diffParts.push(workingDirResult.stdout);
+      }
+      
+      // Get untracked files and generate diffs for them
+      const untrackedResult = await execa('git', ['ls-files', '--others', '--exclude-standard'], {
+        cwd: workDir,
+        reject: false
+      });
+      
+      const untrackedFiles = untrackedResult.stdout.trim().split('\n').filter(Boolean);
+      for (const file of untrackedFiles) {
+        try {
+          // Generate diff for untracked files by comparing with /dev/null
+          const untrackedDiffResult = await execa('git', ['diff', '--no-index', '/dev/null', file], {
+            cwd: workDir,
+            reject: false
+          });
+          if (untrackedDiffResult.stdout.trim()) {
+            diffParts.push(untrackedDiffResult.stdout);
+          }
+        } catch (untrackedError) {
+          // If individual file diff fails, continue with others
+          console.warn(`Failed to get diff for untracked file ${file}:`, untrackedError);
+        }
+      }
+      
+      // Combine all diff parts
+      const combinedDiff = diffParts.join('\n');
+      
+      if (!combinedDiff.trim()) {
+        throw new BuildError('No diff content available');
+      }
+      
+      return combinedDiff;
     } catch (error) {
+      if (error instanceof BuildError) {
+        throw error;
+      }
       throw new BuildError(
         `Failed to get diff content: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -238,7 +326,7 @@ export class HtmlDiffGenerator implements DiffGenerator {
       );
 
       // Get file size
-      const stats = await require('fs').promises.stat(outputPath);
+      const stats = await fs.stat(outputPath);
 
       const artifact: BuildArtifact = {
         type: 'diff',
