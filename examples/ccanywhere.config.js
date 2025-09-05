@@ -61,7 +61,8 @@ export default {
   build: {
     base: process.env.BASE || 'origin/main',
     lockTimeout: parseInt(process.env.LOCK_TIMEOUT || '300'),
-    cleanupDays: parseInt(process.env.CLEANUP_DAYS || '7')
+    cleanupDays: parseInt(process.env.CLEANUP_DAYS || '7'),
+    excludePaths: (process.env.EXCLUDE_PATHS || '.artifacts').split(',')  // Comma-separated paths to exclude from diff
   },
 
   // Test configuration

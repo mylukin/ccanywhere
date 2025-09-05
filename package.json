@@ -89,6 +89,14 @@
     "tsx": "^4.6.2",
     "typescript": "^5.3.3"
   },
+  "peerDependencies": {
+    "@playwright/test": ">=1.40.0"
+  },
+  "peerDependenciesMeta": {
+    "@playwright/test": {
+      "optional": true
+    }
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",

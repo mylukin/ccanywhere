@@ -26,7 +26,8 @@
   "build": {
     "base": "origin/main",
     "lockTimeout": 300,
-    "cleanupDays": 7
+    "cleanupDays": 7,
+    "excludePaths": [".artifacts"]
   },
   "test": {
     "enabled": true,

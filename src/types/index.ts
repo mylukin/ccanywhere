@@ -66,6 +66,7 @@ export interface CcanywhereConfig {
     base?: string;
     lockTimeout?: number;
     cleanupDays?: number;
+    excludePaths?: string[];  // Paths to exclude from diff generation
   };
 
   /** Test configuration */

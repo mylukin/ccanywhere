@@ -44,7 +44,8 @@
   "build": {
     "base": "origin/main",
     "lockTimeout": 300,
-    "cleanupDays": 7
+    "cleanupDays": 7,
+    "excludePaths": [".artifacts"]  // Optional: paths to exclude from diff generation (default: [".artifacts"])
   },
   
   // Test configuration (Optional)

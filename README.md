@@ -30,6 +30,9 @@ npm install -g ccanywhere
 
 # Or install as dev dependency
 npm install -D ccanywhere
+
+# If you want to use Playwright testing (optional)
+npm install -D @playwright/test
 ```
 
 ### Initialize Your Project
@@ -72,6 +75,10 @@ Edit the generated `ccanywhere.config.json`:
       "botToken": "YOUR_BOT_TOKEN",
       "chatId": "YOUR_CHAT_ID"
     }
+  },
+  "build": {
+    "base": "origin/main",
+    "excludePaths": [".artifacts", "node_modules"]
   }
 }
 ```
@@ -255,6 +262,15 @@ Configure SMTP settings or use local mail:
 
 ## 🧪 Testing Integration
 
+### Prerequisites
+
+First, install Playwright in your project:
+
+```bash
+npm install -D @playwright/test
+npx playwright install # Install browser binaries
+```
+
 ### Playwright Configuration
 
 CCanywhere works seamlessly with Playwright. Create `playwright.config.ts`:
@@ -327,6 +343,34 @@ CCanywhere generates mobile-optimized diff pages with:
 - Syntax highlighting
 - Direct links to GitHub/GitLab
 - Quick access to deployment and test results
+
+## 🏗️ Build Configuration
+
+### Excluding Paths from Diffs
+
+You can exclude specific paths from being included in the generated diff files:
+
+```json
+{
+  "build": {
+    "base": "origin/main",
+    "lockTimeout": 300,
+    "cleanupDays": 7,
+    "excludePaths": [".artifacts", "node_modules", ".git", "dist"]
+  }
+}
+```
+
+- `excludePaths`: Array of paths to exclude from diff generation
+- Default: `[".artifacts"]` if not specified
+- Useful for ignoring generated files, dependencies, or build outputs
+
+### Environment Variable Configuration
+
+```bash
+# Exclude paths (comma-separated)
+EXCLUDE_PATHS=.artifacts,node_modules,dist,coverage
+```
 
 ## 🔧 Advanced Usage
 

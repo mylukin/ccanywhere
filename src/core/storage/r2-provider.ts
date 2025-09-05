@@ -46,7 +46,8 @@ export class R2StorageProvider extends BaseStorageProvider {
       });
 
       await this.client.send(command);
-      return `https://${this.bucket}.${this.accountId}.r2.cloudflarestorage.com/${key}`;
+      // Return the key path only, let the caller construct the full URL with baseUrl
+      return key;
     } catch (error) {
       this.handleError(error, 'upload');
     }
@@ -83,7 +84,7 @@ export class R2StorageProvider extends BaseStorageProvider {
   }
 
   async getUrl(key: string): Promise<string> {
-    // For R2, we return the public URL directly
-    return `https://${this.bucket}.${this.accountId}.r2.cloudflarestorage.com/${key}`;
+    // Return just the key, let the caller use baseUrl to construct the full URL
+    return key;
   }
 }

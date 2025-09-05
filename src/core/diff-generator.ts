@@ -32,7 +32,8 @@ export class HtmlDiffGenerator implements DiffGenerator {
       await ensureDir(context.artifactsDir);
 
       // Check if there are actual changes
-      const hasChanges = await this.hasChanges(base, head, context.workDir);
+      const excludePaths = context.config.build?.excludePaths || ['.artifacts'];
+      const hasChanges = await this.hasChanges(base, head, context.workDir, excludePaths);
 
       if (!hasChanges) {
         throw new BuildError('No changes detected between base and head');
@@ -42,7 +43,7 @@ export class HtmlDiffGenerator implements DiffGenerator {
       const storageProvider = StorageFactory.create(context.config);
 
       // Get git diff
-      const diffContent = await this.getDiffContent(base, head, context.workDir);
+      const diffContent = await this.getDiffContent(base, head, context.workDir, excludePaths);
 
       // Get commit information
       const commitInfo = await this.getCommitInfo(head, context.workDir);
@@ -62,10 +63,12 @@ export class HtmlDiffGenerator implements DiffGenerator {
 
       let finalUrl: string;
       
+      // Prepare storage key with path
+      const storageKey = `diffs/${fileName}`;
+      
       // Upload to cloud storage if enabled
       if (storageProvider) {
         try {
-          const storageKey = `diffs/${fileName}`;
           const cloudUrl = await storageProvider.upload(storageKey, htmlContent, 'text/html; charset=utf-8');
           
           // Use artifacts base URL if configured, otherwise use direct cloud URL
@@ -77,12 +80,12 @@ export class HtmlDiffGenerator implements DiffGenerator {
           // If cloud storage fails, log warning but continue with local URL
           console.warn('Cloud storage upload failed:', storageError);
           const baseUrl = context.config.artifacts?.baseUrl || context.config.urls?.artifacts;
-          finalUrl = `${baseUrl || ''}/${fileName}`;
+          finalUrl = `${baseUrl || ''}/${storageKey}`;
         }
       } else {
         // Use local/CDN URL
         const baseUrl = context.config.artifacts?.baseUrl || context.config.urls?.artifacts;
-        finalUrl = `${baseUrl || ''}/${fileName}`;
+        finalUrl = `${baseUrl || ''}/${storageKey}`;
       }
 
       const artifact: BuildArtifact = {
@@ -107,7 +110,7 @@ export class HtmlDiffGenerator implements DiffGenerator {
   /**
    * Check if there are changes between base and head, or uncommitted changes in working directory
    */
-  private async hasChanges(base: string, head: string, workDir: string): Promise<boolean> {
+  private async hasChanges(base: string, head: string, workDir: string, excludePaths: string[] = []): Promise<boolean> {
     try {
       // Check for committed changes between base and head
       const committedResult = await execa('git', ['diff', '--quiet', `${base}...${head}`], {
@@ -116,19 +119,20 @@ export class HtmlDiffGenerator implements DiffGenerator {
       });
       
       // Check for uncommitted changes in working directory (staged and unstaged)
-      const workingDirResult = await execa('git', ['diff', '--quiet', 'HEAD'], {
+      const excludeArgs = excludePaths.map(path => `:(exclude)${path}`);
+      const workingDirResult = await execa('git', ['diff', '--quiet', 'HEAD', ...excludeArgs], {
         cwd: workDir,
         reject: false
       });
       
       // Check for staged changes
-      const stagedResult = await execa('git', ['diff', '--quiet', '--cached'], {
+      const stagedResult = await execa('git', ['diff', '--quiet', '--cached', ...excludeArgs], {
         cwd: workDir,
         reject: false
       });
       
-      // Check for untracked files
-      const untrackedResult = await execa('git', ['ls-files', '--others', '--exclude-standard'], {
+      // Check for untracked files (excluding specified paths)
+      const untrackedResult = await execa('git', ['ls-files', '--others', '--exclude-standard', ...excludeArgs], {
         cwd: workDir,
         reject: false
       });
@@ -150,12 +154,13 @@ export class HtmlDiffGenerator implements DiffGenerator {
   /**
    * Get git diff content including both committed changes and working directory changes
    */
-  private async getDiffContent(base: string, head: string, workDir: string): Promise<string> {
+  private async getDiffContent(base: string, head: string, workDir: string, excludePaths: string[] = []): Promise<string> {
     try {
       const diffParts: string[] = [];
       
       // Get committed changes between base and head
-      const committedResult = await execa('git', ['diff', '--minimal', `${base}...${head}`], {
+      const excludeArgs = excludePaths.map(path => `:(exclude)${path}`);
+      const committedResult = await execa('git', ['diff', '--minimal', `${base}...${head}`, ...excludeArgs], {
         cwd: workDir,
         reject: false
       });
@@ -164,7 +169,7 @@ export class HtmlDiffGenerator implements DiffGenerator {
       }
       
       // Get staged changes
-      const stagedResult = await execa('git', ['diff', '--minimal', '--cached'], {
+      const stagedResult = await execa('git', ['diff', '--minimal', '--cached', ...excludeArgs], {
         cwd: workDir,
         reject: false
       });
@@ -173,7 +178,7 @@ export class HtmlDiffGenerator implements DiffGenerator {
       }
       
       // Get working directory changes (unstaged)
-      const workingDirResult = await execa('git', ['diff', '--minimal'], {
+      const workingDirResult = await execa('git', ['diff', '--minimal', ...excludeArgs], {
         cwd: workDir,
         reject: false
       });
@@ -181,8 +186,8 @@ export class HtmlDiffGenerator implements DiffGenerator {
         diffParts.push(workingDirResult.stdout);
       }
       
-      // Get untracked files and generate diffs for them
-      const untrackedResult = await execa('git', ['ls-files', '--others', '--exclude-standard'], {
+      // Get untracked files and generate diffs for them (excluding specified paths)
+      const untrackedResult = await execa('git', ['ls-files', '--others', '--exclude-standard', ...excludeArgs], {
         cwd: workDir,
         reject: false
       });
@@ -353,7 +358,7 @@ export class HtmlDiffGenerator implements DiffGenerator {
         ],
         {
           cwd: context.workDir,
-          input: await this.getDiffContent(base, head, context.workDir)
+          input: await this.getDiffContent(base, head, context.workDir, context.config.build?.excludePaths || ['.artifacts'])
         }
       );
 
