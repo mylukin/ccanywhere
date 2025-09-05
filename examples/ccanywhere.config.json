@@ -38,7 +38,7 @@
     "retentionDays": 7,
     "maxSize": "100MB",
     "storage": {
-      "provider": "s3",
+      "provider": "r2",
       "s3": {
         "accessKeyId": "YOUR_AWS_ACCESS_KEY_ID",
         "secretAccessKey": "YOUR_AWS_SECRET_ACCESS_KEY",

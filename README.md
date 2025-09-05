@@ -11,7 +11,7 @@ English | [简体中文](README-zh.md)
 ## 🎯 Features
 
 - **📱 Mobile-Friendly Diff Pages**: Generate beautiful, mobile-optimized HTML diff pages
-- **🚀 Deployment Automation**: Trigger Dokploy and other webhook-based deployments
+- **🚀 Deployment Automation**: Trigger webhook-based deployments
 - **🧪 Playwright Integration**: Run automated tests with comprehensive reporting
 - **📬 Multi-Channel Notifications**: Support for Telegram, DingTalk, WeCom, and Email
 - **🔒 Concurrency Control**: File-based locking prevents concurrent builds
@@ -61,11 +61,11 @@ Edit the generated `ccanywhere.config.json`:
     "retentionDays": 7,
     "maxSize": "100MB",
     "storage": {
-      "provider": "s3",
-      "s3": {
-        "accessKeyId": "YOUR_AWS_ACCESS_KEY_ID",
-        "secretAccessKey": "YOUR_AWS_SECRET_ACCESS_KEY",
-        "region": "us-east-1",
+      "provider": "r2",
+      "r2": {
+        "accountId": "YOUR_CLOUDFLARE_ACCOUNT_ID",
+        "accessKeyId": "YOUR_R2_ACCESS_KEY_ID",
+        "secretAccessKey": "YOUR_R2_SECRET_ACCESS_KEY",
         "bucket": "my-artifacts-bucket"
       }
     }
@@ -94,6 +94,12 @@ REPO_URL=https://github.com/mylukin/ccanywhere
 ARTIFACTS_BASE_URL=https://artifacts.yourdomain.com
 ARTIFACTS_RETENTION_DAYS=7
 ARTIFACTS_MAX_SIZE=100MB
+
+# Cloudflare R2 Storage (Default)
+R2_ACCOUNT_ID=your-cloudflare-account-id
+R2_ACCESS_KEY_ID=your-r2-access-key
+R2_SECRET_ACCESS_KEY=your-r2-secret-key
+R2_BUCKET=my-artifacts-bucket
 
 # Notifications
 BOT_TOKEN_TELEGRAM=123456789:your-bot-token
@@ -132,25 +138,17 @@ ccanywhere test --all
 # Send test notification
 ccanywhere notify --channels telegram --title "Hello World"
 
-# Manage build locks
-ccanywhere lock status
-ccanywhere lock clean
-
-# Configuration management
-ccanywhere config show
-ccanywhere config validate
-
 # Cleanup old artifacts
 ccanywhere cleanup --days 7
-
-# Show system information
-ccanywhere info
 
 # Claude Code integration
 ccanywhere claude-register --status      # Check hook status
 ccanywhere claude-register              # Interactive hook setup
 ccanywhere claude-register --post-run   # Enable specific hooks
 ccanywhere claude-register --remove     # Remove all hooks
+
+# Test runner (for Playwright tests)
+ccanywhere test-runner
 ```
 
 ### Claude Code Integration
@@ -253,9 +251,10 @@ ARTIFACTS_URL=https://artifacts.example.com
 DEPLOYMENT_WEBHOOK_URL=https://deploy.example.com/webhook
 
 # Notifications
-NOTIFY_CHANNELS=telegram,email
 BOT_TOKEN_TELEGRAM=your-token
 CHAT_ID_TELEGRAM=your-chat-id
+BOT_TOKEN_DINGTALK=your-dingtalk-token
+SECRET_DINGTALK=your-dingtalk-secret
 EMAIL_TO=admin@example.com
 ```
 
@@ -350,7 +349,7 @@ test('homepage loads correctly', async ({ page }) => {
 
 ## 🚀 Deployment Integration
 
-### Dokploy
+### Deployment Webhooks
 
 CCanywhere supports webhook-based deployment triggers:
 
@@ -455,6 +454,7 @@ class SlackNotifier implements ChannelNotifier {
 - File permissions set to 600 for sensitive files
 - Lock files prevent concurrent builds
 - Audit logs track all operations
+- Security configuration for read-only mode and link expiration
 
 ## 📊 Monitoring
 
@@ -501,6 +501,9 @@ npm install
 
 # Development
 npm run dev
+
+# Watch mode
+npm run dev:watch
 
 # Testing
 npm test

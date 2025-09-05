@@ -23,40 +23,37 @@ ccanywhere init
 
 ## ⚙️ 基础配置
 
-创建 `ccanywhere.config.js`:
+创建 `ccanywhere.config.json`:
 
-```javascript
-export default {
-  // Git仓库配置
-  repository: {
-    url: 'https://github.com/mylukin/ccanywhere',
-    base: 'origin/main'
+```json
+{
+  "repo": {
+    "kind": "github",
+    "url": "https://github.com/mylukin/ccanywhere",
+    "branch": "main"
   },
   
-  // 通知配置（选择你需要的渠道）
-  notifications: {
-    channels: ['telegram'], // 可选: telegram, dingtalk, wecom, email
-    telegram: {
-      botToken: process.env.TELEGRAM_BOT_TOKEN,
-      chatId: process.env.TELEGRAM_CHAT_ID
+  "notifications": {
+    "channels": ["telegram"],
+    "telegram": {
+      "botToken": "您的机器人令牌",
+      "chatId": "您的聊天ID"
     }
   },
   
-  // 部署配置
-  deployment: process.env.DEPLOYMENT_WEBHOOK_URL,
+  "deployment": "https://deploy.yourdomain.com/api/webhook",
   
-  // 产物配置
-  artifacts: {
-    baseUrl: 'https://artifacts.yourdomain.com',
-    retentionDays: 7,
-    maxSize: '100MB',
-    storage: {
-      provider: 's3',
-      s3: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-        region: 'us-east-1',
-        bucket: 'my-artifacts-bucket'
+  "artifacts": {
+    "baseUrl": "https://artifacts.yourdomain.com",
+    "retentionDays": 7,
+    "maxSize": "100MB",
+    "storage": {
+      "provider": "r2",
+      "r2": {
+        "accountId": "您的Cloudflare账户ID",
+        "accessKeyId": "您的R2访问密钥ID",
+        "secretAccessKey": "您的R2秘密访问密钥",
+        "bucket": "my-artifacts-bucket"
       }
     }
   }
@@ -74,30 +71,29 @@ ccanywhere test
 # 运行完整的CI/CD流程
 ccanywhere run
 
-# 只生成diff
-ccanywhere diff
+# 发送测试通知
+ccanywhere notify --channels telegram --title "部署完成"
 
-# 只发送通知
-ccanywhere notify --message "部署完成"
+# 清理旧产物
+ccanywhere cleanup --days 7
 
-# 查看最近的日志
-ccanywhere logs
+# Claude Code集成管理
+ccanywhere claude-register --status
 ```
 
 ### 高级用法
 
 ```bash
 # 指定配置文件
-ccanywhere run --config ./config/production.js
+ccanywhere run --config ./config/production.json
 
-# 指定git范围
-ccanywhere diff --base origin/main --head feature/new
+# 测试所有配置
+ccanywhere test --all
 
-# 跳过某些步骤
-ccanywhere run --skip test --skip notify
-
-# 只运行特定步骤
-ccanywhere run --only diff,deploy
+# Claude Code钩子管理
+ccanywhere claude-register              # 交互式设置
+ccanywhere claude-register --post-run   # 启用特定钩子
+ccanywhere claude-register --remove     # 移除所有钩子
 ```
 
 ## 🔌 Claude Code 集成
@@ -121,48 +117,64 @@ npm install -g ccanywhere
 
 ## 🎨 自定义
 
-### 自定义diff模板
+### 自定义构建配置
 
-```javascript
-// ccanywhere.config.js
-export default {
-  diff: {
-    template: './my-templates/diff.html',
-    css: './my-templates/diff.css'
+```json
+// ccanywhere.config.json
+{
+  "build": {
+    "base": "origin/main",
+    "excludePaths": [".artifacts", "node_modules", "dist"],
+    "lockTimeout": 300,
+    "cleanupDays": 7
   }
 }
 ```
 
-### 添加自定义步骤
+### 存储配置选项
 
-```javascript
-// ccanywhere.config.js
-export default {
-  pipeline: {
-    steps: [
-      'diff',
-      'custom:./scripts/my-check.js', // 自定义步骤
-      'deploy',
-      'test',
-      'notify'
-    ]
+```json
+// ccanywhere.config.json
+{
+  "storage": {
+    "provider": "r2",  // 可选: r2(默认), s3, oss
+    "r2": {  // Cloudflare R2 (推荐)
+      "accountId": "您的Cloudflare账户ID",
+      "accessKeyId": "您的R2访问密钥ID",
+      "secretAccessKey": "您的R2秘密密钥",
+      "bucket": "my-artifacts"
+    },
+    "s3": {  // AWS S3
+      "accessKeyId": "您的AWS访问密钥",
+      "secretAccessKey": "您的AWS秘密密钥",
+      "region": "us-east-1",
+      "bucket": "my-artifacts"
+    },
+    "oss": {  // 阿里云 OSS
+      "accessKeyId": "您的阿里云访问密钥",
+      "accessKeySecret": "您的阿里云密钥",
+      "region": "oss-cn-hangzhou",
+      "bucket": "my-artifacts"
+    }
   }
 }
 ```
 
-### 自定义通知格式
+### 通知渠道配置
 
-```javascript
-// ccanywhere.config.js
-export default {
-  notifications: {
-    format: 'markdown', // plain, markdown, html
-    template: `
-      🚀 部署 {{rev}}
-      差异: {{diffUrl}}
-      预览: {{previewUrl}}
-      耗时: {{duration}}秒
-    `
+```json
+// ccanywhere.config.json
+{
+  "notifications": {
+    "channels": ["telegram", "dingtalk", "wecom", "email"],
+    "telegram": {
+      "botToken": "您的机器人令牌",
+      "chatId": "您的聊天ID"
+    },
+    "dingtalk": {
+      "accessToken": "您的钉钉令牌",
+      "secret": "您的钉钉密钥"
+    }
   }
 }
 ```
@@ -186,16 +198,16 @@ export default {
 
 ```bash
 # 启用详细日志
-ccanywhere run --verbose
+LOG_LEVEL=debug ccanywhere run
 
-# 干运行（不实际执行）
-ccanywhere run --dry-run
+# 测试配置
+ccanywhere test --all
 
-# 查看当前配置
-ccanywhere config show
+# 测试单个通知渠道
+ccanywhere test notify --channels telegram
 
-# 验证配置
-ccanywhere config validate
+# 清理构建锁
+ccanywhere cleanup --locks
 ```
 
 ## 🔐 环境变量
@@ -204,10 +216,23 @@ ccanywhere config validate
 
 ```bash
 # .env
-CCANYWHERE_REPO_URL=https://github.com/mylukin/ccanywhere
-CCANYWHERE_TELEGRAM_TOKEN=your-token
-CCANYWHERE_TELEGRAM_CHAT_ID=your-chat-id
+REPO_URL=https://github.com/mylukin/ccanywhere
+
+# Cloudflare R2 存储（默认）
+R2_ACCOUNT_ID=your-cloudflare-account-id
+R2_ACCESS_KEY_ID=your-r2-access-key-id
+R2_SECRET_ACCESS_KEY=your-r2-secret-key
+R2_BUCKET=my-artifacts-bucket
+
+# 通知
+BOT_TOKEN_TELEGRAM=your-token
+CHAT_ID_TELEGRAM=your-chat-id
+
+# 部署
 DEPLOYMENT_WEBHOOK_URL=https://deploy.example.com/hook
+
+# 日志
+LOG_LEVEL=info
 ```
 
 ## 📝 常见场景
@@ -253,6 +278,9 @@ ccanywhere --help
 # 查看特定命令帮助
 ccanywhere run --help
 
+# Claude Code集成状态
+ccanywhere claude-register --status
+
 # 查看版本
 ccanywhere --version
 ```
@@ -265,6 +293,3 @@ ccanywhere --version
 4. **监控日志** 确保流程正常
 5. **测试先行** 在生产环境前充分测试
 
----
-
-需要更多帮助？查看[完整文档](./README_npm.md)或[迁移指南](./MIGRATION.md)。

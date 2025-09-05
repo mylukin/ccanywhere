@@ -11,7 +11,7 @@
 ## 🎯 特性
 
 - **📱 移动友好的差异页面**：生成美观的、移动端优化的 HTML 差异页面
-- **🚀 部署自动化**：触发 Dokploy 和其他基于 webhook 的部署
+- **🚀 部署自动化**：通过 webhook 触发部署流程
 - **🧪 Playwright 集成**：运行自动化测试，提供全面的报告
 - **📬 多渠道通知**：支持 Telegram、钉钉、企业微信和邮件
 - **🔒 并发控制**：基于文件的锁定机制防止并发构建
@@ -57,14 +57,18 @@ ccanywhere init
     "retentionDays": 7,
     "maxSize": "100MB",
     "storage": {
-      "provider": "s3",
-      "s3": {
-        "accessKeyId": "您的AWS访问密钥ID",
-        "secretAccessKey": "您的AWS秘密访问密钥",
-        "region": "us-east-1",
+      "provider": "r2",
+      "r2": {
+        "accountId": "您的Cloudflare账户ID",
+        "accessKeyId": "您的R2访问密钥ID",
+        "secretAccessKey": "您的R2秘密访问密钥",
         "bucket": "my-artifacts-bucket"
       }
     }
+  },
+  "build": {
+    "base": "origin/main",
+    "excludePaths": [".artifacts", "node_modules"]
   },
   "notifications": {
     "channels": ["telegram"],
@@ -86,6 +90,12 @@ REPO_URL=https://github.com/mylukin/ccanywhere
 ARTIFACTS_BASE_URL=https://artifacts.yourdomain.com
 ARTIFACTS_RETENTION_DAYS=7
 ARTIFACTS_MAX_SIZE=100MB
+
+# Cloudflare R2 存储（默认）
+R2_ACCOUNT_ID=您的Cloudflare账户ID
+R2_ACCESS_KEY_ID=您的R2访问密钥
+R2_SECRET_ACCESS_KEY=您的R2秘密密钥
+R2_BUCKET=my-artifacts-bucket
 
 # 通知
 BOT_TOKEN_TELEGRAM=123456789:your-bot-token
@@ -124,19 +134,14 @@ ccanywhere test --all
 # 发送测试通知
 ccanywhere notify --channels telegram --title "Hello World"
 
-# 管理构建锁
-ccanywhere lock status
-ccanywhere lock clean
-
-# 配置管理
-ccanywhere config show
-ccanywhere config validate
-
 # 清理旧制品
 ccanywhere cleanup --days 7
 
-# 显示系统信息
-ccanywhere info
+# Claude Code 集成
+ccanywhere claude-register --status      # 检查钩子状态
+ccanywhere claude-register              # 交互式设置
+ccanywhere claude-register --post-run   # 启用特定钩子
+ccanywhere claude-register --remove     # 移除所有钩子
 ```
 
 ### 编程式使用
@@ -204,9 +209,10 @@ ARTIFACTS_URL=https://artifacts.example.com
 DEPLOYMENT_WEBHOOK_URL=https://deploy.example.com/webhook
 
 # 通知
-NOTIFY_CHANNELS=telegram,email
 BOT_TOKEN_TELEGRAM=your-token
 CHAT_ID_TELEGRAM=your-chat-id
+BOT_TOKEN_DINGTALK=your-dingtalk-token
+SECRET_DINGTALK=your-dingtalk-secret
 EMAIL_TO=admin@example.com
 ```
 
@@ -292,7 +298,7 @@ test('首页正确加载', async ({ page }) => {
 
 ## 🚀 部署集成
 
-### Dokploy
+### 部署 Webhook
 
 CCanywhere 支持基于 webhook 的部署触发：
 
@@ -369,7 +375,7 @@ class SlackNotifier implements ChannelNotifier {
 - 敏感文件权限设置为 600
 - 锁文件防止并发构建
 - 审计日志跟踪所有操作
-- 用于预发环境的可选只读模式
+- 支持安全配置（只读模式、链接过期等）
 
 ## 📊 监控
 
@@ -416,6 +422,9 @@ npm install
 
 # 开发
 npm run dev
+
+# 构建监视模式
+npm run dev:watch
 
 # 测试
 npm test

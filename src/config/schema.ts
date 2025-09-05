@@ -112,7 +112,8 @@ export const NotificationsConfigSchema = z
 export const BuildConfigSchema = z.object({
   base: z.string().min(1).default('origin/main'),
   lockTimeout: z.number().min(1).max(3600).default(300),
-  cleanupDays: z.number().min(1).max(365).default(7)
+  cleanupDays: z.number().min(1).max(365).default(7),
+  excludePaths: z.array(z.string()).default(['.artifacts']).optional()
 });
 
 export const TestConfigSchema = z.object({
