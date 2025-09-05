@@ -1,5 +1,5 @@
 /**
- * Deployment trigger module for Dokploy and other platforms
+ * Deployment trigger module for various deployment platforms
  */
 
 import axios, { AxiosError } from 'axios';

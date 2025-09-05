@@ -174,7 +174,7 @@ npm install -g ccanywhere
       "chatId": "您的聊天ID"
     },
     "dingtalk": {
-      "accessToken": "您的钉钉令牌",
+      "webhook": "https://oapi.dingtalk.com/robot/send?access_token=您的令牌",
       "secret": "您的钉钉密钥"
     }
   }

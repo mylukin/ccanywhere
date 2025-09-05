@@ -148,8 +148,8 @@ ccanywhere claude-register              # Interactive hook setup
 ccanywhere claude-register --post-run   # Enable specific hooks
 ccanywhere claude-register --remove     # Remove all hooks
 
-# Test runner (for Playwright tests)
-ccanywhere test-runner
+# Run tests (including Playwright tests)
+ccanywhere test
 ```
 
 ### Claude Code Integration
@@ -184,7 +184,6 @@ ccanywhere claude-register --restore /path/to/backup
 - ✅ Automatic backup creation for safety
 - ✅ Platform-specific path detection (Windows, macOS, Linux)
 
-See [Claude Code Integration Guide](./docs/CLAUDE-CODE-INTEGRATION.md) for detailed configuration options.
 ```
 
 ### Programmatic Usage
@@ -254,8 +253,8 @@ DEPLOYMENT_WEBHOOK_URL=https://deploy.example.com/webhook
 # Notifications
 BOT_TOKEN_TELEGRAM=your-token
 CHAT_ID_TELEGRAM=your-chat-id
-BOT_TOKEN_DINGTALK=your-dingtalk-token
-SECRET_DINGTALK=your-dingtalk-secret
+DINGTALK_WEBHOOK=https://oapi.dingtalk.com/robot/send?access_token=YOUR_TOKEN
+DINGTALK_SECRET=your-dingtalk-secret
 EMAIL_TO=admin@example.com
 ```
 

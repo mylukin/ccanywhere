@@ -141,10 +141,10 @@ export class ConfigLoader {
     }
 
     // Deployment configuration
-    if (env.DOKPLOY_WEBHOOK_URL) {
+    if (env.DEPLOYMENT_WEBHOOK_URL) {
       config.deployment = {
-        webhook: env.DOKPLOY_WEBHOOK_URL,
-        statusUrl: env.DOKPLOY_STATUS_URL,
+        webhook: env.DEPLOYMENT_WEBHOOK_URL,
+        statusUrl: env.DEPLOYMENT_STATUS_URL,
         maxWait: env.MAX_WAIT ? parseInt(env.MAX_WAIT) : undefined,
         pollInterval: env.POLL_INTERVAL ? parseInt(env.POLL_INTERVAL) : undefined
       };

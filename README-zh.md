@@ -212,8 +212,8 @@ DEPLOYMENT_WEBHOOK_URL=https://deploy.example.com/webhook
 # 通知
 BOT_TOKEN_TELEGRAM=your-token
 CHAT_ID_TELEGRAM=your-chat-id
-BOT_TOKEN_DINGTALK=your-dingtalk-token
-SECRET_DINGTALK=your-dingtalk-secret
+DINGTALK_WEBHOOK=https://oapi.dingtalk.com/robot/send?access_token=YOUR_TOKEN
+DINGTALK_SECRET=your-dingtalk-secret
 EMAIL_TO=admin@example.com
 ```
 

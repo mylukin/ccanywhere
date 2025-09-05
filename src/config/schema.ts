@@ -157,6 +157,7 @@ export const OSSConfigSchema = z.object({
 export const StorageConfigSchema = z
   .object({
     provider: StorageProviderSchema,
+    folder: z.string().optional(),
     s3: S3ConfigSchema.optional(),
     r2: R2ConfigSchema.optional(),
     oss: OSSConfigSchema.optional()
