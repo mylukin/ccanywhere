@@ -102,23 +102,11 @@ ccanywhere run --only diff,deploy
 
 ## 🔌 Claude Code 集成
 
-### 方法1：自动注册
+全局安装时会自动配置 Claude Code 钩子：
 
 ```bash
-ccanywhere claude-register
-```
-
-### 方法2：手动配置
-
-在 `.claude/hooks.js` 中：
-
-```javascript
-const { ClaudeHook } = require('ccanywhere');
-
-module.exports = {
-  postRun: ClaudeHook.postRun,
-  preCommit: ClaudeHook.preCommit
-}
+npm install -g ccanywhere
+# 自动检测并配置 Claude Code 钩子 ✨
 ```
 
 ## 📱 在手机查看结果
