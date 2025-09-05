@@ -54,11 +54,11 @@ jest.unstable_mockModule('@/utils/claude-detector', () => ({
 
 // Mock HookInjector
 const mockHookInjector = {
-  injectHooks: jest.fn(),
-  removeHooks: jest.fn(),
-  restoreFromBackup: jest.fn(),
-  listBackups: jest.fn(),
-  areHooksInjected: jest.fn()
+  injectHooks: jest.fn() as any,
+  removeHooks: jest.fn() as any,
+  restoreFromBackup: jest.fn() as any,
+  listBackups: jest.fn() as any,
+  areHooksInjected: jest.fn() as any
 };
 
 jest.unstable_mockModule('@/utils/hook-injector', () => ({

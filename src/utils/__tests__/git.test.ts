@@ -2,25 +2,24 @@
  * Tests for git utility functions
  */
 
-import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
+import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 
-// Mock execa
-const mockExeca = jest.fn() as any;
-jest.unstable_mockModule('execa', () => ({
-  execa: mockExeca
+// Mock child_process
+const mockExecSync = jest.fn() as any;
+jest.unstable_mockModule('child_process', () => ({
+  execSync: mockExecSync
 }));
 
 // Mock fs-extra
 const mockFs = {
-  pathExists: jest.fn() as any,
-  readFile: jest.fn() as any
+  pathExists: jest.fn() as any
 };
 jest.unstable_mockModule('fs-extra', () => ({
   default: mockFs
 }));
 
 // Import the module after mocking
-const { detectGitInfo, getCurrentBranch, getCurrentCommit, getCommitInfo, isGitRepository } = await import('../git.js');
+const { detectGitInfo, getCurrentCommitSha, getRecentCommits } = await import('../git.js');
 
 describe('git utilities', () => {
   beforeEach(() => {
@@ -28,234 +27,60 @@ describe('git utilities', () => {
     jest.clearAllMocks();
 
     // Setup default mock returns
-    mockExeca.mockResolvedValue({ stdout: 'mock-output' });
     mockFs.pathExists.mockResolvedValue(true);
-    mockFs.readFile.mockResolvedValue('[remote "origin"]\n\turl = https://github.com/test/repo.git\n\tfetch = +refs/heads/*:refs/remotes/origin/*');
-  });
-
-  describe('isGitRepository', () => {
-    it('should return true for git repository', async () => {
-      mockFs.pathExists.mockResolvedValue(true);
-
-      const result = await isGitRepository('/test/project');
-
-      expect(result).toBe(true);
-      expect(mockFs.pathExists).toHaveBeenCalledWith('/test/project/.git');
-    });
-
-    it('should return false for non-git directory', async () => {
-      mockFs.pathExists.mockResolvedValue(false);
-
-      const result = await isGitRepository('/test/project');
-
-      expect(result).toBe(false);
-    });
-
-    it('should handle file system errors', async () => {
-      mockFs.pathExists.mockRejectedValue(new Error('Permission denied'));
-
-      const result = await isGitRepository('/test/project');
-
-      expect(result).toBe(false);
-    });
-  });
-
-  describe('getCurrentBranch', () => {
-    it('should return current branch name', async () => {
-      mockExeca.mockResolvedValue({ stdout: 'main' });
-
-      const result = await getCurrentBranch('/test/project');
-
-      expect(result).toBe('main');
-      expect(mockExeca).toHaveBeenCalledWith('git', ['branch', '--show-current'], {
-        cwd: '/test/project'
-      });
-    });
-
-    it('should handle detached HEAD state', async () => {
-      mockExeca.mockResolvedValue({ stdout: '' });
-
-      const result = await getCurrentBranch('/test/project');
-
-      expect(result).toBeNull();
-    });
-
-    it('should handle git command errors', async () => {
-      mockExeca.mockRejectedValue(new Error('Not a git repository'));
-
-      const result = await getCurrentBranch('/test/project');
-
-      expect(result).toBeNull();
-    });
-
-    it('should trim whitespace from branch name', async () => {
-      mockExeca.mockResolvedValue({ stdout: '  feature/test-branch  \n' });
-
-      const result = await getCurrentBranch('/test/project');
-
-      expect(result).toBe('feature/test-branch');
-    });
-  });
-
-  describe('getCurrentCommit', () => {
-    it('should return current commit hash', async () => {
-      mockExeca.mockResolvedValue({ stdout: 'abc123def456' });
-
-      const result = await getCurrentCommit('/test/project');
-
-      expect(result).toBe('abc123def456');
-      expect(mockExeca).toHaveBeenCalledWith('git', ['rev-parse', 'HEAD'], {
-        cwd: '/test/project'
-      });
-    });
-
-    it('should handle git command errors', async () => {
-      mockExeca.mockRejectedValue(new Error('Not a git repository'));
-
-      const result = await getCurrentCommit('/test/project');
-
-      expect(result).toBeNull();
-    });
-
-    it('should trim whitespace from commit hash', async () => {
-      mockExeca.mockResolvedValue({ stdout: '  abc123def456  \n' });
-
-      const result = await getCurrentCommit('/test/project');
-
-      expect(result).toBe('abc123def456');
-    });
-  });
-
-  describe('getCommitInfo', () => {
-    it('should return commit information', async () => {
-      mockExeca.mockResolvedValue({ 
-        stdout: 'John Doe\nAdd new feature\n2023-01-01 12:00:00' 
-      });
-
-      const result = await getCommitInfo('/test/project', 'abc123');
-
-      expect(result).toEqual({
-        hash: 'abc123',
-        author: 'John Doe',
-        message: 'Add new feature',
-        date: '2023-01-01 12:00:00'
-      });
-      expect(mockExeca).toHaveBeenCalledWith('git', [
-        'show',
-        '--format=%an%n%s%n%ci',
-        '--no-patch',
-        'abc123'
-      ], {
-        cwd: '/test/project'
-      });
-    });
-
-    it('should use HEAD when no commit hash provided', async () => {
-      mockExeca.mockResolvedValue({ 
-        stdout: 'Jane Doe\nFix bug\n2023-01-02 15:30:00' 
-      });
-
-      const result = await getCommitInfo('/test/project');
-
-      expect(mockExeca).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.arrayContaining(['HEAD']),
-        expect.anything()
-      );
-    });
-
-    it('should handle partial commit info', async () => {
-      mockExeca.mockResolvedValue({ stdout: 'John Doe\nAdd feature\n' });
-
-      const result = await getCommitInfo('/test/project', 'abc123');
-
-      expect(result).toEqual({
-        hash: 'abc123',
-        author: 'John Doe',
-        message: 'Add feature',
-        date: ''
-      });
-    });
-
-    it('should handle git command errors', async () => {
-      mockExeca.mockRejectedValue(new Error('Invalid commit'));
-
-      const result = await getCommitInfo('/test/project', 'invalid');
-
-      expect(result).toBeNull();
-    });
-
-    it('should handle empty commit info', async () => {
-      mockExeca.mockResolvedValue({ stdout: '' });
-
-      const result = await getCommitInfo('/test/project');
-
-      expect(result).toEqual({
-        hash: 'HEAD',
-        author: '',
-        message: '',
-        date: ''
-      });
-    });
+    mockExecSync.mockReturnValue('mock-output');
   });
 
   describe('detectGitInfo', () => {
-    it('should detect complete git information', async () => {
+    it('should detect GitHub repository information', async () => {
       mockFs.pathExists.mockResolvedValue(true);
-      mockFs.readFile.mockResolvedValue(`
-        [remote "origin"]
-          url = https://github.com/test/repo.git
-          fetch = +refs/heads/*:refs/remotes/origin/*
-      `);
-      mockExeca
-        .mockResolvedValueOnce({ stdout: 'main' })           // branch
-        .mockResolvedValueOnce({ stdout: 'abc123def456' });  // commit
+      mockExecSync
+        .mockReturnValueOnce('https://github.com/test/repo.git') // remote url
+        .mockReturnValueOnce('main'); // current branch
 
       const result = await detectGitInfo('/test/project');
 
       expect(result).toEqual({
-        repoUrl: 'https://github.com/test/repo.git',
+        repoUrl: 'https://github.com/test/repo',
         repoKind: 'github',
-        repoBranch: 'main',
-        currentCommit: 'abc123def456'
+        repoBranch: 'main'
       });
     });
 
-    it('should detect GitLab repositories', async () => {
-      mockFs.readFile.mockResolvedValue(`
-        [remote "origin"]
-          url = https://gitlab.com/test/repo.git
-      `);
-      mockExeca.mockResolvedValueOnce({ stdout: 'develop' });
+    it('should detect GitLab repository', async () => {
+      mockFs.pathExists.mockResolvedValue(true);
+      mockExecSync
+        .mockReturnValueOnce('https://gitlab.com/test/repo.git')
+        .mockReturnValueOnce('develop');
 
       const result = await detectGitInfo('/test/project');
 
       expect(result.repoKind).toBe('gitlab');
-      expect(result.repoUrl).toBe('https://gitlab.com/test/repo.git');
+      expect(result.repoUrl).toBe('https://gitlab.com/test/repo');
     });
 
-    it('should handle SSH URLs', async () => {
-      mockFs.readFile.mockResolvedValue(`
-        [remote "origin"]
-          url = git@github.com:test/repo.git
-      `);
+    it('should convert SSH URLs to HTTPS', async () => {
+      mockFs.pathExists.mockResolvedValue(true);
+      mockExecSync
+        .mockReturnValueOnce('git@github.com:test/repo.git')
+        .mockReturnValueOnce('main');
 
       const result = await detectGitInfo('/test/project');
 
-      expect(result.repoUrl).toBe('git@github.com:test/repo.git');
+      expect(result.repoUrl).toBe('https://github.com/test/repo');
       expect(result.repoKind).toBe('github');
     });
 
-    it('should handle self-hosted Git services', async () => {
-      mockFs.readFile.mockResolvedValue(`
-        [remote "origin"]
-          url = https://git.company.com/test/repo.git
-      `);
+    it('should handle detached HEAD state with fallback', async () => {
+      mockFs.pathExists.mockResolvedValue(true);
+      mockExecSync
+        .mockReturnValueOnce('https://github.com/test/repo.git')
+        .mockReturnValueOnce('') // empty current branch
+        .mockReturnValueOnce('refs/remotes/origin/main'); // fallback to default
 
       const result = await detectGitInfo('/test/project');
 
-      expect(result.repoUrl).toBe('https://git.company.com/test/repo.git');
-      expect(result.repoKind).toBe('git');
+      expect(result.repoBranch).toBe('main');
     });
 
     it('should handle non-git directories', async () => {
@@ -263,164 +88,134 @@ describe('git utilities', () => {
 
       const result = await detectGitInfo('/test/project');
 
-      expect(result).toEqual({
-        repoUrl: null,
-        repoKind: null,
-        repoBranch: null,
-        currentCommit: null
+      expect(result).toEqual({});
+    });
+
+    it('should handle git command failures gracefully', async () => {
+      mockFs.pathExists.mockResolvedValue(true);
+      mockExecSync.mockImplementation(() => {
+        throw new Error('Not a git repository');
       });
-    });
-
-    it('should handle missing remote origin', async () => {
-      mockFs.readFile.mockResolvedValue(`
-        [core]
-          bare = false
-      `);
 
       const result = await detectGitInfo('/test/project');
 
-      expect(result.repoUrl).toBeNull();
-      expect(result.repoKind).toBeNull();
+      expect(result).toEqual({});
     });
 
-    it('should handle git config read errors', async () => {
-      mockFs.readFile.mockRejectedValue(new Error('Permission denied'));
-
-      const result = await detectGitInfo('/test/project');
-
-      expect(result.repoUrl).toBeNull();
-    });
-
-    it('should detect different URL formats', async () => {
-      const urlFormats = [
-        { 
-          url: 'https://github.com/user/repo.git',
-          expected: { kind: 'github', url: 'https://github.com/user/repo.git' }
-        },
-        {
-          url: 'git@github.com:user/repo.git',
-          expected: { kind: 'github', url: 'git@github.com:user/repo.git' }
-        },
-        {
-          url: 'https://gitlab.com/user/repo.git',
-          expected: { kind: 'gitlab', url: 'https://gitlab.com/user/repo.git' }
-        },
-        {
-          url: 'git@gitlab.com:user/repo.git',
-          expected: { kind: 'gitlab', url: 'git@gitlab.com:user/repo.git' }
-        },
-        {
-          url: 'https://bitbucket.org/user/repo.git',
-          expected: { kind: 'git', url: 'https://bitbucket.org/user/repo.git' }
-        }
+    it('should detect different repository types', async () => {
+      const testCases = [
+        { url: 'https://github.com/test/repo.git', expected: 'github' },
+        { url: 'https://gitlab.com/test/repo.git', expected: 'gitlab' },
+        { url: 'https://bitbucket.org/test/repo.git', expected: 'bitbucket' },
+        { url: 'https://gitee.com/test/repo.git', expected: 'gitee' }
       ];
 
-      for (const { url, expected } of urlFormats) {
-        mockFs.readFile.mockResolvedValue(`[remote "origin"]\n\turl = ${url}`);
+      for (const { url, expected } of testCases) {
+        mockFs.pathExists.mockResolvedValue(true);
+        mockExecSync
+          .mockReturnValueOnce(url)
+          .mockReturnValueOnce('main');
 
         const result = await detectGitInfo('/test/project');
 
-        expect(result.repoKind).toBe(expected.kind);
-        expect(result.repoUrl).toBe(expected.url);
+        expect(result.repoKind).toBe(expected);
       }
     });
-  });
 
-  describe('error handling', () => {
-    it('should handle command execution timeouts', async () => {
-      mockExeca.mockRejectedValue({ signal: 'SIGTERM', message: 'Command timed out' });
+    it('should handle default branch fallback', async () => {
+      mockFs.pathExists.mockResolvedValue(true);
+      mockExecSync
+        .mockReturnValueOnce('https://github.com/test/repo.git')
+        .mockReturnValueOnce('') // empty current branch
+        .mockImplementationOnce(() => {
+          throw new Error('No default branch');
+        }); // fallback fails
 
-      const result = await getCurrentBranch('/test/project');
+      const result = await detectGitInfo('/test/project');
 
-      expect(result).toBeNull();
-    });
-
-    it('should handle permission denied errors', async () => {
-      mockExeca.mockRejectedValue({ code: 'EACCES', message: 'Permission denied' });
-
-      const result = await getCurrentCommit('/test/project');
-
-      expect(result).toBeNull();
-    });
-
-    it('should handle non-Error objects', async () => {
-      mockExeca.mockRejectedValue('String error');
-
-      const result = await getCurrentBranch('/test/project');
-
-      expect(result).toBeNull();
+      expect(result.repoBranch).toBe('main');
     });
   });
 
-  describe('path handling', () => {
-    it('should handle relative paths', async () => {
-      await getCurrentBranch('./test/project');
+  describe('getCurrentCommitSha', () => {
+    it('should return current commit SHA', () => {
+      mockExecSync.mockReturnValue('abc123def456789');
 
-      expect(mockExeca).toHaveBeenCalledWith(
-        'git',
-        expect.any(Array),
-        expect.objectContaining({
-          cwd: './test/project'
-        })
-      );
+      const result = getCurrentCommitSha('/test/project');
+
+      expect(result).toBe('abc123def456789');
+      expect(mockExecSync).toHaveBeenCalledWith('git rev-parse HEAD', {
+        cwd: '/test/project',
+        encoding: 'utf8'
+      });
     });
 
-    it('should handle paths with spaces', async () => {
-      await getCurrentBranch('/path with spaces/project');
+    it('should trim whitespace from commit SHA', () => {
+      mockExecSync.mockReturnValue('  abc123def456789  \n');
 
-      expect(mockExeca).toHaveBeenCalledWith(
-        'git',
-        expect.any(Array),
-        expect.objectContaining({
-          cwd: '/path with spaces/project'
-        })
-      );
+      const result = getCurrentCommitSha('/test/project');
+
+      expect(result).toBe('abc123def456789');
     });
 
-    it('should use current directory when no path provided', async () => {
-      await getCurrentBranch();
+    it('should handle git command errors', () => {
+      mockExecSync.mockImplementation(() => {
+        throw new Error('Not a git repository');
+      });
 
-      expect(mockExeca).toHaveBeenCalledWith(
-        'git',
-        expect.any(Array),
-        expect.objectContaining({
-          cwd: process.cwd()
-        })
-      );
+      const result = getCurrentCommitSha('/test/project');
+
+      expect(result).toBeUndefined();
     });
   });
 
-  describe('branch name parsing', () => {
-    it('should handle feature branch names', async () => {
-      mockExeca.mockResolvedValue({ stdout: 'feature/new-functionality' });
+  describe('getRecentCommits', () => {
+    it('should return recent commit list', () => {
+      mockExecSync.mockReturnValue('abc123 Latest commit\ndef456 Previous commit\nghi789 Older commit');
 
-      const result = await getCurrentBranch();
+      const result = getRecentCommits('/test/project', 3);
 
-      expect(result).toBe('feature/new-functionality');
+      expect(result).toEqual([
+        'abc123 Latest commit',
+        'def456 Previous commit', 
+        'ghi789 Older commit'
+      ]);
+      expect(mockExecSync).toHaveBeenCalledWith('git log --oneline -n 3', {
+        cwd: '/test/project',
+        encoding: 'utf8'
+      });
     });
 
-    it('should handle release branch names', async () => {
-      mockExeca.mockResolvedValue({ stdout: 'release/v1.2.3' });
+    it('should use default count of 10', () => {
+      mockExecSync.mockReturnValue('abc123 Latest commit');
 
-      const result = await getCurrentBranch();
+      const result = getRecentCommits('/test/project');
 
-      expect(result).toBe('release/v1.2.3');
+      expect(mockExecSync).toHaveBeenCalledWith('git log --oneline -n 10', {
+        cwd: '/test/project',
+        encoding: 'utf8'
+      });
     });
 
-    it('should handle hotfix branch names', async () => {
-      mockExeca.mockResolvedValue({ stdout: 'hotfix/critical-bug' });
+    it('should handle git command errors', () => {
+      mockExecSync.mockImplementation(() => {
+        throw new Error('Not a git repository');
+      });
 
-      const result = await getCurrentBranch();
+      const result = getRecentCommits('/test/project');
 
-      expect(result).toBe('hotfix/critical-bug');
+      expect(result).toEqual([]);
     });
 
-    it('should handle branch names with special characters', async () => {
-      mockExeca.mockResolvedValue({ stdout: 'feature/user-123_fix-issue' });
+    it('should filter out empty lines', () => {
+      mockExecSync.mockReturnValue('abc123 Latest commit\n\ndef456 Previous commit\n');
 
-      const result = await getCurrentBranch();
+      const result = getRecentCommits('/test/project');
 
-      expect(result).toBe('feature/user-123_fix-issue');
+      expect(result).toEqual([
+        'abc123 Latest commit',
+        'def456 Previous commit'
+      ]);
     });
   });
 });

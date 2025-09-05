@@ -156,6 +156,8 @@ export interface RuntimeContext {
   artifactsDir: string;
   logDir: string;
   lockFile: string;
+  base?: string;
+  head?: string;
 }
 
 /**

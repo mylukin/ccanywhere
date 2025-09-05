@@ -132,8 +132,8 @@ export class NotificationManager implements NotificationSender {
       });
     }
 
-    // Throw error only if all channels failed
-    if (successful.length === 0) {
+    // Throw error only if all channels failed (but not if no channels were attempted)
+    if (successful.length === 0 && failed.length > 0) {
       const errors = failed.map(r => `${r.channel}: ${r.error}`).join('; ');
       throw new BuildError(`All notification channels failed: ${errors}`);
     }

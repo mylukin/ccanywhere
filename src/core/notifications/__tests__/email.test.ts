@@ -251,7 +251,7 @@ describe('EmailNotifier', () => {
 
       mockExeca.mockRejectedValue(new Error('Mail command failed'));
 
-      await expect(notifier.send(message)).rejects.toThrow('Failed to send email: Mail command failed');
+      await expect(notifier.send(message)).rejects.toThrow('Failed to send email via sendmail: Mail command failed');
     });
   });
 

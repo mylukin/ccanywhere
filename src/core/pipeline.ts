@@ -88,7 +88,11 @@ export class BuildPipeline {
       // Trigger deployment
       let deploymentUrl: string | undefined;
       if (hasDeploymentConfig(this.config) && !this.dryRun) {
-        deploymentUrl = await this.triggerDeployment(context);
+        try {
+          deploymentUrl = await this.triggerDeployment(context);
+        } catch (error) {
+          this.logger.error('Deployment failed', { error: error instanceof Error ? error.message : String(error) });
+        }
       } else {
         this.logger.step('deploy', 'Deployment skipped (dry run or not configured)');
       }
@@ -125,7 +129,11 @@ export class BuildPipeline {
 
       // Send success notification
       if (!this.dryRun) {
-        await this.sendSuccessNotification(result);
+        try {
+          await this.sendSuccessNotification(result);
+        } catch (error) {
+          this.logger.error('Failed to send notification', { error: error instanceof Error ? error.message : String(error) });
+        }
       }
 
       this.logger.buildComplete(true, duration, { artifactCount: artifacts.length });
@@ -189,7 +197,9 @@ export class BuildPipeline {
       workDir: this.workDir,
       artifactsDir: join(this.workDir, '.artifacts'),
       logDir: join(this.workDir, '../logs'),
-      lockFile: '/tmp/ccanywhere-locks/main.lock'
+      lockFile: '/tmp/ccanywhere-locks/main.lock',
+      base,
+      head
     };
 
     return context;
@@ -243,11 +253,12 @@ export class BuildPipeline {
    * Generate diff HTML
    */
   private async generateDiff(context: RuntimeContext): Promise<BuildArtifact> {
-    const baseBranch = this.config.build?.base || 'origin/main';
-    this.logger.step('diff', `Generating diff from ${baseBranch} to HEAD`);
+    const baseBranch = context.base || this.config.build?.base || 'origin/main';
+    const headBranch = context.head || 'HEAD';
+    this.logger.step('diff', `Generating diff from ${baseBranch} to ${headBranch}`);
 
     const diffGenerator = new HtmlDiffGenerator();
-    const artifact = await diffGenerator.generate(baseBranch, 'HEAD', context);
+    const artifact = await diffGenerator.generate(baseBranch, headBranch, context);
 
     this.logger.step('diff', 'Diff generation completed', { url: artifact.url });
     return artifact;

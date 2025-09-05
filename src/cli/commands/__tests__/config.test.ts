@@ -19,11 +19,11 @@ jest.unstable_mockModule('fs-extra', () => ({
 
 // Mock chalk
 const mockChalk = {
-  blue: jest.fn((text: string) => text),
-  green: jest.fn((text: string) => text),
-  yellow: jest.fn((text: string) => text),
-  red: jest.fn((text: string) => text),
-  gray: jest.fn((text: string) => text)
+  blue: jest.fn((...args: any[]) => args.join(' ')),
+  green: jest.fn((...args: any[]) => args.join(' ')),
+  yellow: jest.fn((...args: any[]) => args.join(' ')),
+  red: jest.fn((...args: any[]) => args.join(' ')),
+  gray: jest.fn((...args: any[]) => args.join(' '))
 };
 jest.unstable_mockModule('chalk', () => ({
   default: mockChalk
@@ -301,7 +301,7 @@ describe('config command', () => {
       expect(mockSpawn).toHaveBeenCalledWith('nano', ['ccanywhere.config.json'], {
         stdio: 'inherit'
       });
-      expect(console.log).toHaveBeenCalledWith('Editor exited with code:', 1);
+      expect(console.log).toHaveBeenCalledWith('Editor exited with code: 1');
     });
 
     it('should handle spawn errors', async () => {

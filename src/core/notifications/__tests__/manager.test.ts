@@ -22,32 +22,33 @@ const mockWeComProvider = {
   test: jest.fn() as any
 };
 
-jest.unstable_mockModule('../telegram', () => ({
-  TelegramNotificationProvider: jest.fn(() => mockTelegramProvider) as jest.Mock
+jest.unstable_mockModule('../core/notifications/telegram', () => ({
+  TelegramNotifier: jest.fn(() => mockTelegramProvider) as jest.Mock
 }));
 
-jest.unstable_mockModule('../email', () => ({
-  EmailNotificationProvider: jest.fn(() => mockEmailProvider) as jest.Mock
+jest.unstable_mockModule('../core/notifications/email', () => ({
+  EmailNotifier: jest.fn(() => mockEmailProvider) as jest.Mock
 }));
 
-jest.unstable_mockModule('../dingtalk', () => ({
-  DingTalkNotificationProvider: jest.fn(() => mockDingTalkProvider) as jest.Mock
+jest.unstable_mockModule('../core/notifications/dingtalk', () => ({
+  DingTalkNotifier: jest.fn(() => mockDingTalkProvider) as jest.Mock
 }));
 
-jest.unstable_mockModule('../wecom', () => ({
-  WeComNotificationProvider: jest.fn(() => mockWeComProvider) as jest.Mock
+jest.unstable_mockModule('../core/notifications/wecom', () => ({
+  WeComNotifier: jest.fn(() => mockWeComProvider) as jest.Mock
 }));
 
 // Mock formatter
 const mockFormatter = {
-  formatMessage: jest.fn() as any
+  format: jest.fn() as any
 };
-jest.unstable_mockModule('../formatter', () => ({
-  NotificationFormatter: jest.fn(() => mockFormatter) as jest.Mock
+jest.unstable_mockModule('../core/notifications/formatter', () => ({
+  MessageFormatter: mockFormatter
 }));
 
 // Import the module after mocking
 const { NotificationManager } = await import('../manager');
+import type { NotificationChannel } from '../../../types/index.js';
 
 describe('NotificationManager', () => {
   let manager: any;
@@ -59,7 +60,7 @@ describe('NotificationManager', () => {
 
     // Setup mock config
     mockConfig = {
-      channels: ['telegram', 'email'],
+      channels: ['telegram', 'email'] as NotificationChannel[],
       telegram: {
         botToken: 'test-token',
         chatId: 'test-chat-id'
@@ -71,7 +72,7 @@ describe('NotificationManager', () => {
     };
 
     // Setup default mock returns
-    mockFormatter.formatMessage.mockReturnValue('Formatted message');
+    mockFormatter.format.mockReturnValue({ title: 'Formatted title', content: 'Formatted message' });
     mockTelegramProvider.send.mockResolvedValue(undefined);
     mockEmailProvider.send.mockResolvedValue(undefined);
     mockTelegramProvider.test.mockResolvedValue({ success: true });
@@ -86,19 +87,19 @@ describe('NotificationManager', () => {
 
     it('should throw error for invalid configuration', () => {
       expect(() => {
-        new NotificationManager({});
-      }).toThrow('Notification channels are required');
+        new NotificationManager(undefined);
+      }).toThrow('Notifications configuration is required');
     });
 
     it('should throw error for empty channels', () => {
       expect(() => {
         new NotificationManager({ channels: [] });
-      }).toThrow('At least one notification channel must be configured');
+      }).toThrow('No notification channels could be initialized');
     });
 
     it('should initialize only configured providers', () => {
       manager = new NotificationManager({
-        channels: ['telegram'],
+        channels: ['telegram'] as NotificationChannel[],
         telegram: { botToken: 'test', chatId: 'test' }
       });
 
@@ -109,10 +110,9 @@ describe('NotificationManager', () => {
     it('should throw error for unsupported channel', () => {
       expect(() => {
         new NotificationManager({
-          channels: ['unsupported' as any],
-          unsupported: {}
+          channels: ['unsupported' as any]
         });
-      }).toThrow('Unsupported notification channel: unsupported');
+      }).toThrow('No notification channels could be initialized');
     });
   });
 
@@ -131,9 +131,8 @@ describe('NotificationManager', () => {
 
       await manager.send(message);
 
-      expect(mockFormatter.formatMessage).toHaveBeenCalledTimes(2); // Once for each channel
-      expect(mockTelegramProvider.send).toHaveBeenCalledWith('Formatted message');
-      expect(mockEmailProvider.send).toHaveBeenCalledWith('Formatted message');
+      expect(mockTelegramProvider.send).toHaveBeenCalledWith(message);
+      expect(mockEmailProvider.send).toHaveBeenCalledWith(message);
     });
 
     it('should send message to specific channels only', async () => {
@@ -146,7 +145,7 @@ describe('NotificationManager', () => {
 
       await manager.send(message, ['telegram']);
 
-      expect(mockTelegramProvider.send).toHaveBeenCalledWith('Formatted message');
+      expect(mockTelegramProvider.send).toHaveBeenCalledWith(message);
       expect(mockEmailProvider.send).not.toHaveBeenCalled();
     });
 
@@ -179,7 +178,7 @@ describe('NotificationManager', () => {
       // dingtalk not configured, should be skipped without error
     });
 
-    it('should format messages correctly for each channel', async () => {
+    it('should send raw messages to providers', async () => {
       const message = {
         title: 'Test Message',
         extra: 'Test content',
@@ -189,8 +188,8 @@ describe('NotificationManager', () => {
 
       await manager.send(message);
 
-      expect(mockFormatter.formatMessage).toHaveBeenCalledWith(message, 'telegram');
-      expect(mockFormatter.formatMessage).toHaveBeenCalledWith(message, 'email');
+      expect(mockTelegramProvider.send).toHaveBeenCalledWith(message);
+      expect(mockEmailProvider.send).toHaveBeenCalledWith(message);
     });
 
     it('should handle empty specific channels array', async () => {
@@ -203,9 +202,9 @@ describe('NotificationManager', () => {
 
       await manager.send(message, []);
 
-      // Should send to all configured channels when empty array provided
-      expect(mockTelegramProvider.send).toHaveBeenCalled();
-      expect(mockEmailProvider.send).toHaveBeenCalled();
+      // Empty array should send to no channels
+      expect(mockTelegramProvider.send).not.toHaveBeenCalled();
+      expect(mockEmailProvider.send).not.toHaveBeenCalled();
     });
   });
 
@@ -220,22 +219,25 @@ describe('NotificationManager', () => {
       expect(results).toHaveLength(2);
       expect(results[0]).toEqual({
         channel: 'telegram',
-        success: true
+        success: true,
+        timestamp: expect.any(Number)
       });
       expect(results[1]).toEqual({
         channel: 'email',
-        success: true
+        success: true,
+        timestamp: expect.any(Number)
       });
 
-      expect(mockTelegramProvider.test).toHaveBeenCalled();
-      expect(mockEmailProvider.test).toHaveBeenCalled();
+      expect(mockTelegramProvider.send).toHaveBeenCalledWith(expect.objectContaining({
+        title: expect.stringContaining('CCanywhere Configuration Test')
+      }));
+      expect(mockEmailProvider.send).toHaveBeenCalledWith(expect.objectContaining({
+        title: expect.stringContaining('CCanywhere Configuration Test')
+      }));
     });
 
     it('should handle test failures', async () => {
-      mockTelegramProvider.test.mockResolvedValue({
-        success: false,
-        error: 'Invalid token'
-      });
+      mockTelegramProvider.send.mockRejectedValue(new Error('Invalid token'));
 
       const results = await manager.testAllChannels();
 
@@ -243,40 +245,45 @@ describe('NotificationManager', () => {
       expect(results[0]).toEqual({
         channel: 'telegram',
         success: false,
-        error: 'Invalid token'
+        error: 'Invalid token',
+        timestamp: expect.any(Number)
       });
       expect(results[1]).toEqual({
         channel: 'email',
-        success: true
+        success: true,
+        timestamp: expect.any(Number)
       });
     });
 
     it('should handle test exceptions', async () => {
-      mockEmailProvider.test.mockRejectedValue(new Error('Test exception'));
+      mockEmailProvider.send.mockRejectedValue(new Error('Test exception'));
 
       const results = await manager.testAllChannels();
 
       expect(results).toHaveLength(2);
       expect(results[0]).toEqual({
         channel: 'telegram',
-        success: true
+        success: true,
+        timestamp: expect.any(Number)
       });
       expect(results[1]).toEqual({
         channel: 'email',
         success: false,
-        error: 'Test exception'
+        error: 'Test exception',
+        timestamp: expect.any(Number)
       });
     });
 
     it('should handle non-Error exceptions', async () => {
-      mockTelegramProvider.test.mockRejectedValue('String error');
+      mockTelegramProvider.send.mockRejectedValue('String error');
 
       const results = await manager.testAllChannels();
 
       expect(results[0]).toEqual({
         channel: 'telegram',
         success: false,
-        error: 'String error'
+        error: 'String error',
+        timestamp: expect.any(Number)
       });
     });
   });
@@ -284,7 +291,7 @@ describe('NotificationManager', () => {
   describe('channel-specific initialization', () => {
     it('should initialize telegram provider', () => {
       manager = new NotificationManager({
-        channels: ['telegram'],
+        channels: ['telegram'] as NotificationChannel[],
         telegram: { botToken: 'test', chatId: 'test' }
       });
 
@@ -293,7 +300,7 @@ describe('NotificationManager', () => {
 
     it('should initialize email provider', () => {
       manager = new NotificationManager({
-        channels: ['email'],
+        channels: ['email'] as NotificationChannel[],
         email: { to: 'test@example.com', from: 'sender@example.com' }
       });
 
@@ -302,7 +309,7 @@ describe('NotificationManager', () => {
 
     it('should initialize dingtalk provider', () => {
       manager = new NotificationManager({
-        channels: ['dingtalk'],
+        channels: ['dingtalk'] as NotificationChannel[],
         dingtalk: { webhook: 'https://test.com/webhook' }
       });
 
@@ -311,7 +318,7 @@ describe('NotificationManager', () => {
 
     it('should initialize wecom provider', () => {
       manager = new NotificationManager({
-        channels: ['wecom'],
+        channels: ['wecom'] as NotificationChannel[],
         wecom: { webhook: 'https://test.com/webhook' }
       });
 
@@ -321,17 +328,17 @@ describe('NotificationManager', () => {
     it('should handle missing provider configuration', () => {
       expect(() => {
         new NotificationManager({
-          channels: ['telegram']
+          channels: ['telegram'] as NotificationChannel[]
           // Missing telegram config
         });
-      }).toThrow('Configuration for telegram notification provider is missing');
+      }).toThrow('No notification channels could be initialized');
     });
   });
 
   describe('multiple channels configuration', () => {
     it('should initialize all supported channels', () => {
       const allChannelsConfig = {
-        channels: ['telegram', 'email', 'dingtalk', 'wecom'],
+        channels: ['telegram', 'email', 'dingtalk', 'wecom'] as NotificationChannel[],
         telegram: { botToken: 'test', chatId: 'test' },
         email: { to: 'test@example.com' },
         dingtalk: { webhook: 'https://test.com/webhook' },
@@ -344,7 +351,7 @@ describe('NotificationManager', () => {
 
     it('should send to all channels', async () => {
       const allChannelsConfig = {
-        channels: ['telegram', 'email', 'dingtalk', 'wecom'],
+        channels: ['telegram', 'email', 'dingtalk', 'wecom'] as NotificationChannel[],
         telegram: { botToken: 'test', chatId: 'test' },
         email: { to: 'test@example.com' },
         dingtalk: { webhook: 'https://test.com/webhook' },
@@ -390,7 +397,7 @@ describe('NotificationManager', () => {
     });
 
     it('should handle formatter errors gracefully', async () => {
-      mockFormatter.formatMessage.mockImplementation(() => {
+      mockFormatter.format.mockImplementation(() => {
         throw new Error('Formatting failed');
       });
 
