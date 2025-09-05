@@ -9,14 +9,16 @@ import fsExtra from 'fs-extra';
 const { readFile, writeFile, ensureDir } = fsExtra;
 import { execa } from 'execa';
 import * as diff2html from 'diff2html';
-import type { DiffGenerator, BuildArtifact, RuntimeContext, CommitInfo } from '../types/index.js';
+import type { DiffGenerator, BuildArtifact, RuntimeContext, CommitInfo, IStorageProvider } from '../types/index.js';
 import { BuildError } from '../types/index.js';
+import { StorageFactory } from './storage/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 export class HtmlDiffGenerator implements DiffGenerator {
   private readonly templatePath: string;
+  private readonly storageProvider: IStorageProvider | null = null;
 
   constructor(templatePath?: string) {
     this.templatePath = templatePath || resolve(__dirname, '../../templates/mobile-wrapper.html');
@@ -36,6 +38,9 @@ export class HtmlDiffGenerator implements DiffGenerator {
         throw new BuildError('No changes detected between base and head');
       }
 
+      // Initialize storage provider if configured
+      const storageProvider = StorageFactory.create(context.config);
+
       // Get git diff
       const diffContent = await this.getDiffContent(base, head, context.workDir);
 
@@ -45,17 +50,41 @@ export class HtmlDiffGenerator implements DiffGenerator {
       // Generate HTML
       const htmlContent = await this.generateHtml(diffContent, commitInfo, context);
 
-      // Write to artifacts directory
+      // File naming
       const fileName = `diff-${context.revision}.html`;
       const filePath = join(context.artifactsDir, fileName);
+      
+      // Write to local artifacts directory first
       await writeFile(filePath, htmlContent, 'utf8');
 
       // Get file size
       const stats = await fs.stat(filePath);
 
+      let finalUrl: string;
+      
+      // Upload to cloud storage if enabled
+      if (storageProvider) {
+        try {
+          const storageKey = `diffs/${fileName}`;
+          const cloudUrl = await storageProvider.upload(storageKey, htmlContent, 'text/html; charset=utf-8');
+          
+          // Use artifacts URL prefix if configured, otherwise use direct cloud URL
+          finalUrl = context.config.urls?.artifacts 
+            ? `${context.config.urls.artifacts}/${storageKey}`
+            : cloudUrl;
+        } catch (storageError) {
+          // If cloud storage fails, log warning but continue with local URL
+          console.warn('Cloud storage upload failed:', storageError);
+          finalUrl = `${context.config.urls?.artifacts || ''}/${fileName}`;
+        }
+      } else {
+        // Use local/CDN URL
+        finalUrl = `${context.config.urls?.artifacts || ''}/${fileName}`;
+      }
+
       const artifact: BuildArtifact = {
         type: 'diff',
-        url: `${context.config.urls?.artifacts || ''}/${fileName}`,
+        url: finalUrl,
         path: filePath,
         size: stats.size,
         timestamp: context.timestamp

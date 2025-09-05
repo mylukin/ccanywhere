@@ -44,5 +44,26 @@
   "artifacts": {
     "retentionDays": 7,
     "maxSize": "100MB"
+  },
+  "storage": {
+    "provider": "s3",
+    "s3": {
+      "accessKeyId": "YOUR_AWS_ACCESS_KEY_ID",
+      "secretAccessKey": "YOUR_AWS_SECRET_ACCESS_KEY",
+      "region": "us-east-1",
+      "bucket": "my-artifacts-bucket"
+    },
+    "r2": {
+      "accountId": "YOUR_CLOUDFLARE_ACCOUNT_ID",
+      "accessKeyId": "YOUR_R2_ACCESS_KEY_ID", 
+      "secretAccessKey": "YOUR_R2_SECRET_ACCESS_KEY",
+      "bucket": "my-r2-bucket"
+    },
+    "oss": {
+      "accessKeyId": "YOUR_ALIYUN_ACCESS_KEY_ID",
+      "accessKeySecret": "YOUR_ALIYUN_ACCESS_KEY_SECRET",
+      "region": "oss-cn-hangzhou",
+      "bucket": "my-oss-bucket"
+    }
   }
 }

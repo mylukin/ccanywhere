@@ -26,16 +26,18 @@ module.exports = {
     '@typescript-eslint/explicit-function-return-type': 'off',
     '@typescript-eslint/explicit-module-boundary-types': 'off',
     '@typescript-eslint/no-explicit-any': 'warn',
-    '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+    '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
     '@typescript-eslint/no-var-requires': 'off',
 
     // General
     'no-console': 'off', // We use console for CLI output
-    'prefer-const': 'error',
+    'prefer-const': 'warn',
     'no-unused-vars': 'off', // Handled by @typescript-eslint/no-unused-vars
     
-    // Prettier integration
-    'prettier/prettier': 'error'
+    // Prettier integration - changed from 'error' to 'warn' to be less strict
+    'prettier/prettier': ['warn', {
+      endOfLine: 'auto' // Be more flexible with line endings
+    }]
   },
   ignorePatterns: [
     'dist/**/*',

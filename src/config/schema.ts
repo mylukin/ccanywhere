@@ -7,6 +7,8 @@ import type { CcanywhereConfig } from '../types/index.js';
 
 export const RepoKindSchema = z.enum(['github', 'gitlab', 'bitbucket', 'gitee']);
 
+export const StorageProviderSchema = z.enum(['s3', 'r2', 'oss']);
+
 export const NotificationChannelSchema = z.enum(['telegram', 'dingtalk', 'wecom', 'email']);
 
 export const RepoConfigSchema = z
@@ -129,6 +131,51 @@ export const SecurityConfigSchema = z
   })
   .optional();
 
+export const S3ConfigSchema = z.object({
+  accessKeyId: z.string().min(1, 'S3 access key ID is required'),
+  secretAccessKey: z.string().min(1, 'S3 secret access key is required'),
+  region: z.string().min(1, 'S3 region is required'),
+  bucket: z.string().min(1, 'S3 bucket is required'),
+  endpoint: z.string().url().optional()
+});
+
+export const R2ConfigSchema = z.object({
+  accountId: z.string().min(1, 'Cloudflare R2 account ID is required'),
+  accessKeyId: z.string().min(1, 'R2 access key ID is required'),
+  secretAccessKey: z.string().min(1, 'R2 secret access key is required'),
+  bucket: z.string().min(1, 'R2 bucket is required')
+});
+
+export const OSSConfigSchema = z.object({
+  accessKeyId: z.string().min(1, 'OSS access key ID is required'),
+  accessKeySecret: z.string().min(1, 'OSS access key secret is required'),
+  region: z.string().min(1, 'OSS region is required'),
+  bucket: z.string().min(1, 'OSS bucket is required'),
+  endpoint: z.string().url().optional()
+});
+
+export const StorageConfigSchema = z
+  .object({
+    provider: StorageProviderSchema,
+    s3: S3ConfigSchema.optional(),
+    r2: R2ConfigSchema.optional(),
+    oss: OSSConfigSchema.optional()
+  })
+  .refine(data => {
+    // Validate that required config exists for the selected provider
+    if (data.provider === 's3' && !data.s3) {
+      throw new Error('S3 configuration is required when s3 provider is selected');
+    }
+    if (data.provider === 'r2' && !data.r2) {
+      throw new Error('R2 configuration is required when r2 provider is selected');
+    }
+    if (data.provider === 'oss' && !data.oss) {
+      throw new Error('OSS configuration is required when oss provider is selected');
+    }
+    return true;
+  })
+  .optional();
+
 export const CcanywhereConfigSchema = z.object({
   repo: RepoConfigSchema,
   urls: UrlsConfigSchema,
@@ -136,7 +183,8 @@ export const CcanywhereConfigSchema = z.object({
   notifications: NotificationsConfigSchema.optional(),
   build: BuildConfigSchema.optional(),
   test: TestConfigSchema,
-  security: SecurityConfigSchema
+  security: SecurityConfigSchema,
+  storage: StorageConfigSchema
 });
 
 /**

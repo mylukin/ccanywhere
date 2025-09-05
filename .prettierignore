@@ -1,0 +1,16 @@
+# Ignore artifacts
+dist
+coverage
+node_modules
+*.log
+*.lock
+
+# Ignore specific files
+*.min.js
+*.min.css
+
+# Ignore generated files
+tsconfig.tsbuildinfo
+
+# Ignore examples that might have different formatting
+examples/**/*.json

@@ -10,22 +10,20 @@
   },
   "keywords": [
     "ci-cd",
-    "deployment",
-    "automation",
     "typescript",
-    "mobile-friendly",
-    "diff",
-    "notifications",
     "claude-code",
-    "devops",
-    "build-tool"
+    "diff",
+    "deployment",
+    "testing",
+    "notifications",
+    "mobile-friendly"
   ],
-  "author": "CCanywhere Contributors",
+  "author": "CCanywhere Team",
   "license": "MIT",
   "homepage": "https://github.com/mylukin/ccanywhere#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mylukin/ccanywhere.git"
+    "url": "https://github.com/mylukin/ccanywhere.git"
   },
   "bugs": {
     "url": "https://github.com/mylukin/ccanywhere/issues"
@@ -34,14 +32,10 @@
     "node": ">=18.0.0"
   },
   "files": [
-    "dist/",
-    "templates/",
-    "examples/",
+    "dist/**/*",
+    "templates/**/*",
     "README.md",
-    "LICENSE",
-    "CHANGELOG.md",
-    "MIGRATION.md",
-    "QUICKSTART.md"
+    "LICENSE"
   ],
   "scripts": {
     "build": "rm -rf tsconfig.tsbuildinfo && tsc && chmod +x dist/cli/index.js",
@@ -56,51 +50,33 @@
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run clean && npm run build && npm run test"
   },
-  "keywords": [
-    "ci-cd",
-    "typescript",
-    "claude-code",
-    "diff",
-    "deployment",
-    "testing",
-    "notifications",
-    "mobile-friendly"
-  ],
-  "author": "CCanywhere Team",
-  "license": "MIT",
-  "files": [
-    "dist/**/*",
-    "templates/**/*",
-    "README.md",
-    "LICENSE"
-  ],
-  "engines": {
-    "node": ">=18.0.0"
-  },
   "dependencies": {
-    "commander": "^11.1.0",
-    "zod": "^3.22.4",
-    "fs-extra": "^11.2.0",
-    "execa": "^8.0.1",
-    "chalk": "^5.3.0",
-    "ora": "^7.0.1",
-    "inquirer": "^9.2.12",
-    "dotenv": "^16.3.1",
-    "diff2html": "^3.4.47",
+    "@aws-sdk/client-s3": "^3.882.0",
+    "@types/ali-oss": "^6.16.11",
+    "ali-oss": "^6.23.0",
     "axios": "^1.6.2",
-    "winston": "^3.11.0",
+    "chalk": "^5.3.0",
+    "commander": "^11.1.0",
     "cron": "^3.1.6",
+    "diff2html": "^3.4.47",
+    "dotenv": "^16.3.1",
+    "execa": "^8.0.1",
+    "fs-extra": "^11.2.0",
     "glob": "^10.3.10",
+    "inquirer": "^9.2.12",
     "mime-types": "^2.1.35",
     "node-telegram-bot-api": "^0.64.0",
-    "nodemailer": "^6.9.7"
+    "nodemailer": "^6.9.7",
+    "ora": "^7.0.1",
+    "winston": "^3.11.0",
+    "zod": "^3.22.4"
   },
   "devDependencies": {
-    "@types/node": "^20.10.5",
-    "@types/jest": "^29.5.8",
     "@types/fs-extra": "^11.0.4",
     "@types/inquirer": "^9.0.7",
+    "@types/jest": "^29.5.8",
     "@types/mime-types": "^2.1.4",
+    "@types/node": "^20.10.5",
     "@types/nodemailer": "^6.4.14",
     "@typescript-eslint/eslint-plugin": "^6.14.0",
     "@typescript-eslint/parser": "^6.14.0",
@@ -108,19 +84,11 @@
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.0.1",
     "jest": "^29.7.0",
+    "prettier": "^3.1.1",
     "ts-jest": "^29.1.1",
     "tsx": "^4.6.2",
-    "typescript": "^5.3.3",
-    "prettier": "^3.1.1"
+    "typescript": "^5.3.3"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/mylukin/ccanywhere.git"
-  },
-  "bugs": {
-    "url": "https://github.com/mylukin/ccanywhere/issues"
-  },
-  "homepage": "https://github.com/mylukin/ccanywhere#readme",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",

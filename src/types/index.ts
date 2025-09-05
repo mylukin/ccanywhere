@@ -8,6 +8,8 @@ export type NotificationChannel = 'telegram' | 'dingtalk' | 'wecom' | 'email';
 
 export type RepoKind = 'github' | 'gitlab' | 'bitbucket' | 'gitee';
 
+export type StorageProvider = 's3' | 'r2' | 'oss';
+
 export type DeploymentStatus = 'pending' | 'running' | 'success' | 'failed' | 'cancelled';
 
 export type TestStatus = 'pending' | 'running' | 'passed' | 'failed' | 'skipped';
@@ -83,6 +85,31 @@ export interface CcanywhereConfig {
   security?: {
     readOnly?: boolean;
     linkExpiry?: number;
+  };
+
+  /** Storage configuration */
+  storage?: {
+    provider: StorageProvider;
+    s3?: {
+      accessKeyId: string;
+      secretAccessKey: string;
+      region: string;
+      bucket: string;
+      endpoint?: string;
+    };
+    r2?: {
+      accountId: string;
+      accessKeyId: string;
+      secretAccessKey: string;
+      bucket: string;
+    };
+    oss?: {
+      accessKeyId: string;
+      accessKeySecret: string;
+      region: string;
+      bucket: string;
+      endpoint?: string;
+    };
   };
 }
 
@@ -280,6 +307,13 @@ export interface LockManager {
   release(lockFile: string): Promise<void>;
   clean(lockDir: string): Promise<void>;
   isLocked(lockFile: string): Promise<boolean>;
+}
+
+export interface IStorageProvider {
+  upload(key: string, content: Buffer | string, contentType?: string): Promise<string>;
+  exists(key: string): Promise<boolean>;
+  delete(key: string): Promise<void>;
+  getUrl(key: string): Promise<string>;
 }
 
 /**
