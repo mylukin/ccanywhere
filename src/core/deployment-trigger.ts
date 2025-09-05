@@ -5,6 +5,7 @@
 import axios, { AxiosError } from 'axios';
 import type { DeploymentTrigger, DeploymentInfo, RuntimeContext, DeploymentStatus } from '../types/index.js';
 import { BuildError } from '../types/index.js';
+import { getUserAgent } from '../utils/version.js';
 
 export interface WebhookPayload {
   ref?: string;
@@ -43,7 +44,7 @@ export class SimpleDeploymentTrigger implements DeploymentTrigger {
       const response = await axios.post(webhookUrl, payload, {
         headers: {
           'Content-Type': 'application/json',
-          'User-Agent': 'CCanywhere/0.1.0'
+          'User-Agent': getUserAgent()
         },
         timeout: this.timeout
       });

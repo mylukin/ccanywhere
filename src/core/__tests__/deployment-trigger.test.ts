@@ -20,8 +20,16 @@ jest.unstable_mockModule('axios', () => ({
   }
 }));
 
+// Mock version utilities
+jest.unstable_mockModule('@/utils/version', () => ({
+  getUserAgent: jest.fn(() => 'CCanywhere/0.1.0'),
+  getVersion: jest.fn(() => '0.1.0'),
+  getPackageName: jest.fn(() => 'ccanywhere'),
+  getFullVersion: jest.fn(() => 'ccanywhere@0.1.0')
+}));
+
 // Import the module after mocking
-const { SimpleDeploymentTrigger, hasDeploymentConfig } = await import('../deployment-trigger.js');
+const { SimpleDeploymentTrigger, hasDeploymentConfig } = await import('../deployment-trigger');
 
 describe('DeploymentTrigger', () => {
   let trigger: any;
@@ -52,7 +60,7 @@ describe('DeploymentTrigger', () => {
 
   describe('trigger', () => {
     it('should trigger deployment with string webhook URL', async () => {
-      mockPost.mockResolvedValue({ status: 200, statusText: 'OK' });
+      mockPost.mockResolvedValue({ status: 200, statusText: 'OK' } as any);
 
       const result = await trigger.trigger(mockContext);
 
@@ -82,7 +90,7 @@ describe('DeploymentTrigger', () => {
       mockContext.config.deployment = {
         webhook: 'https://deploy.example.com/webhook'
       };
-      mockPost.mockResolvedValue({ status: 201, statusText: 'Created' });
+      mockPost.mockResolvedValue({ status: 201, statusText: 'Created' } as any);
 
       const result = await trigger.trigger(mockContext);
 
@@ -112,7 +120,7 @@ describe('DeploymentTrigger', () => {
       const error = {
         response: { status: 404, statusText: 'Not Found' }
       };
-      mockPost.mockRejectedValue(error);
+      mockPost.mockRejectedValue(error as any);
 
       const result = await trigger.trigger(mockContext);
 
@@ -123,7 +131,7 @@ describe('DeploymentTrigger', () => {
     });
 
     it('should handle network errors', async () => {
-      mockPost.mockRejectedValue(new Error('Network timeout'));
+      mockPost.mockRejectedValue(new Error('Network timeout') as any);
 
       const result = await trigger.trigger(mockContext);
 
@@ -132,7 +140,7 @@ describe('DeploymentTrigger', () => {
     });
 
     it('should handle non-2xx status codes', async () => {
-      mockPost.mockResolvedValue({ status: 500, statusText: 'Internal Server Error' });
+      mockPost.mockResolvedValue({ status: 500, statusText: 'Internal Server Error' } as any);
 
       const result = await trigger.trigger(mockContext);
       

@@ -8,6 +8,7 @@ import { Command } from 'commander';
 import chalkModule from 'chalk';
 const chalk = chalkModule;
 import { ConfigLoader } from '../config/index.js';
+import { getVersion } from '../utils/version.js';
 import { initCommand } from './commands/init.js';
 import { runCommand } from './commands/run.js';
 import { testCommand } from './commands/test-runner.js';
@@ -22,7 +23,7 @@ const program = new Command();
 program
   .name('ccanywhere')
   .description('Claude Code Anywhere - A TypeScript CI/CD tool for mobile-friendly development workflows')
-  .version('0.1.0');
+  .version(getVersion());
 
 // Global options
 program
@@ -102,7 +103,7 @@ program
 
       console.log(chalk.blue('CCanywhere Information'));
       console.log(chalk.gray('='.repeat(50)));
-      console.log(`Version: ${chalk.green('0.1.0')}`);
+      console.log(`Version: ${chalk.green(getVersion())}`);
       console.log(`Node.js: ${chalk.green(process.version)}`);
       console.log(`Platform: ${chalk.green(process.platform)}`);
       console.log(`Working Directory: ${chalk.green(process.cwd())}`);
