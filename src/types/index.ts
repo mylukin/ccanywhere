@@ -70,6 +70,15 @@ export interface CcanywhereConfig {
     cleanupDays?: number;
   };
 
+  /** Test configuration */
+  test?: {
+    enabled?: boolean;
+    configFile?: string;
+    reporter?: string;
+    timeout?: number;
+    workers?: number;
+  };
+
   /** Security settings */
   security?: {
     readOnly?: boolean;

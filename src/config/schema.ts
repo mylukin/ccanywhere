@@ -114,6 +114,14 @@ export const BuildConfigSchema = z.object({
   cleanupDays: z.number().min(1).max(365).default(7)
 });
 
+export const TestConfigSchema = z.object({
+  enabled: z.boolean().default(true),
+  configFile: z.string().optional(),
+  reporter: z.string().optional(),
+  timeout: z.number().min(1000).max(300000).optional(),
+  workers: z.number().min(1).max(10).optional()
+}).optional();
+
 export const SecurityConfigSchema = z
   .object({
     readOnly: z.boolean().default(false),
@@ -127,6 +135,7 @@ export const CcanywhereConfigSchema = z.object({
   deployment: DeploymentConfigSchema,
   notifications: NotificationsConfigSchema.optional(),
   build: BuildConfigSchema.optional(),
+  test: TestConfigSchema,
   security: SecurityConfigSchema
 });
 
@@ -161,6 +170,9 @@ export function getDefaultConfig(): Partial<CcanywhereConfig> {
       base: 'origin/main',
       lockTimeout: 300,
       cleanupDays: 7
+    },
+    test: {
+      enabled: true
     },
     security: {
       readOnly: false

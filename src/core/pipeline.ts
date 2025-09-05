@@ -281,9 +281,23 @@ export class BuildPipeline {
    * Run tests
    */
   private async runTests(context: RuntimeContext) {
+    // Check if tests are enabled
+    if (context.config.test?.enabled === false) {
+      this.logger.step('test', 'Tests disabled by configuration');
+      return {
+        status: 'skipped' as const,
+        passed: 0,
+        failed: 0,
+        skipped: 0,
+        duration: 0,
+        message: 'Tests disabled by configuration',
+        reportUrl: undefined
+      };
+    }
+
     this.logger.step('test', 'Running tests');
 
-    const testRunner = createTestRunner();
+    const testRunner = createTestRunner(context.config.test);
     const testResult = await testRunner.run(context);
 
     this.logger.step('test', 'Test execution completed', {

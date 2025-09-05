@@ -236,7 +236,7 @@ export class HtmlDiffGenerator implements DiffGenerator {
       const diffHtml = diff2html.html(diffContent, {
         drawFileList: true,
         matching: 'lines',
-        outputFormat: 'side-by-side'
+        outputFormat: 'line-by-line'
       });
 
       // Get CSS bundle from diff2html
@@ -313,7 +313,7 @@ export class HtmlDiffGenerator implements DiffGenerator {
           '-i',
           'stdin',
           '-s',
-          'side',
+          'line',
           '-F',
           outputPath,
           '--hwt',
