@@ -92,7 +92,7 @@ BOT_TOKEN_TELEGRAM=123456789:your-bot-token
 CHAT_ID_TELEGRAM=-1001234567890
 
 # 可选：部署
-DOKPLOY_WEBHOOK_URL=https://dokploy.yourdomain.com/api/webhook
+DEPLOYMENT_WEBHOOK_URL=https://deploy.yourdomain.com/api/webhook
 ```
 
 ### 测试配置
@@ -201,7 +201,7 @@ REPO_BRANCH=main                                # 可选，自动检测
 ARTIFACTS_URL=https://artifacts.example.com
 
 # 部署
-DOKPLOY_WEBHOOK_URL=https://deploy.example.com/webhook
+DEPLOYMENT_WEBHOOK_URL=https://deploy.example.com/webhook
 
 # 通知
 NOTIFY_CHANNELS=telegram,email
@@ -294,32 +294,29 @@ test('首页正确加载', async ({ page }) => {
 
 ### Dokploy
 
-CCanywhere 内置支持 Dokploy：
+CCanywhere 支持基于 webhook 的部署触发：
+
+```json
+{
+  "deployment": "https://deploy.yourdomain.com/api/webhook/deploy"
+}
+```
+
+或使用对象语法：
 
 ```json
 {
   "deployment": {
-    "webhook": "https://dokploy.yourdomain.com/api/webhook/deploy",
-    "statusUrl": "https://dokploy.yourdomain.com/api/status",
-    "maxWait": 300,
-    "pollInterval": 5
+    "webhook": "https://deploy.yourdomain.com/api/webhook/deploy"
   }
 }
 ```
 
-### 自定义 Webhook
-
-对于其他部署平台：
-
-```typescript
-import { createDeploymentTrigger } from 'ccanywhere';
-
-const trigger = createDeploymentTrigger('generic', {
-  customHeaders: {
-    'Authorization': 'Bearer your-token'
-  }
-});
-```
+部署 webhook 将接收包含以下信息的负载：
+- `ref`: Git 提交哈希
+- `branch`: 当前分支名称
+- `trigger`: "ccanywhere"
+- `timestamp`: Unix 时间戳
 
 ## 📱 移动端体验
 

@@ -16,7 +16,7 @@ import type {
 } from '../types/index.js';
 import { BuildError } from '../types/index.js';
 import { HtmlDiffGenerator } from './diff-generator.js';
-import { createDeploymentTrigger } from './deployment-trigger.js';
+import { createDeploymentTrigger, hasDeploymentConfig } from './deployment-trigger.js';
 import { createTestRunner } from './test-runner.js';
 import { NotificationManager } from './notifications/manager.js';
 import { FileLockManager } from './lock-manager.js';
@@ -87,7 +87,7 @@ export class BuildPipeline {
 
       // Trigger deployment
       let deploymentUrl: string | undefined;
-      if (this.config.deployment && !this.dryRun) {
+      if (hasDeploymentConfig(this.config) && !this.dryRun) {
         deploymentUrl = await this.triggerDeployment(context);
       } else {
         this.logger.step('deploy', 'Deployment skipped (dry run or not configured)');
@@ -259,17 +259,14 @@ export class BuildPipeline {
   private async triggerDeployment(context: RuntimeContext): Promise<string | undefined> {
     this.logger.step('deploy', 'Triggering deployment');
 
-    const deploymentTrigger = createDeploymentTrigger('dokploy');
+    const deploymentTrigger = createDeploymentTrigger();
     const deploymentInfo = await deploymentTrigger.trigger(context);
 
-    if (deploymentInfo.status === 'success' || deploymentInfo.status === 'running') {
-      this.logger.step('deploy', 'Deployment triggered successfully', {
-        status: deploymentInfo.status,
-        url: deploymentInfo.url
-      });
+    if (deploymentInfo.status === 'success') {
+      this.logger.step('deploy', 'Deployment webhook sent successfully');
       return deploymentInfo.url;
     } else {
-      this.logger.warn('Deployment trigger failed', {
+      this.logger.warn('Deployment webhook failed', {
         status: deploymentInfo.status,
         error: deploymentInfo.error
       });

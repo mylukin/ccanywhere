@@ -26,12 +26,12 @@ export const UrlsConfigSchema = z
   .optional();
 
 export const DeploymentConfigSchema = z
-  .object({
-    webhook: z.string().url('Deployment webhook must be a valid URL'),
-    statusUrl: z.string().url('Status URL must be a valid URL').optional(),
-    maxWait: z.number().min(1).max(3600).default(300),
-    pollInterval: z.number().min(1).max(60).default(5)
-  })
+  .union([
+    z.string().url('Deployment webhook must be a valid URL'),
+    z.object({
+      webhook: z.string().url('Deployment webhook must be a valid URL')
+    })
+  ])
   .optional();
 
 export const TelegramConfigSchema = z.object({

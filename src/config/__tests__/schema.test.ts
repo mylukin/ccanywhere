@@ -123,6 +123,83 @@ describe('Configuration Schema', () => {
 
       expect(() => validateConfig(config)).toThrow('Invalid Telegram bot token format');
     });
+
+    it('should validate deployment webhook as string', () => {
+      const config = {
+        repo: {
+          kind: 'github',
+          url: 'https://github.com/test/repo',
+          branch: 'main'
+        },
+        deployment: 'https://deploy.example.com/webhook',
+        artifacts: {
+          baseUrl: 'https://artifacts.test.com',
+          retentionDays: 7,
+          maxSize: '100MB'
+        },
+        notifications: {
+          channels: ['telegram'],
+          telegram: {
+            botToken: '123456789:test-token',
+            chatId: '-1001234567890'
+          }
+        }
+      };
+
+      expect(() => validateConfig(config)).not.toThrow();
+    });
+
+    it('should validate deployment webhook as object', () => {
+      const config = {
+        repo: {
+          kind: 'github',
+          url: 'https://github.com/test/repo',
+          branch: 'main'
+        },
+        deployment: {
+          webhook: 'https://deploy.example.com/webhook'
+        },
+        artifacts: {
+          baseUrl: 'https://artifacts.test.com',
+          retentionDays: 7,
+          maxSize: '100MB'
+        },
+        notifications: {
+          channels: ['telegram'],
+          telegram: {
+            botToken: '123456789:test-token',
+            chatId: '-1001234567890'
+          }
+        }
+      };
+
+      expect(() => validateConfig(config)).not.toThrow();
+    });
+
+    it('should reject invalid deployment webhook URL', () => {
+      const config = {
+        repo: {
+          kind: 'github',
+          url: 'https://github.com/test/repo',
+          branch: 'main'
+        },
+        deployment: 'not-a-url',
+        artifacts: {
+          baseUrl: 'https://artifacts.test.com',
+          retentionDays: 7,
+          maxSize: '100MB'
+        },
+        notifications: {
+          channels: ['telegram'],
+          telegram: {
+            botToken: '123456789:test-token',
+            chatId: '-1001234567890'
+          }
+        }
+      };
+
+      expect(() => validateConfig(config)).toThrow('Deployment webhook must be a valid URL');
+    });
   });
 
   describe('getDefaultConfig', () => {

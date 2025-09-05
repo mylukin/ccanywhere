@@ -200,11 +200,7 @@ async function collectConfiguration(advanced: boolean): Promise<CcanywhereConfig
 
   // Add deployment if enabled
   if (answers.enableDeployment) {
-    config.deployment = {
-      webhook: answers.deploymentWebhook,
-      maxWait: 300,
-      pollInterval: 5
-    };
+    config.deployment = answers.deploymentWebhook;
   }
 
   return config;
@@ -240,10 +236,12 @@ function generateEnvTemplate(config: CcanywhereConfig): string {
   }
 
   if (config.deployment) {
+    const webhookUrl = typeof config.deployment === 'string' 
+      ? config.deployment 
+      : config.deployment.webhook;
     lines.push(
       '# Deployment Configuration',
-      `DOKPLOY_WEBHOOK_URL=${config.deployment.webhook}`,
-      '# DOKPLOY_STATUS_URL=https://dokploy.example.com/api/status',
+      `DEPLOYMENT_WEBHOOK_URL=${webhookUrl}`,
       ''
     );
   }

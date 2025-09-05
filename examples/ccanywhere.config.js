@@ -21,12 +21,7 @@ export default {
   },
 
   // Deployment configuration
-  deployment: {
-    webhook: process.env.DOKPLOY_WEBHOOK_URL || 'https://deploy.example.com/api/webhook/deploy',
-    statusUrl: process.env.DOKPLOY_STATUS_URL || 'https://deploy.example.com/api/status',
-    maxWait: parseInt(process.env.MAX_WAIT || '300'),
-    pollInterval: parseInt(process.env.POLL_INTERVAL || '5')
-  },
+  deployment: process.env.DEPLOYMENT_WEBHOOK_URL || 'https://deploy.example.com/api/webhook/deploy',
 
   // Notification configuration
   notifications: {

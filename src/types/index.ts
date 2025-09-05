@@ -30,12 +30,9 @@ export interface CcanywhereConfig {
     artifacts?: string;
   };
 
-  /** Deployment configuration */
-  deployment?: {
+  /** Deployment configuration - webhook URL or config object */
+  deployment?: string | {
     webhook: string;
-    statusUrl?: string;
-    maxWait?: number;
-    pollInterval?: number;
   };
 
   /** Notification configuration */

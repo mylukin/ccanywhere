@@ -92,7 +92,7 @@ BOT_TOKEN_TELEGRAM=123456789:your-bot-token
 CHAT_ID_TELEGRAM=-1001234567890
 
 # Optional: Deployment
-DOKPLOY_WEBHOOK_URL=https://dokploy.yourdomain.com/api/webhook
+DEPLOYMENT_WEBHOOK_URL=https://deploy.yourdomain.com/api/webhook
 ```
 
 ### Test Your Configuration
@@ -201,7 +201,7 @@ REPO_BRANCH=main                                # Optional, auto-detected
 ARTIFACTS_URL=https://artifacts.example.com
 
 # Deployment
-DOKPLOY_WEBHOOK_URL=https://deploy.example.com/webhook
+DEPLOYMENT_WEBHOOK_URL=https://deploy.example.com/webhook
 
 # Notifications
 NOTIFY_CHANNELS=telegram,email
@@ -294,32 +294,29 @@ test('homepage loads correctly', async ({ page }) => {
 
 ### Dokploy
 
-CCanywhere has built-in support for Dokploy:
+CCanywhere supports webhook-based deployment triggers:
+
+```json
+{
+  "deployment": "https://deploy.yourdomain.com/api/webhook/deploy"
+}
+```
+
+Or with object syntax:
 
 ```json
 {
   "deployment": {
-    "webhook": "https://dokploy.yourdomain.com/api/webhook/deploy",
-    "statusUrl": "https://dokploy.yourdomain.com/api/status",
-    "maxWait": 300,
-    "pollInterval": 5
+    "webhook": "https://deploy.yourdomain.com/api/webhook/deploy"
   }
 }
 ```
 
-### Custom Webhooks
-
-For other deployment platforms:
-
-```typescript
-import { createDeploymentTrigger } from 'ccanywhere';
-
-const trigger = createDeploymentTrigger('generic', {
-  customHeaders: {
-    'Authorization': 'Bearer your-token'
-  }
-});
-```
+The deployment webhook is called with a payload containing:
+- `ref`: Git commit hash
+- `branch`: Current branch name
+- `trigger`: "ccanywhere"
+- `timestamp`: Unix timestamp
 
 ## 📱 Mobile Experience
 

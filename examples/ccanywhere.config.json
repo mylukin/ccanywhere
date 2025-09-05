@@ -4,12 +4,7 @@
     "url": "https://github.com/mylukin/my-project",
     "branch": "main"
   },
-  "deployment": {
-    "webhook": "https://deploy.example.com/api/webhook/deploy",
-    "statusUrl": "https://deploy.example.com/api/status",
-    "maxWait": 300,
-    "pollInterval": 5
-  },
+  "deployment": "https://deploy.example.com/api/webhook/deploy",
   "notifications": {
     "channels": ["telegram"],
     "telegram": {

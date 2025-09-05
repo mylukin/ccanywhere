@@ -43,12 +43,7 @@ export default {
   },
   
   // 部署配置
-  deployment: {
-    provider: 'dokploy',
-    dokploy: {
-      webhookUrl: process.env.DOKPLOY_WEBHOOK_URL
-    }
-  },
+  deployment: process.env.DEPLOYMENT_WEBHOOK_URL,
   
   // 产物配置
   artifacts: {
@@ -224,7 +219,7 @@ ccanywhere config validate
 CCANYWHERE_REPO_URL=https://github.com/mylukin/ccanywhere
 CCANYWHERE_TELEGRAM_TOKEN=your-token
 CCANYWHERE_TELEGRAM_CHAT_ID=your-chat-id
-CCANYWHERE_DOKPLOY_WEBHOOK=https://deploy.example.com/hook
+DEPLOYMENT_WEBHOOK_URL=https://deploy.example.com/hook
 ```
 
 ## 📝 常见场景

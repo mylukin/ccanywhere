@@ -137,10 +137,12 @@ function generateEnvFromConfig(config: any): string {
   ];
   
   if (config.deployment) {
+    const webhookUrl = typeof config.deployment === 'string' 
+      ? config.deployment 
+      : config.deployment.webhook;
     lines.push(
       '# Deployment Configuration',
-      `DOKPLOY_WEBHOOK_URL=${config.deployment.webhook}`,
-      config.deployment.statusUrl ? `DOKPLOY_STATUS_URL=${config.deployment.statusUrl}` : '# DOKPLOY_STATUS_URL=',
+      `DEPLOYMENT_WEBHOOK_URL=${webhookUrl}`,
       ''
     );
   }
