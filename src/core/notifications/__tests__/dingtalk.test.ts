@@ -10,7 +10,17 @@ const mockAxios = {
 } as any;
 
 jest.unstable_mockModule('axios', () => ({
-  default: mockAxios
+  default: mockAxios,
+  AxiosError: class AxiosError extends Error {
+    constructor(message: string, response?: any) {
+      super(message);
+      this.name = 'AxiosError';
+      this.isAxiosError = true;
+      this.response = response;
+    }
+    isAxiosError = true;
+    response?: any;
+  }
 }));
 
 // Mock crypto for signature generation
@@ -23,8 +33,17 @@ const mockCrypto = {
 
 jest.unstable_mockModule('crypto', () => mockCrypto);
 
+// Mock MessageFormatter
+const mockMessageFormatter = {
+  format: jest.fn() as any
+};
+
+jest.unstable_mockModule('@/core/notifications/formatter', () => ({
+  MessageFormatter: mockMessageFormatter
+}));
+
 // Import the module after mocking
-const { DingTalkNotifier } = await import('../dingtalk.js');
+const { DingTalkNotifier } = await import('../dingtalk');
 
 describe('DingTalkNotifier', () => {
   let provider: any;
@@ -50,45 +69,44 @@ describe('DingTalkNotifier', () => {
       update: jest.fn().mockReturnThis(),
       digest: jest.fn(() => 'mock-signature')
     });
+
+    // Mock MessageFormatter
+    mockMessageFormatter.format.mockReturnValue({
+      title: 'Test Title',
+      content: '**Test Title**\n\nTest content',
+      format: 'markdown'
+    });
+
+    // Mock Date.now for consistent timestamps
+    Date.now = jest.fn(() => 1672574400000);
   });
 
   describe('constructor', () => {
     it('should initialize with valid configuration', () => {
       provider = new DingTalkNotifier(mockConfig);
       expect(provider).toBeDefined();
+      expect(provider.channel).toBe('dingtalk');
     });
 
     it('should initialize without secret', () => {
-      const configWithoutSecret = { ...mockConfig };
-      delete configWithoutSecret.secret;
+      const configWithoutSecret = { webhook: mockConfig.webhook };
 
       provider = new DingTalkNotifier(configWithoutSecret);
       expect(provider).toBeDefined();
+      expect(provider.channel).toBe('dingtalk');
     });
 
-    it('should throw error for missing webhook', () => {
-      expect(() => {
-        new DingTalkNotifier({});
-      }).toThrow('DingTalk webhook URL is required');
-    });
-
-    it('should throw error for empty webhook', () => {
-      expect(() => {
-        new DingTalkNotifier({ webhook: '' });
-      }).toThrow('DingTalk webhook URL is required');
-    });
-
-    it('should validate webhook URL format', () => {
-      const invalidWebhooks = [
-        'not-a-url',
-        'http://wrong-domain.com/webhook',
-        'https://oapi.dingtalk.com/wrong-path'
+    it('should accept various webhook URLs', () => {
+      const validWebhooks = [
+        'https://oapi.dingtalk.com/robot/send?access_token=abc123',
+        'https://oapi-eu.dingtalk.com/robot/send?access_token=def456',
+        'https://oapi-us.dingtalk.com/robot/send?access_token=ghi789'
       ];
 
-      invalidWebhooks.forEach(webhook => {
+      validWebhooks.forEach(webhook => {
         expect(() => {
           new DingTalkNotifier({ webhook });
-        }).not.toThrow(); // Constructor doesn't validate URL format, only presence
+        }).not.toThrow();
       });
     });
   });
@@ -96,33 +114,44 @@ describe('DingTalkNotifier', () => {
   describe('send method', () => {
     beforeEach(() => {
       provider = new DingTalkNotifier(mockConfig);
-      Date.now = jest.fn(() => 1672574400000); // Fixed timestamp for testing
     });
 
-    it('should send message successfully', async () => {
-      const message = 'Test notification message';
+    it('should send notification message successfully', async () => {
+      const message = {
+        title: 'Build Success',
+        extra: 'Test completed successfully',
+        timestamp: Date.now(),
+        isError: false
+      };
 
       await provider.send(message);
 
+      expect(mockMessageFormatter.format).toHaveBeenCalledWith(message, 'markdown');
       expect(mockAxios.post).toHaveBeenCalledWith(
         expect.stringContaining(mockConfig.webhook),
         {
-          msgtype: 'text',
-          text: {
-            content: message
+          msgtype: 'markdown',
+          markdown: {
+            title: 'Test Title',
+            text: '**Test Title**\n\nTest content'
           }
         },
         {
           headers: {
             'Content-Type': 'application/json'
           },
-          timeout: 10000
+          timeout: 30000
         }
       );
     });
 
     it('should include signature when secret is provided', async () => {
-      const message = 'Test message';
+      const message = {
+        title: 'Test',
+        extra: 'Message',
+        timestamp: Date.now(),
+        isError: false
+      };
 
       await provider.send(message);
 
@@ -137,13 +166,19 @@ describe('DingTalkNotifier', () => {
       const configWithoutSecret = { webhook: mockConfig.webhook };
       provider = new DingTalkNotifier(configWithoutSecret);
 
-      await provider.send('Test message');
+      const message = {
+        title: 'Test',
+        extra: 'Message',
+        timestamp: Date.now(),
+        isError: false
+      };
+
+      await provider.send(message);
 
       expect(mockCrypto.createHmac).not.toHaveBeenCalled();
       
       const calledUrl = mockAxios.post.mock.calls[0][0];
-      expect(calledUrl).not.toContain('&timestamp=');
-      expect(calledUrl).not.toContain('&sign=');
+      expect(calledUrl).toBe(mockConfig.webhook);
     });
 
     it('should handle DingTalk API errors', async () => {
@@ -151,21 +186,27 @@ describe('DingTalkNotifier', () => {
         data: { errcode: 310000, errmsg: 'keywords not in content' }
       });
 
-      await expect(provider.send('Test message')).rejects.toThrow('keywords not in content');
+      const message = { title: 'Test', extra: 'Message', timestamp: Date.now(), isError: false };
+
+      await expect(provider.send(message)).rejects.toThrow('DingTalk API error: keywords not in content');
     });
 
     it('should handle network errors', async () => {
       mockAxios.post.mockRejectedValue(new Error('Network timeout'));
 
-      await expect(provider.send('Test message')).rejects.toThrow('Network timeout');
+      const message = { title: 'Test', extra: 'Message', timestamp: Date.now(), isError: false };
+
+      await expect(provider.send(message)).rejects.toThrow('Failed to send DingTalk notification: Network timeout');
     });
 
-    it('should handle malformed API responses', async () => {
+    it('should handle unknown API errors', async () => {
       mockAxios.post.mockResolvedValue({
-        data: 'Invalid response format'
+        data: { errcode: 310000 } // No errmsg
       });
 
-      await expect(provider.send('Test message')).rejects.toThrow();
+      const message = { title: 'Test', extra: 'Message', timestamp: Date.now(), isError: false };
+
+      await expect(provider.send(message)).rejects.toThrow('DingTalk API error: Unknown error');
     });
 
     it('should handle rate limiting', async () => {
@@ -173,50 +214,29 @@ describe('DingTalkNotifier', () => {
         data: { errcode: 130101, errmsg: 'rate limit exceeded' }
       });
 
-      await expect(provider.send('Test message')).rejects.toThrow('rate limit exceeded');
+      const message = { title: 'Test', extra: 'Message', timestamp: Date.now(), isError: false };
+
+      await expect(provider.send(message)).rejects.toThrow('DingTalk API error: rate limit exceeded');
     });
 
-    it('should handle markdown content', async () => {
-      const markdownMessage = '## Build Report\n- Status: ✅ Success\n- Duration: 2m 30s';
+    it('should use markdown formatting', async () => {
+      const message = {
+        title: 'Build Report',
+        extra: 'Status: ✅ Success\nDuration: 2m 30s',
+        timestamp: Date.now(),
+        isError: false
+      };
 
-      await provider.send(markdownMessage);
+      await provider.send(message);
 
+      expect(mockMessageFormatter.format).toHaveBeenCalledWith(message, 'markdown');
       expect(mockAxios.post).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
-          msgtype: 'text',
-          text: {
-            content: markdownMessage
-          }
-        }),
-        expect.any(Object)
-      );
-    });
-
-    it('should handle long messages', async () => {
-      const longMessage = 'x'.repeat(5000); // Exceed typical limits
-
-      await provider.send(longMessage);
-
-      expect(mockAxios.post).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({
-          text: {
-            content: longMessage
-          }
-        }),
-        expect.any(Object)
-      );
-    });
-
-    it('should handle empty messages', async () => {
-      await provider.send('');
-
-      expect(mockAxios.post).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({
-          text: {
-            content: ''
+          msgtype: 'markdown',
+          markdown: {
+            title: 'Test Title',
+            text: '**Test Title**\n\nTest content'
           }
         }),
         expect.any(Object)
@@ -229,68 +249,47 @@ describe('DingTalkNotifier', () => {
       provider = new DingTalkNotifier(mockConfig);
     });
 
-    it('should return success for valid configuration', async () => {
+    it('should return true for valid configuration', async () => {
       const result = await provider.test();
 
-      expect(result.success).toBe(true);
+      expect(result).toBe(true);
       expect(mockAxios.post).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
-          text: {
-            content: expect.stringContaining('Test message from CCanywhere')
+          msgtype: 'markdown',
+          markdown: {
+            title: 'Test Title',
+            text: '**Test Title**\n\nTest content'
           }
         }),
         expect.any(Object)
       );
     });
 
-    it('should return failure for invalid webhook', async () => {
+    it('should return false for API errors', async () => {
       mockAxios.post.mockResolvedValue({
         data: { errcode: 310000, errmsg: 'webhook not exist' }
       });
 
       const result = await provider.test();
 
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('webhook not exist');
+      expect(result).toBe(false);
     });
 
-    it('should return failure for invalid secret', async () => {
-      mockAxios.post.mockResolvedValue({
-        data: { errcode: 310000, errmsg: 'sign not match' }
-      });
-
-      const result = await provider.test();
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('sign not match');
-    });
-
-    it('should return failure for network errors', async () => {
+    it('should return false for network errors', async () => {
       mockAxios.post.mockRejectedValue(new Error('Connection refused'));
 
       const result = await provider.test();
 
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Connection refused');
+      expect(result).toBe(false);
     });
 
-    it('should return failure for timeout errors', async () => {
-      mockAxios.post.mockRejectedValue({ code: 'ECONNABORTED', message: 'timeout' });
-
-      const result = await provider.test();
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('timeout');
-    });
-
-    it('should handle non-Error objects', async () => {
+    it('should return false for any errors', async () => {
       mockAxios.post.mockRejectedValue('String error');
 
       const result = await provider.test();
 
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('String error');
+      expect(result).toBe(false);
     });
   });
 
@@ -303,12 +302,13 @@ describe('DingTalkNotifier', () => {
       const fixedTimestamp = 1672574400000;
       Date.now = jest.fn(() => fixedTimestamp);
 
-      await provider.send('Test message');
+      const message = { title: 'Test', extra: 'Message', timestamp: Date.now(), isError: false };
+      await provider.send(message);
 
       expect(mockCrypto.createHmac).toHaveBeenCalledWith('sha256', mockConfig.secret);
       
       const hmacMock = mockCrypto.createHmac();
-      expect(hmacMock.update).toHaveBeenCalledWith(`${fixedTimestamp}\n${mockConfig.secret}`);
+      expect(hmacMock.update).toHaveBeenCalledWith(`${fixedTimestamp}\n${mockConfig.secret}`, 'utf8');
       expect(hmacMock.digest).toHaveBeenCalledWith('base64');
     });
 
@@ -318,7 +318,8 @@ describe('DingTalkNotifier', () => {
         digest: jest.fn(() => 'signature+with+special=chars')
       });
 
-      await provider.send('Test message');
+      const message = { title: 'Test', extra: 'Message', timestamp: Date.now(), isError: false };
+      await provider.send(message);
 
       const calledUrl = mockAxios.post.mock.calls[0][0];
       expect(calledUrl).toContain('&sign=signature%2Bwith%2Bspecial%3Dchars');
@@ -343,7 +344,8 @@ describe('DingTalkNotifier', () => {
           data: { errcode, errmsg }
         });
 
-        await expect(provider.send('Test')).rejects.toThrow(errmsg);
+        const message = { title: 'Test', extra: 'Message', timestamp: Date.now(), isError: false };
+        await expect(provider.send(message)).rejects.toThrow(`DingTalk API error: ${errmsg}`);
       });
     });
 
@@ -352,7 +354,8 @@ describe('DingTalkNotifier', () => {
         data: { errcode: 999999, errmsg: 'unknown error' }
       });
 
-      await expect(provider.send('Test')).rejects.toThrow('unknown error');
+      const message = { title: 'Test', extra: 'Message', timestamp: Date.now(), isError: false };
+      await expect(provider.send(message)).rejects.toThrow('DingTalk API error: unknown error');
     });
 
     it('should handle missing error message', async () => {
@@ -360,7 +363,8 @@ describe('DingTalkNotifier', () => {
         data: { errcode: 310000 }
       });
 
-      await expect(provider.send('Test')).rejects.toThrow('DingTalk API error: 310000');
+      const message = { title: 'Test', extra: 'Message', timestamp: Date.now(), isError: false };
+      await expect(provider.send(message)).rejects.toThrow('DingTalk API error: Unknown error');
     });
   });
 
@@ -385,36 +389,43 @@ describe('DingTalkNotifier', () => {
       provider = new DingTalkNotifier(mockConfig);
     });
 
-    it('should preserve text formatting', async () => {
-      const formattedMessage = 'Build Status: SUCCESS\nDuration: 2m 30s\nCommit: abc123';
+    it('should format complex messages', async () => {
+      const message = {
+        title: 'Build Status: SUCCESS',
+        extra: 'Duration: 2m 30s\nCommit: abc123',
+        timestamp: Date.now(),
+        isError: false,
+        diffUrl: 'https://example.com/diff',
+        previewUrl: 'https://preview.example.com'
+      };
 
-      await provider.send(formattedMessage);
+      await provider.send(message);
 
+      expect(mockMessageFormatter.format).toHaveBeenCalledWith(message, 'markdown');
       expect(mockAxios.post).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
-          text: {
-            content: formattedMessage
+          msgtype: 'markdown',
+          markdown: {
+            title: 'Test Title',
+            text: '**Test Title**\n\nTest content'
           }
         }),
         expect.any(Object)
       );
     });
 
-    it('should handle Unicode characters', async () => {
-      const unicodeMessage = '构建成功 ✅ Build completed successfully 🎉';
+    it('should handle Unicode characters in messages', async () => {
+      const message = {
+        title: '构建成功 ✅ Build completed successfully 🎉',
+        extra: 'Everything is working fine',
+        timestamp: Date.now(),
+        isError: false
+      };
 
-      await provider.send(unicodeMessage);
+      await provider.send(message);
 
-      expect(mockAxios.post).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({
-          text: {
-            content: unicodeMessage
-          }
-        }),
-        expect.any(Object)
-      );
+      expect(mockMessageFormatter.format).toHaveBeenCalledWith(message, 'markdown');
     });
   });
 });

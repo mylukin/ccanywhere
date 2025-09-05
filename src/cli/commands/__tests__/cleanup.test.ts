@@ -17,7 +17,7 @@ jest.unstable_mockModule('chalk', () => ({
 }));
 
 // Mock inquirer
-const mockPrompt = jest.fn() as jest.Mock;
+const mockPrompt = jest.fn() as any;
 jest.unstable_mockModule('inquirer', () => ({
   default: {
     prompt: mockPrompt
@@ -26,21 +26,25 @@ jest.unstable_mockModule('inquirer', () => ({
 
 // Mock logger
 const mockLogger = {
-  cleanup: jest.fn() as jest.Mock
+  cleanup: jest.fn() as any
 };
 const mockCreateLogger = jest.fn(() => mockLogger) as jest.Mock;
-jest.unstable_mockModule('../../core/logger.js', () => ({
+jest.unstable_mockModule('@/core/logger', () => ({
   createLogger: mockCreateLogger
 }));
 
 // Mock fs-extra
 const mockFs = {
-  pathExists: jest.fn() as jest.Mock,
-  readdir: jest.fn() as jest.Mock,
-  stat: jest.fn() as jest.Mock,
-  remove: jest.fn() as jest.Mock,
-  unlink: jest.fn() as jest.Mock
+  pathExists: jest.fn() as any,
+  readdir: jest.fn() as any,
+  stat: jest.fn() as any,
+  remove: jest.fn() as any,
+  unlink: jest.fn() as any
 };
+
+jest.unstable_mockModule('fs-extra', () => ({
+  default: mockFs
+}));
 
 // Import the module after mocking
 const { cleanupCommand } = await import('../cleanup.js');
@@ -76,6 +80,12 @@ describe('cleanupCommand', () => {
     // Setup default mock returns
     mockPrompt.mockResolvedValue({ confirm: true });
     mockFs.pathExists.mockResolvedValue(false);
+    mockFs.readdir.mockResolvedValue([]);
+    mockFs.stat.mockResolvedValue({ mtime: new Date(Date.now()), isDirectory: () => false });
+    mockFs.unlink.mockResolvedValue(undefined);
+    mockFs.remove.mockResolvedValue(undefined);
+    mockCreateLogger.mockReturnValue(mockLogger);
+    mockLogger.cleanup.mockResolvedValue(undefined);
   });
 
   afterEach(() => {

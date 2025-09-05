@@ -25,15 +25,15 @@ jest.unstable_mockModule('execa', () => ({
   execa: mockExeca
 }));
 
-// Mock BuildError
-jest.unstable_mockModule('../../../types/index.js', () => ({
-  BuildError: class BuildError extends Error {
-    constructor(message: string) {
-      super(message);
-      this.name = 'BuildError';
-    }
-  }
-}));
+// Import BuildError directly without mocking
+// jest.unstable_mockModule('../../../types/index.js', () => ({
+//   BuildError: class BuildError extends Error {
+//     constructor(message: string) {
+//       super(message);
+//       this.name = 'BuildError';
+//     }
+//   }
+// }));
 
 // Import the module after mocking
 const { EmailNotifier } = await import('../email.js');

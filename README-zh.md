@@ -6,19 +6,31 @@
 
 [English](README.md) | 简体中文
 
-**Claude Code Anywhere** - 一个专为移动友好的开发工作流设计的现代 TypeScript CI/CD 工具。将您的开发流程转换为自动化管道，生成移动端优化的差异页面，触发部署，运行测试，并向您的移动设备发送通知。
+**CCanywhere** - 一个为解决在移动设备（手机/iPad）上通过 SSH 使用 Claude Code 编程而诞生的 CI/CD 工具。在移动设备上通过 SSH 终端开发时，查看代码差异变得极其困难。CCanywhere 通过自动捕获代码变更、生成移动优化的 HTML 差异页面、上传至云存储，并通过 Telegram、钉钉、企业微信或邮件发送可查看的链接通知，完美解决了这个问题。
 
-## 🎯 特性
+## 🎯 为什么需要 CCanywhere？
 
-- **📱 移动友好的差异页面**：生成美观的、移动端优化的 HTML 差异页面
-- **🚀 部署自动化**：通过 webhook 触发部署流程
-- **🧪 Playwright 集成**：运行自动化测试，提供全面的报告
-- **📬 多渠道通知**：支持 Telegram、钉钉、企业微信和邮件
-- **🔒 并发控制**：基于文件的锁定机制防止并发构建
-- **📊 JSON 审计日志**：使用结构化 JSON 输出进行全面日志记录
-- **⚡ TypeScript 优先**：完全类型化，出色的 IDE 支持
-- **🛠 CLI 界面**：易于使用的命令行界面
-- **🔧 可配置**：通过 JSON 或环境变量进行灵活配置
+### 问题背景
+在移动设备上通过 SSH 使用 Claude Code 编程时，开发者面临一个关键挑战：**无法方便地查看代码差异**。在小屏幕上查看终端式的 diff 几乎是不可能的。
+
+### 解决方案
+CCanywhere 通过集成 Claude Code 的钩子系统，实现了：
+1. **自动捕获**：当 Claude Code 完成任务时自动获取代码变更
+2. **生成移动优化页面**：创建带语法高亮的 HTML 差异页面
+3. **上传云存储**：自动上传并生成可分享的链接
+4. **即时通知**：通过 Telegram/钉钉/企业微信/邮件发送链接
+5. **无缝跳转**：从差异页面直接跳转到 GitHub/GitLab 查看完整代码
+
+## ✨ 核心功能
+
+- **📱 移动优先的差异查看**：为手机和平板优化的 HTML 差异页面
+- **🔗 Claude Code 钩子**：代码操作时自动触发
+- **☁️ 云存储集成**：支持 R2、S3 和阿里云 OSS
+- **📬 即时通知**：多渠道推送带差异链接的通知
+- **🧪 Playwright 测试**：响应式开发的自动化测试与截图
+- **🔄 GitHub/GitLab 集成**：从差异直接链接到源代码仓库
+- **🚀 部署触发器**：可选的基于 webhook 的部署
+- **📊 结构化日志**：所有操作的 JSON 审计跟踪
 
 ## 🚀 快速开始
 
@@ -260,11 +272,28 @@ EMAIL_TO=admin@example.com
 }
 ```
 
-## 🧪 测试集成
+## 🧪 Playwright 测试集成
 
-### Playwright 配置
+### 为什么集成 Playwright？
 
-CCanywhere 与 Playwright 无缝协作。创建 `playwright.config.ts`：
+在移动设备上开发响应式 Web 应用时，需要测试不同的屏幕尺寸。CCanywhere 集成 Playwright 以实现：
+- **测试响应式设计**：跨不同视口尺寸测试
+- **自动截图**：测试过程中自动捕获截图
+- **生成测试报告**：包含视觉证据的测试报告
+- **发送测试结果**：通过通知渠道发送结果
+
+### 设置
+
+首先，在项目中安装 Playwright：
+
+```bash
+npm install -D @playwright/test
+npx playwright install # 安装浏览器二进制文件
+```
+
+### 配置
+
+创建 `playwright.config.ts`：
 
 ```typescript
 import { defineConfig } from '@playwright/test';

@@ -6,20 +6,31 @@
 
 English | [简体中文](README-zh.md)
 
-**Claude Code Anywhere** - A modern TypeScript CI/CD tool designed for mobile-friendly development workflows. Convert your development process into an automated pipeline that generates mobile-optimized diff pages, triggers deployments, runs tests, and sends notifications to your mobile devices.
+**CCanywhere** - A CI/CD tool born from the need to code on mobile devices (phones/iPads) via SSH with Claude Code. When developing through SSH terminals on mobile devices, viewing code diffs becomes challenging. CCanywhere solves this by automatically capturing code changes, generating mobile-optimized HTML diff pages, uploading them to cloud storage, and sending notifications with viewable links through Telegram, DingTalk, WeChat Work, or Email.
 
-## 🎯 Features
+## 🎯 Why CCanywhere?
 
-- **📱 Mobile-Friendly Diff Pages**: Generate beautiful, mobile-optimized HTML diff pages
-- **🚀 Deployment Automation**: Trigger webhook-based deployments
-- **🧪 Playwright Integration**: Run automated tests with comprehensive reporting
-- **📬 Multi-Channel Notifications**: Support for Telegram, DingTalk, WeCom, and Email
-- **🔒 Concurrency Control**: File-based locking prevents concurrent builds
-- **📊 JSON Audit Logging**: Comprehensive logging with structured JSON output
-- **🎯 Claude Code Integration**: Seamless hooks for automatic CI/CD on Claude Code operations
-- **⚡ TypeScript First**: Fully typed with excellent IDE support
-- **🛠 CLI Interface**: Easy-to-use command-line interface
-- **🔧 Configurable**: Flexible configuration via JSON or environment variables
+### The Problem
+When coding on mobile devices through SSH with Claude Code, developers face a critical challenge: **no convenient way to view code diffs**. Traditional terminal-based diff viewing is nearly impossible on small screens.
+
+### The Solution
+CCanywhere integrates with Claude Code's hook system to:
+1. **Automatically capture** code changes when Claude Code completes a task
+2. **Generate mobile-optimized** HTML diff pages with syntax highlighting
+3. **Upload to cloud storage** and create shareable links
+4. **Send instant notifications** via Telegram/DingTalk/WeChat Work/Email
+5. **Enable seamless navigation** to GitHub/GitLab for full code context
+
+## ✨ Core Features
+
+- **📱 Mobile-First Diff Viewing**: HTML diffs optimized for phones and tablets
+- **🔗 Claude Code Hooks**: Automatic triggers on code operations
+- **☁️ Cloud Storage Integration**: Support for R2, S3, and Alibaba OSS
+- **📬 Instant Notifications**: Multi-channel alerts with diff links
+- **🧪 Playwright Testing**: Automated testing with screenshots for responsive development
+- **🔄 GitHub/GitLab Integration**: Direct links from diffs to source repositories
+- **🚀 Deployment Triggers**: Optional webhook-based deployments
+- **📊 Structured Logging**: JSON audit trails for all operations
 
 ## 🚀 Quick Start
 
@@ -301,9 +312,17 @@ Configure SMTP settings or use local mail:
 }
 ```
 
-## 🧪 Testing Integration
+## 🧪 Playwright Testing Integration
 
-### Prerequisites
+### Why Playwright?
+
+When developing responsive web applications on mobile devices, you need to test across multiple screen sizes. CCanywhere integrates Playwright to:
+- **Test responsive designs** across different viewport sizes
+- **Capture screenshots** automatically during tests
+- **Generate test reports** with visual evidence
+- **Send results** via notifications
+
+### Setup
 
 First, install Playwright in your project:
 
@@ -312,9 +331,9 @@ npm install -D @playwright/test
 npx playwright install # Install browser binaries
 ```
 
-### Playwright Configuration
+### Configuration
 
-CCanywhere works seamlessly with Playwright. Create `playwright.config.ts`:
+Create `playwright.config.ts`:
 
 ```typescript
 import { defineConfig } from '@playwright/test';

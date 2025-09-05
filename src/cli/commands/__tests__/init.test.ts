@@ -8,10 +8,10 @@ import path from 'path';
 import os from 'os';
 
 // Mock all the dependencies
-const mockWriteFile = jest.fn() as jest.Mock;
-const mockPathExists = jest.fn() as jest.Mock;
-const mockReadFile = jest.fn() as jest.Mock;
-const mockEnsureDir = jest.fn() as jest.Mock;
+const mockWriteFile = jest.fn() as any;
+const mockPathExists = jest.fn() as any;
+const mockReadFile = jest.fn() as any;
+const mockEnsureDir = jest.fn() as any;
 
 jest.unstable_mockModule('fs-extra', () => ({
   default: {
@@ -22,7 +22,7 @@ jest.unstable_mockModule('fs-extra', () => ({
   }
 }));
 
-const mockPrompt = jest.fn() as jest.Mock;
+const mockPrompt = jest.fn() as any;
 jest.unstable_mockModule('inquirer', () => ({
   default: {
     prompt: mockPrompt
@@ -50,13 +50,13 @@ jest.unstable_mockModule('ora', () => ({
   default: mockOra
 }));
 
-const mockDetectGitInfo = jest.fn() as jest.Mock;
-jest.unstable_mockModule('../../utils/git.js', () => ({
+const mockDetectGitInfo = jest.fn() as any;
+jest.unstable_mockModule('@/utils/git', () => ({
   detectGitInfo: mockDetectGitInfo
 }));
 
-const mockGetDefaultConfig = jest.fn() as jest.Mock;
-jest.unstable_mockModule('../../config/index.js', () => ({
+const mockGetDefaultConfig = jest.fn() as any;
+jest.unstable_mockModule('@/config/index', () => ({
   getDefaultConfig: mockGetDefaultConfig
 }));
 
@@ -71,19 +71,23 @@ describe('initCommand', () => {
   beforeEach(() => {
     // Mock console methods
     originalConsole = { ...console };
-    console.log = jest.fn() as jest.Mock;
-    console.error = jest.fn() as jest.Mock;
+    console.log = jest.fn() as any;
+    console.error = jest.fn() as any;
 
     // Mock process.cwd and process.exit
     originalCwd = process.cwd;
     originalExit = process.exit;
-    process.cwd = jest.fn(() => '/test/project') as jest.Mock;
+    process.cwd = jest.fn(() => '/test/project') as any;
     process.exit = jest.fn() as any;
 
     // Reset all mocks
     jest.clearAllMocks();
 
     // Setup default mock returns
+    mockPathExists.mockResolvedValue(false);
+    mockWriteFile.mockResolvedValue(undefined);
+    mockEnsureDir.mockResolvedValue(undefined);
+    
     mockDetectGitInfo.mockResolvedValue({
       repoUrl: 'https://github.com/test/repo.git',
       repoKind: 'github',
@@ -135,17 +139,15 @@ describe('initCommand', () => {
 
     it('should initialize with advanced template', async () => {
       mockPathExists.mockResolvedValue(false);
-      mockPrompt
-        .mockResolvedValueOnce({ selectedTemplate: 'advanced' })
-        .mockResolvedValueOnce({
-          repoUrl: 'https://github.com/test/repo.git',
-          repoKind: 'github',
-          repoBranch: 'main',
-          artifactsUrl: 'https://artifacts.test.com',
-          enableDeployment: true,
-          deploymentWebhook: 'https://deploy.test.com/webhook',
-          notificationChannels: ['telegram', 'email']
-        });
+      mockPrompt.mockResolvedValueOnce({
+        repoUrl: 'https://github.com/test/repo.git',
+        repoKind: 'github',
+        repoBranch: 'main',
+        artifactsUrl: 'https://artifacts.test.com',
+        enableDeployment: true,
+        deploymentWebhook: 'https://deploy.test.com/webhook',
+        notificationChannels: ['telegram', 'email']
+      });
 
       await initCommand({ template: 'advanced' });
 
@@ -348,7 +350,7 @@ describe('initCommand', () => {
       await initCommand({});
 
       const envContent = mockWriteFile.mock.calls.find(
-        call => call[0] === '/test/project/.env'
+        (call: any) => call[0] === '/test/project/.env'
       )?.[1] as string;
 
       expect(envContent).toContain('BOT_TOKEN_TELEGRAM');
@@ -466,6 +468,8 @@ describe('initCommand', () => {
   describe('example file generation', () => {
     it('should generate example files for advanced template', async () => {
       mockPathExists.mockResolvedValue(false);
+      mockEnsureDir.mockResolvedValue(undefined);
+      mockWriteFile.mockResolvedValue(undefined);
       mockPrompt
         .mockResolvedValueOnce({ selectedTemplate: 'advanced' })
         .mockResolvedValueOnce({

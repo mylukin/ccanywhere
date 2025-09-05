@@ -5,70 +5,70 @@
 import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
 
 // Mock fs-extra
-const mockEnsureDir = jest.fn() as jest.Mock;
+const mockEnsureDir = jest.fn() as any;
 jest.unstable_mockModule('fs-extra', () => ({
   default: { ensureDir: mockEnsureDir }
 }));
 
 // Mock execa
-const mockExeca = jest.fn() as jest.Mock;
+const mockExeca = jest.fn() as any;
 jest.unstable_mockModule('execa', () => ({
   execa: mockExeca
 }));
 
 // Mock HtmlDiffGenerator
 const mockDiffGenerator = {
-  generateDiff: jest.fn() as jest.Mock,
-  uploadArtifacts: jest.fn() as jest.Mock
+  generateDiff: jest.fn() as any,
+  uploadArtifacts: jest.fn() as any
 };
 const mockHtmlDiffGenerator = jest.fn(() => mockDiffGenerator) as jest.Mock;
 
-jest.unstable_mockModule('./diff-generator.js', () => ({
+jest.unstable_mockModule('./diff-generator', () => ({
   HtmlDiffGenerator: mockHtmlDiffGenerator
 }));
 
 // Mock deployment trigger
 const mockDeploymentTrigger = {
-  trigger: jest.fn() as jest.Mock,
-  getStatus: jest.fn() as jest.Mock
+  trigger: jest.fn() as any,
+  getStatus: jest.fn() as any
 };
 const mockCreateDeploymentTrigger = jest.fn(() => mockDeploymentTrigger) as jest.Mock;
-const mockHasDeploymentConfig = jest.fn() as jest.Mock;
+const mockHasDeploymentConfig = jest.fn() as any;
 
-jest.unstable_mockModule('./deployment-trigger.js', () => ({
+jest.unstable_mockModule('./deployment-trigger', () => ({
   createDeploymentTrigger: mockCreateDeploymentTrigger,
   hasDeploymentConfig: mockHasDeploymentConfig
 }));
 
 // Mock test runner
 const mockTestRunner = {
-  runTests: jest.fn() as jest.Mock
+  runTests: jest.fn() as any
 };
 const mockCreateTestRunner = jest.fn(() => mockTestRunner) as jest.Mock;
 
-jest.unstable_mockModule('./test-runner.js', () => ({
+jest.unstable_mockModule('./test-runner', () => ({
   createTestRunner: mockCreateTestRunner
 }));
 
 // Mock NotificationManager
 const mockNotificationManager = {
-  send: jest.fn() as jest.Mock
+  send: jest.fn() as any
 };
 const mockNotificationManagerConstructor = jest.fn(() => mockNotificationManager) as jest.Mock;
 
-jest.unstable_mockModule('./notifications/manager.js', () => ({
+jest.unstable_mockModule('./notifications/manager', () => ({
   NotificationManager: mockNotificationManagerConstructor
 }));
 
 // Mock FileLockManager
 const mockLockManager = {
-  acquireLock: jest.fn() as jest.Mock,
-  releaseLock: jest.fn() as jest.Mock,
-  isLocked: jest.fn() as jest.Mock
+  acquireLock: jest.fn() as any,
+  releaseLock: jest.fn() as any,
+  isLocked: jest.fn() as any
 };
 const mockFileLockManager = jest.fn(() => mockLockManager) as jest.Mock;
 
-jest.unstable_mockModule('./lock-manager.js', () => ({
+jest.unstable_mockModule('./lock-manager', () => ({
   FileLockManager: mockFileLockManager
 }));
 

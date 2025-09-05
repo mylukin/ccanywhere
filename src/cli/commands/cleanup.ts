@@ -7,6 +7,8 @@ import chalkModule from 'chalk';
 const chalk = chalkModule;
 import inquirerModule from 'inquirer';
 const inquirer = inquirerModule;
+import fsExtraModule from 'fs-extra';
+const fs = fsExtraModule;
 import { createLogger } from '../../core/logger.js';
 import type { CliOptions } from '../../types/index.js';
 
@@ -59,8 +61,6 @@ export async function cleanupCommand(options: CleanupOptions): Promise<void> {
 }
 
 async function cleanupArtifacts(artifactsDir: string, daysToKeep: number): Promise<void> {
-  const fs = await import('fs-extra');
-  
   if (!(await fs.pathExists(artifactsDir))) {
     console.log(chalk.gray('No artifacts directory found'));
     return;

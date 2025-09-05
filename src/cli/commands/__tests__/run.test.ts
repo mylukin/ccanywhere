@@ -29,11 +29,11 @@ jest.unstable_mockModule('chalk', () => ({
 
 // Mock ConfigLoader
 const mockConfigLoader = {
-  loadConfig: jest.fn() as jest.Mock
+  loadConfig: jest.fn() as any
 };
 const mockGetInstance = jest.fn(() => mockConfigLoader) as jest.Mock;
 
-jest.unstable_mockModule('../../config/index.js', () => ({
+jest.unstable_mockModule('@/config/index', () => ({
   ConfigLoader: {
     getInstance: mockGetInstance
   }
@@ -41,23 +41,23 @@ jest.unstable_mockModule('../../config/index.js', () => ({
 
 // Mock logger
 const mockLogger = {
-  info: jest.fn() as jest.Mock,
-  error: jest.fn() as jest.Mock,
-  debug: jest.fn() as jest.Mock
+  info: jest.fn() as any,
+  error: jest.fn() as any,
+  debug: jest.fn() as any
 };
 const mockCreateLogger = jest.fn(() => mockLogger) as jest.Mock;
 
-jest.unstable_mockModule('../../core/logger.js', () => ({
+jest.unstable_mockModule('@/core/logger', () => ({
   createLogger: mockCreateLogger
 }));
 
 // Mock BuildPipeline
 const mockPipeline = {
-  run: jest.fn() as jest.Mock
+  run: jest.fn() as any
 };
 const mockBuildPipeline = jest.fn(() => mockPipeline) as jest.Mock;
 
-jest.unstable_mockModule('../../core/pipeline.js', () => ({
+jest.unstable_mockModule('@/core/pipeline', () => ({
   BuildPipeline: mockBuildPipeline
 }));
 
@@ -72,13 +72,13 @@ describe('runCommand', () => {
   beforeEach(() => {
     // Mock console methods
     originalConsole = { ...console };
-    console.log = jest.fn() as jest.Mock;
-    console.error = jest.fn() as jest.Mock;
+    console.log = jest.fn() as any;
+    console.error = jest.fn() as any;
 
     // Mock process.cwd and process.exit
     originalCwd = process.cwd;
     originalExit = process.exit;
-    process.cwd = jest.fn(() => '/test/project') as jest.Mock;
+    process.cwd = jest.fn(() => '/test/project') as any;
     process.exit = jest.fn() as any;
 
     // Reset all mocks
@@ -89,6 +89,19 @@ describe('runCommand', () => {
       repo: { kind: 'github', url: 'https://github.com/test/repo', branch: 'main' },
       build: { base: 'origin/main', lockTimeout: 300, cleanupDays: 7 },
       notifications: { channels: ['telegram'] }
+    });
+    
+    // Reset pipeline mock to not throw by default
+    mockBuildPipeline.mockImplementation(() => mockPipeline);
+    mockPipeline.run.mockResolvedValue({
+      success: true,
+      duration: 1000,
+      revision: 'abc123',
+      branch: 'main',
+      artifacts: [],
+      deploymentUrl: null,
+      testResults: null,
+      commitInfo: null
     });
   });
 

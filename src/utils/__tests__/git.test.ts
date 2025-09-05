@@ -5,15 +5,15 @@
 import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
 
 // Mock execa
-const mockExeca = jest.fn() as jest.Mock;
+const mockExeca = jest.fn() as any;
 jest.unstable_mockModule('execa', () => ({
   execa: mockExeca
 }));
 
 // Mock fs-extra
 const mockFs = {
-  pathExists: jest.fn() as jest.Mock,
-  readFile: jest.fn() as jest.Mock
+  pathExists: jest.fn() as any,
+  readFile: jest.fn() as any
 };
 jest.unstable_mockModule('fs-extra', () => ({
   default: mockFs

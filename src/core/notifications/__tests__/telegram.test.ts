@@ -7,29 +7,39 @@ import type { NotificationMessage } from '../types.js';
 
 // Mock axios
 const mockAxios = {
-  post: jest.fn(),
-  get: jest.fn()
+  post: jest.fn() as any,
+  get: jest.fn() as any
 };
 
 jest.unstable_mockModule('axios', () => ({
-  default: mockAxios
-}));
-
-// Mock BuildError
-jest.unstable_mockModule('../../../types/index.js', () => ({
-  BuildError: class BuildError extends Error {
-    constructor(message: string) {
+  default: mockAxios,
+  AxiosError: class AxiosError extends Error {
+    constructor(message: string, response?: any) {
       super(message);
-      this.name = 'BuildError';
+      this.name = 'AxiosError';
+      this.isAxiosError = true;
+      this.response = response;
     }
+    isAxiosError = true;
+    response?: any;
   }
 }));
 
+// Import BuildError directly without mocking
+// jest.unstable_mockModule('../../../types/index.js', () => ({
+//   BuildError: class BuildError extends Error {
+//     constructor(message: string) {
+//       super(message);
+//       this.name = 'BuildError';
+//     }
+//   }
+// }));
+
 // Import the module after mocking
-const { TelegramNotifier } = await import('../telegram.js');
+const { TelegramNotifier } = await import('../telegram');
 
 describe('TelegramNotifier', () => {
-  let notifier: TelegramNotifier;
+  let notifier: any;
   let mockConfig: any;
 
   beforeEach(() => {
@@ -127,15 +137,14 @@ describe('TelegramNotifier', () => {
         timestamp: Date.now()
       };
 
-      const axiosError = {
-        isAxiosError: true,
-        response: {
-          data: {
-            description: 'Unauthorized'
-          }
-        },
-        message: 'Request failed'
-      };
+      // Create AxiosError instance  
+      const { AxiosError } = await import('axios');
+      const axiosError = new AxiosError('Request failed');
+      axiosError.response = {
+        data: {
+          description: 'Unauthorized'
+        }
+      } as any;
       
       mockAxios.post.mockRejectedValue(axiosError);
 
@@ -190,8 +199,6 @@ describe('TelegramNotifier', () => {
 
       expect(result).toBe(false);
     });
-  });
-
   });
 
   describe('getBotInfo method', () => {
@@ -268,8 +275,4 @@ describe('TelegramNotifier', () => {
       );
     });
   });
-
-  });
-
-
 });

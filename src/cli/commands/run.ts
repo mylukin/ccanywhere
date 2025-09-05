@@ -105,6 +105,20 @@ export async function runCommand(options: RunOptions): Promise<void> {
       console.log(chalk.red('❌ Build failed!'));
       console.log(chalk.gray(`Duration: ${Math.round(result.duration / 1000)}s`));
       
+      // Show test results even on failure
+      if (result.testResults) {
+        console.log();
+        console.log(chalk.blue('🧪 Test results:'));
+        console.log(`  Status: ${getTestStatusEmoji(result.testResults.status)} ${result.testResults.status}`);
+        console.log(`  Passed: ${chalk.green(result.testResults.passed)}`);
+        console.log(`  Failed: ${chalk.red(result.testResults.failed)}`);
+        console.log(`  Skipped: ${chalk.yellow(result.testResults.skipped)}`);
+        
+        if (result.testResults.reportUrl) {
+          console.log(`  Report: ${chalk.cyan(result.testResults.reportUrl)}`);
+        }
+      }
+      
       if (result.error) {
         console.log();
         console.log(chalk.red('Error details:'));

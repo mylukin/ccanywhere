@@ -25,6 +25,13 @@ export class ConfigLoader {
   }
 
   /**
+   * Reset the singleton instance (for testing purposes)
+   */
+  static reset(): void {
+    ConfigLoader.instance = null as any;
+  }
+
+  /**
    * Load configuration from file or environment
    */
   async loadConfig(configPath?: string, projectPath: string = '.'): Promise<CcanywhereConfig> {

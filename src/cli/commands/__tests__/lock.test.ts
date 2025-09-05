@@ -17,14 +17,14 @@ jest.unstable_mockModule('chalk', () => ({
 
 // Mock FileLockManager
 const mockLockManager = {
-  isLocked: jest.fn() as jest.Mock,
-  getLockInfo: jest.fn() as jest.Mock,
-  clean: jest.fn() as jest.Mock,
-  forceRelease: jest.fn() as jest.Mock
+  isLocked: jest.fn() as any,
+  getLockInfo: jest.fn() as any,
+  clean: jest.fn() as any,
+  forceRelease: jest.fn() as any
 };
 const mockFileLockManager = jest.fn(() => mockLockManager) as jest.Mock;
 
-jest.unstable_mockModule('../../core/lock-manager.js', () => ({
+jest.unstable_mockModule('@/core/lock-manager', () => ({
   FileLockManager: mockFileLockManager
 }));
 
@@ -38,8 +38,8 @@ describe('lock command', () => {
   beforeEach(() => {
     // Mock console methods
     originalConsole = { ...console };
-    console.log = jest.fn() as jest.Mock;
-    console.error = jest.fn() as jest.Mock;
+    console.log = jest.fn() as any;
+    console.error = jest.fn() as any;
 
     // Mock process.exit
     originalExit = process.exit;

@@ -6,48 +6,48 @@ import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals
 
 // Mock notification providers
 const mockTelegramProvider = {
-  send: jest.fn() as jest.Mock,
-  test: jest.fn() as jest.Mock
+  send: jest.fn() as any,
+  test: jest.fn() as any
 };
 const mockEmailProvider = {
-  send: jest.fn() as jest.Mock,
-  test: jest.fn() as jest.Mock
+  send: jest.fn() as any,
+  test: jest.fn() as any
 };
 const mockDingTalkProvider = {
-  send: jest.fn() as jest.Mock,
-  test: jest.fn() as jest.Mock
+  send: jest.fn() as any,
+  test: jest.fn() as any
 };
 const mockWeComProvider = {
-  send: jest.fn() as jest.Mock,
-  test: jest.fn() as jest.Mock
+  send: jest.fn() as any,
+  test: jest.fn() as any
 };
 
-jest.unstable_mockModule('../telegram.js', () => ({
+jest.unstable_mockModule('../telegram', () => ({
   TelegramNotificationProvider: jest.fn(() => mockTelegramProvider) as jest.Mock
 }));
 
-jest.unstable_mockModule('../email.js', () => ({
+jest.unstable_mockModule('../email', () => ({
   EmailNotificationProvider: jest.fn(() => mockEmailProvider) as jest.Mock
 }));
 
-jest.unstable_mockModule('../dingtalk.js', () => ({
+jest.unstable_mockModule('../dingtalk', () => ({
   DingTalkNotificationProvider: jest.fn(() => mockDingTalkProvider) as jest.Mock
 }));
 
-jest.unstable_mockModule('../wecom.js', () => ({
+jest.unstable_mockModule('../wecom', () => ({
   WeComNotificationProvider: jest.fn(() => mockWeComProvider) as jest.Mock
 }));
 
 // Mock formatter
 const mockFormatter = {
-  formatMessage: jest.fn() as jest.Mock
+  formatMessage: jest.fn() as any
 };
-jest.unstable_mockModule('../formatter.js', () => ({
+jest.unstable_mockModule('../formatter', () => ({
   NotificationFormatter: jest.fn(() => mockFormatter) as jest.Mock
 }));
 
 // Import the module after mocking
-const { NotificationManager } = await import('../manager.js');
+const { NotificationManager } = await import('../manager');
 
 describe('NotificationManager', () => {
   let manager: any;
@@ -109,7 +109,7 @@ describe('NotificationManager', () => {
     it('should throw error for unsupported channel', () => {
       expect(() => {
         new NotificationManager({
-          channels: ['unsupported'],
+          channels: ['unsupported' as any],
           unsupported: {}
         });
       }).toThrow('Unsupported notification channel: unsupported');
@@ -269,7 +269,7 @@ describe('NotificationManager', () => {
     });
 
     it('should handle non-Error exceptions', async () => {
-      mockTelegramProvider.test.mkRejectedValue('String error');
+      mockTelegramProvider.test.mockRejectedValue('String error');
 
       const results = await manager.testAllChannels();
 
@@ -375,7 +375,7 @@ describe('NotificationManager', () => {
     });
 
     it('should continue sending to other channels if one fails', async () => {
-      mockTelegramProvider.send.mkRejectedValue(new Error('Telegram failed'));
+      mockTelegramProvider.send.mockRejectedValue(new Error('Telegram failed'));
 
       const message = {
         title: 'Test Message',
@@ -390,7 +390,7 @@ describe('NotificationManager', () => {
     });
 
     it('should handle formatter errors gracefully', async () => {
-      mockFormatter.formatMessage.mkImplementation(() => {
+      mockFormatter.formatMessage.mockImplementation(() => {
         throw new Error('Formatting failed');
       });
 

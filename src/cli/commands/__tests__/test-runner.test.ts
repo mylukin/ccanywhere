@@ -28,11 +28,11 @@ jest.unstable_mockModule('ora', () => ({
 
 // Mock ConfigLoader
 const mockConfigLoader = {
-  loadConfig: jest.fn() as jest.Mock
+  loadConfig: jest.fn() as any
 };
 const mockGetInstance = jest.fn(() => mockConfigLoader) as jest.Mock;
 
-jest.unstable_mockModule('../../config/index.js', () => ({
+jest.unstable_mockModule('@/config/index', () => ({
   ConfigLoader: {
     getInstance: mockGetInstance
   }
@@ -40,35 +40,47 @@ jest.unstable_mockModule('../../config/index.js', () => ({
 
 // Mock NotificationManager
 const mockNotificationManager = {
-  testAllChannels: jest.fn() as jest.Mock
+  testAllChannels: jest.fn() as any
 };
-const mockNotificationManagerConstructor = jest.fn(() => mockNotificationManager) as jest.Mock;
+const mockNotificationManagerConstructor = jest.fn(() => mockNotificationManager) as any;
 
-jest.unstable_mockModule('../../core/notifications/manager.js', () => ({
+jest.unstable_mockModule('@/core/notifications/manager', () => ({
   NotificationManager: mockNotificationManagerConstructor
 }));
 
 // Mock deployment trigger
-const mockCreateDeploymentTrigger = jest.fn() as jest.Mock;
-jest.unstable_mockModule('../../core/deployment-trigger.js', () => ({
+const mockCreateDeploymentTrigger = jest.fn() as any;
+jest.unstable_mockModule('@/core/deployment-trigger', () => ({
   createDeploymentTrigger: mockCreateDeploymentTrigger
 }));
 
 // Mock test runner
-const mockCreateTestRunner = jest.fn() as jest.Mock;
-jest.unstable_mockModule('../../core/test-runner.js', () => ({
+const mockCreateTestRunner = jest.fn() as any;
+jest.unstable_mockModule('@/core/test-runner', () => ({
   createTestRunner: mockCreateTestRunner
 }));
 
 // Mock dynamic imports
 const mockFs = {
-  pathExists: jest.fn() as jest.Mock
+  pathExists: jest.fn() as any
 };
 const mockPath = {
   join: jest.fn((...args: string[]) => args.join('/')) as jest.Mock
 };
-const mockExeca = jest.fn() as jest.Mock;
-const mockGlob = jest.fn() as jest.Mock;
+const mockExeca = jest.fn() as any;
+const mockGlob = jest.fn() as any;
+
+// Mock fs-extra
+jest.unstable_mockModule('fs-extra', () => mockFs);
+
+// Mock path
+jest.unstable_mockModule('path', () => mockPath);
+
+// Mock execa
+jest.unstable_mockModule('execa', () => ({ execa: mockExeca }));
+
+// Mock glob
+jest.unstable_mockModule('glob', () => ({ glob: mockGlob }));
 
 // Import the module after mocking
 const { testCommand } = await import('../test-runner.js');
@@ -81,23 +93,22 @@ describe('testCommand', () => {
   beforeEach(() => {
     // Mock console methods
     originalConsole = { ...console };
-    console.log = jest.fn() as jest.Mock;
-    console.error = jest.fn() as jest.Mock;
+    console.log = jest.fn() as any;
+    console.error = jest.fn() as any;
 
     // Mock process.cwd and process.exit
     originalCwd = process.cwd;
     originalExit = process.exit;
-    process.cwd = jest.fn(() => '/test/project') as jest.Mock;
+    process.cwd = jest.fn(() => '/test/project') as any;
     process.exit = jest.fn() as any;
-
-    // Mock dynamic imports
-    jest.doMock('fs-extra', () => mockFs);
-    jest.doMock('path', () => mockPath);
-    jest.doMock('execa', () => ({ execa: mockExeca }));
-    jest.doMock('glob', () => ({ glob: mockGlob }));
 
     // Reset all mocks
     jest.clearAllMocks();
+
+    // Reset constructor mock to return the mocked manager
+    mockNotificationManagerConstructor.mockReturnValue(mockNotificationManager);
+    mockCreateTestRunner.mockReturnValue({});
+    mockCreateDeploymentTrigger.mockReturnValue({});
 
     // Setup default mock returns
     mockConfigLoader.loadConfig.mockResolvedValue({
@@ -211,6 +222,8 @@ describe('testCommand', () => {
     });
 
     it('should handle testAllChannels errors', async () => {
+      // Reset to normal constructor but make testAllChannels fail
+      mockNotificationManagerConstructor.mockReturnValue(mockNotificationManager);
       mockNotificationManager.testAllChannels.mockRejectedValue(new Error('Test failed'));
 
       await testCommand({ notifications: true });

@@ -8,9 +8,9 @@ import path from 'path';
 import os from 'os';
 
 // Mock fs-extra
-const mockAppendFile = jest.fn() as jest.Mock;
-const mockEnsureDir = jest.fn() as jest.Mock;
-const mockReadFile = jest.fn() as jest.Mock;
+const mockAppendFile = jest.fn() as any;
+const mockEnsureDir = jest.fn() as any;
+const mockReadFile = jest.fn() as any;
 
 jest.unstable_mockModule('fs-extra', () => ({
   default: {
@@ -22,9 +22,9 @@ jest.unstable_mockModule('fs-extra', () => ({
 
 // Mock fs createWriteStream
 const mockWriteStream = {
-  write: jest.fn() as jest.Mock,
-  end: jest.fn() as jest.Mock,
-  on: jest.fn() as jest.Mock
+  write: jest.fn() as any,
+  end: jest.fn() as any,
+  on: jest.fn() as any
 };
 const mockCreateWriteStream = jest.fn(() => mockWriteStream) as jest.Mock;
 
@@ -138,7 +138,7 @@ describe('JsonLogger', () => {
         metadata: { timestamp: Date.now() }
       };
 
-      logger.log('info', 'Test message', data);
+      logger.info('Test message', data);
 
       expect(logger).toBeDefined();
     });

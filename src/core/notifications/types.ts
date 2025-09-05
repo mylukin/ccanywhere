@@ -18,7 +18,7 @@ export type NotificationFormat = 'plain' | 'markdown' | 'html';
 
 export interface ChannelNotifier {
   readonly channel: NotificationChannel;
-  send(message: NotificationMessage): Promise<void>;
+  send(message: NotificationMessage | string): Promise<void>;
 }
 
 export interface FormattedMessage {

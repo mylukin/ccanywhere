@@ -7,25 +7,35 @@ import type { NotificationMessage } from '../types.js';
 
 // Mock axios
 const mockAxios = {
-  post: jest.fn() as jest.Mock
+  post: jest.fn() as any
 };
 
 jest.unstable_mockModule('axios', () => ({
-  default: mockAxios
-}));
-
-// Mock BuildError
-jest.unstable_mockModule('../../../types/index.js', () => ({
-  BuildError: class BuildError extends Error {
-    constructor(message: string) {
+  default: mockAxios,
+  AxiosError: class AxiosError extends Error {
+    constructor(message: string, response?: any) {
       super(message);
-      this.name = 'BuildError';
+      this.name = 'AxiosError';
+      this.isAxiosError = true;
+      this.response = response;
     }
+    isAxiosError = true;
+    response?: any;
   }
 }));
 
+// Import BuildError directly without mocking
+// jest.unstable_mockModule('../../../types/index.js', () => ({
+//   BuildError: class BuildError extends Error {
+//     constructor(message: string) {
+//       super(message);
+//       this.name = 'BuildError';
+//     }
+//   }
+// }));
+
 // Import the module after mocking
-const { WeComNotifier } = await import('../wecom.js');
+const { WeComNotifier } = await import('../wecom');
 
 describe('WeComNotifier', () => {
   let notifier: any;
@@ -54,7 +64,7 @@ describe('WeComNotifier', () => {
 
     it('should throw error for missing webhook', () => {
       expect(() => {
-        new WeComNotifier({});
+        new WeComNotifier({} as any);
       }).toThrow('WeCom webhook URL is required');
     });
 
@@ -431,9 +441,9 @@ describe('WeComNotifier', () => {
 
       const results = await Promise.allSettled(promises);
 
-      expect(results[0].status).toBe('fulfilled');
-      expect(results[1].status).toBe('rejected');
-      expect(results[2].status).toBe('fulfilled');
+      expect(results[0]?.status).toBe('fulfilled');
+      expect(results[1]?.status).toBe('rejected');
+      expect(results[2]?.status).toBe('fulfilled');
     });
   });
 });
