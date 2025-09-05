@@ -35,13 +35,13 @@ export class PackageManager {
 
       while (currentDir !== root && depth < maxDepth) {
         const packageJsonPath = path.join(currentDir, 'package.json');
-        
+
         try {
           await fs.access(packageJsonPath, fs.constants.F_OK);
-          
+
           // Additional check to ensure it's readable
           await fs.access(packageJsonPath, fs.constants.R_OK);
-          
+
           return packageJsonPath;
         } catch {
           // Continue searching in parent directory
@@ -52,7 +52,11 @@ export class PackageManager {
 
       return null;
     } catch (error) {
-      console.warn(chalk.yellow(`Warning: Error while searching for package.json: ${error instanceof Error ? error.message : String(error)}`));
+      console.warn(
+        chalk.yellow(
+          `Warning: Error while searching for package.json: ${error instanceof Error ? error.message : String(error)}`
+        )
+      );
       return null;
     }
   }
@@ -64,26 +68,28 @@ export class PackageManager {
     try {
       // Check if file exists and is readable
       await fs.access(packageJsonPath, fs.constants.R_OK);
-      
+
       const content = await fs.readFile(packageJsonPath, 'utf-8');
-      
+
       if (!content.trim()) {
         throw new Error('Package.json file is empty');
       }
-      
+
       const packageJson = JSON.parse(content);
-      
+
       // Basic validation
       if (typeof packageJson !== 'object' || packageJson === null) {
         throw new Error('Package.json must contain a valid JSON object');
       }
-      
+
       return packageJson;
     } catch (error) {
       if (error instanceof SyntaxError) {
         throw new Error(`Invalid JSON in package.json at ${packageJsonPath}: ${error.message}`);
       }
-      throw new Error(`Failed to read package.json at ${packageJsonPath}: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Failed to read package.json at ${packageJsonPath}: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -95,7 +101,7 @@ export class PackageManager {
       // Check if the directory is writable
       const dir = path.dirname(packageJsonPath);
       await fs.access(dir, fs.constants.W_OK);
-      
+
       // Create backup of original file if it exists
       try {
         await fs.access(packageJsonPath, fs.constants.F_OK);
@@ -105,11 +111,13 @@ export class PackageManager {
       } catch {
         // Original file doesn't exist, no backup needed
       }
-      
+
       const content = JSON.stringify(packageJson, null, 2) + '\n';
       await fs.writeFile(packageJsonPath, content, 'utf-8');
     } catch (error) {
-      throw new Error(`Failed to write package.json at ${packageJsonPath}: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Failed to write package.json at ${packageJsonPath}: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -123,7 +131,10 @@ export class PackageManager {
   /**
    * Add scripts to package.json, avoiding duplicates
    */
-  static addScripts(packageJson: PackageJson, scripts: ScriptToInject[]): { added: ScriptToInject[]; skipped: ScriptToInject[] } {
+  static addScripts(
+    packageJson: PackageJson,
+    scripts: ScriptToInject[]
+  ): { added: ScriptToInject[]; skipped: ScriptToInject[] } {
     // Validate input
     if (!packageJson || typeof packageJson !== 'object') {
       throw new Error('Invalid package.json object');
@@ -162,11 +173,7 @@ export class PackageManager {
               `⚠️  Script "${sanitizedName}" already exists with different command: "${packageJson.scripts![sanitizedName]}"`
             )
           );
-          console.log(
-            chalk.yellow(
-              `   Skipping injection of: "${script.command}"`
-            )
-          );
+          console.log(chalk.yellow(`   Skipping injection of: "${script.command}"`));
         }
         skipped.push({ ...script, name: sanitizedName });
       } else {
@@ -181,10 +188,13 @@ export class PackageManager {
   /**
    * Inject CCanywhere scripts into a package.json file
    */
-  static async injectScripts(packageJsonPath: string, scripts: ScriptToInject[]): Promise<{ added: ScriptToInject[]; skipped: ScriptToInject[] }> {
+  static async injectScripts(
+    packageJsonPath: string,
+    scripts: ScriptToInject[]
+  ): Promise<{ added: ScriptToInject[]; skipped: ScriptToInject[] }> {
     const packageJson = await this.readPackageJson(packageJsonPath);
     const result = this.addScripts(packageJson, scripts);
-    
+
     if (result.added.length > 0) {
       await this.writePackageJson(packageJsonPath, packageJson);
     }
@@ -247,15 +257,17 @@ export class PackageManager {
       const currentPath = process.cwd();
       const globalPaths = [
         '/usr/local/lib/node_modules',
-        '/usr/lib/node_modules', 
+        '/usr/lib/node_modules',
         path.join(require('os').homedir(), '.npm-global'),
         path.join(require('os').homedir(), 'AppData/Roaming/npm') // Windows
       ];
 
       // Check if current path contains any global path patterns
       for (const globalPath of globalPaths) {
-        if (currentPath.includes('node_modules') && 
-            (currentPath.includes(globalPath) || currentPath.includes('global'))) {
+        if (
+          currentPath.includes('node_modules') &&
+          (currentPath.includes(globalPath) || currentPath.includes('global'))
+        ) {
           return true;
         }
       }
@@ -272,11 +284,7 @@ export class PackageManager {
       }
 
       // Method 5: Check for specific environment indicators
-      const envIndicators = [
-        'npm_config_user_config',
-        'npm_config_globalconfig',
-        'npm_config_global_style'
-      ];
+      const envIndicators = ['npm_config_user_config', 'npm_config_globalconfig', 'npm_config_global_style'];
 
       for (const indicator of envIndicators) {
         if (process.env[indicator]) {
@@ -287,7 +295,11 @@ export class PackageManager {
       return false;
     } catch (error) {
       // On error, assume local install to be safe
-      console.log(chalk.gray(`Warning: Could not determine install type: ${error instanceof Error ? error.message : String(error)}`));
+      console.log(
+        chalk.gray(
+          `Warning: Could not determine install type: ${error instanceof Error ? error.message : String(error)}`
+        )
+      );
       return false;
     }
   }

@@ -3,12 +3,7 @@
  */
 
 import axios, { AxiosError } from 'axios';
-import type {
-  DeploymentTrigger,
-  DeploymentInfo,
-  RuntimeContext,
-  DeploymentStatus
-} from '../types/index.js';
+import type { DeploymentTrigger, DeploymentInfo, RuntimeContext, DeploymentStatus } from '../types/index.js';
 import { BuildError } from '../types/index.js';
 
 export interface WebhookPayload {
@@ -19,7 +14,6 @@ export interface WebhookPayload {
   [key: string]: any;
 }
 
-
 export class SimpleDeploymentTrigger implements DeploymentTrigger {
   private readonly timeout: number = 30000; // 30 seconds
 
@@ -28,11 +22,9 @@ export class SimpleDeploymentTrigger implements DeploymentTrigger {
    */
   async trigger(context: RuntimeContext): Promise<DeploymentInfo> {
     const deploymentConfig = context.config.deployment;
-    
+
     // Extract webhook URL - support both string and object format
-    const webhookUrl = typeof deploymentConfig === 'string' 
-      ? deploymentConfig 
-      : deploymentConfig?.webhook;
+    const webhookUrl = typeof deploymentConfig === 'string' ? deploymentConfig : deploymentConfig?.webhook;
 
     if (!webhookUrl) {
       throw new BuildError('Deployment webhook URL not configured');
@@ -106,7 +98,6 @@ export class SimpleDeploymentTrigger implements DeploymentTrigger {
   }
 }
 
-
 /**
  * Factory function to create deployment trigger
  */
@@ -124,10 +115,10 @@ export function hasDeploymentConfig(config: { deployment?: string | { webhook: s
   if (!config.deployment) {
     return false;
   }
-  
+
   if (typeof config.deployment === 'string') {
     return config.deployment.trim().length > 0;
   }
-  
+
   return !!(config.deployment.webhook && config.deployment.webhook.trim().length > 0);
 }

@@ -63,7 +63,7 @@ export class HookInjector {
 
       // Read existing hooks configuration
       const existingConfig = await this.readHooksConfig(claudePaths.hooksConfig);
-      
+
       // Create backup if requested
       if (options.createBackup !== false && existingConfig) {
         const backupPath = await this.createBackup(claudePaths.hooksConfig, claudePaths.backup);
@@ -82,11 +82,7 @@ export class HookInjector {
       });
 
       // Merge configurations
-      const mergedConfig = await this.mergeHookConfigs(
-        existingConfig,
-        ccanywhereHooks,
-        options.force
-      );
+      const mergedConfig = await this.mergeHookConfigs(existingConfig, ccanywhereHooks, options.force);
 
       // Track what was added/skipped
       for (const [hookName, hookConfig] of Object.entries(ccanywhereHooks)) {
@@ -102,12 +98,11 @@ export class HookInjector {
 
       result.success = true;
       result.message = `Successfully injected CCanywhere hooks`;
-      
+
       this.logger.info(`Hooks injected: ${result.hooksAdded.join(', ')}`);
       if (result.hooksSkipped.length > 0) {
         this.logger.info(`Hooks skipped (already exist): ${result.hooksSkipped.join(', ')}`);
       }
-
     } catch (error) {
       result.message = `Failed to inject hooks: ${error instanceof Error ? error.message : String(error)}`;
       this.logger.error('Hook injection failed:', error);
@@ -164,9 +159,8 @@ export class HookInjector {
 
       result.success = true;
       result.message = `Removed ${removedCount} CCanywhere hooks`;
-      
-      this.logger.info(`Removed hooks: ${result.hooksAdded.join(', ')}`);
 
+      this.logger.info(`Removed hooks: ${result.hooksAdded.join(', ')}`);
     } catch (error) {
       result.message = `Failed to remove hooks: ${error instanceof Error ? error.message : String(error)}`;
       this.logger.error('Hook removal failed:', error);
@@ -226,7 +220,7 @@ export class HookInjector {
   private static async parseJsHooksConfig(jsContent: string): Promise<any> {
     // This is a simplified parser - in production you might want to use a proper JS parser
     // For now, we'll look for common patterns
-    
+
     try {
       // Remove comments first
       const cleanContent = jsContent
@@ -292,10 +286,7 @@ export class HookInjector {
   /**
    * Write hooks configuration to file
    */
-  private static async writeHooksConfig(
-    configPath: string,
-    config: HookConfigFormat
-  ): Promise<void> {
+  private static async writeHooksConfig(configPath: string, config: HookConfigFormat): Promise<void> {
     // Ensure directory exists
     await fs.ensureDir(path.dirname(configPath));
 
@@ -323,7 +314,7 @@ export class HookInjector {
 `;
 
     const hooksStr = JSON.stringify(hooks, null, 2);
-    
+
     const jsContent = `${header}module.exports = ${hooksStr};
 `;
 
@@ -391,9 +382,7 @@ export class HookInjector {
       }
 
       const files = await fs.readdir(backupDir);
-      const backupFiles = files.filter(file => 
-        file.includes('hooks') && file.includes('.backup')
-      );
+      const backupFiles = files.filter(file => file.includes('hooks') && file.includes('.backup'));
 
       return backupFiles.map(file => path.join(backupDir, file));
     } catch (error) {

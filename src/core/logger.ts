@@ -341,9 +341,7 @@ export class JsonLogger implements Logger {
         }
       }
     } catch (error) {
-      console.warn(
-        `Failed to cleanup logs: ${error instanceof Error ? error.message : String(error)}`
-      );
+      console.warn(`Failed to cleanup logs: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 

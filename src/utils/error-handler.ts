@@ -30,13 +30,7 @@ export class ClaudeCodeError extends Error {
   public readonly originalError?: Error;
   public readonly recoverable: boolean;
 
-  constructor(
-    message: string,
-    code: string,
-    context?: ErrorContext,
-    originalError?: Error,
-    recoverable = false
-  ) {
+  constructor(message: string, code: string, context?: ErrorContext, originalError?: Error, recoverable = false) {
     super(message);
     this.name = 'ClaudeCodeError';
     this.code = code;
@@ -95,11 +89,7 @@ export class ErrorHandler {
   /**
    * Categorize error and generate appropriate user feedback
    */
-  private static categorizeError(
-    error: Error | ClaudeCodeError,
-    context: ErrorContext,
-    errorId: string
-  ): UserFeedback {
+  private static categorizeError(error: Error | ClaudeCodeError, context: ErrorContext, errorId: string): UserFeedback {
     // Handle custom ClaudeCodeError
     if (error instanceof ClaudeCodeError) {
       return this.handleClaudeCodeError(error, context, errorId);
@@ -129,11 +119,7 @@ export class ErrorHandler {
   /**
    * Handle ClaudeCodeError instances
    */
-  private static handleClaudeCodeError(
-    error: ClaudeCodeError,
-    context: ErrorContext,
-    errorId: string
-  ): UserFeedback {
+  private static handleClaudeCodeError(error: ClaudeCodeError, context: ErrorContext, errorId: string): UserFeedback {
     const baseMessage = error.message;
     const suggestions: string[] = [];
 
@@ -201,9 +187,7 @@ export class ErrorHandler {
       /insufficient privileges/i
     ];
 
-    return permissionPatterns.some(pattern => 
-      pattern.test(error.message) || pattern.test(error.name)
-    );
+    return permissionPatterns.some(pattern => pattern.test(error.message) || pattern.test(error.name));
   }
 
   /**
@@ -220,9 +204,7 @@ export class ErrorHandler {
       /request failed/i
     ];
 
-    return networkPatterns.some(pattern => 
-      pattern.test(error.message) || pattern.test(error.name)
-    );
+    return networkPatterns.some(pattern => pattern.test(error.message) || pattern.test(error.name));
   }
 
   /**
@@ -240,36 +222,22 @@ export class ErrorHandler {
       /directory not found/i
     ];
 
-    return fsPatterns.some(pattern => 
-      pattern.test(error.message) || pattern.test(error.name)
-    );
+    return fsPatterns.some(pattern => pattern.test(error.message) || pattern.test(error.name));
   }
 
   /**
    * Check if error is configuration-related
    */
   private static isConfigurationError(error: Error): boolean {
-    const configPatterns = [
-      /config/i,
-      /invalid json/i,
-      /parse error/i,
-      /missing required/i,
-      /validation failed/i
-    ];
+    const configPatterns = [/config/i, /invalid json/i, /parse error/i, /missing required/i, /validation failed/i];
 
-    return configPatterns.some(pattern => 
-      pattern.test(error.message) || pattern.test(error.name)
-    );
+    return configPatterns.some(pattern => pattern.test(error.message) || pattern.test(error.name));
   }
 
   /**
    * Create permission error feedback
    */
-  private static createPermissionErrorFeedback(
-    error: Error,
-    context: ErrorContext,
-    errorId: string
-  ): UserFeedback {
+  private static createPermissionErrorFeedback(error: Error, context: ErrorContext, errorId: string): UserFeedback {
     return {
       level: 'error',
       title: 'Permission Error',
@@ -287,11 +255,7 @@ export class ErrorHandler {
   /**
    * Create network error feedback
    */
-  private static createNetworkErrorFeedback(
-    error: Error,
-    context: ErrorContext,
-    errorId: string
-  ): UserFeedback {
+  private static createNetworkErrorFeedback(error: Error, context: ErrorContext, errorId: string): UserFeedback {
     return {
       level: 'error',
       title: 'Network Error',
@@ -309,11 +273,7 @@ export class ErrorHandler {
   /**
    * Create file system error feedback
    */
-  private static createFileSystemErrorFeedback(
-    error: Error,
-    context: ErrorContext,
-    errorId: string
-  ): UserFeedback {
+  private static createFileSystemErrorFeedback(error: Error, context: ErrorContext, errorId: string): UserFeedback {
     return {
       level: 'error',
       title: 'File System Error',
@@ -331,11 +291,7 @@ export class ErrorHandler {
   /**
    * Create configuration error feedback
    */
-  private static createConfigurationErrorFeedback(
-    error: Error,
-    context: ErrorContext,
-    errorId: string
-  ): UserFeedback {
+  private static createConfigurationErrorFeedback(error: Error, context: ErrorContext, errorId: string): UserFeedback {
     return {
       level: 'error',
       title: 'Configuration Error',
@@ -353,11 +309,7 @@ export class ErrorHandler {
   /**
    * Create generic error feedback
    */
-  private static createGenericErrorFeedback(
-    error: Error,
-    context: ErrorContext,
-    errorId: string
-  ): UserFeedback {
+  private static createGenericErrorFeedback(error: Error, context: ErrorContext, errorId: string): UserFeedback {
     return {
       level: 'error',
       title: 'Unexpected Error',
@@ -442,11 +394,7 @@ export class ErrorHandler {
     try {
       return await operation();
     } catch (error) {
-      await this.handleError(
-        error instanceof Error ? error : new Error(String(error)),
-        context,
-        provideFeedback
-      );
+      await this.handleError(error instanceof Error ? error : new Error(String(error)), context, provideFeedback);
       throw error;
     }
   }

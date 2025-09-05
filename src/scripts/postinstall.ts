@@ -17,7 +17,7 @@ async function injectNpmScripts(): Promise<void> {
   try {
     // Find the nearest package.json (user's project)
     const packageJsonPath = await PackageManager.findPackageJson();
-    
+
     if (!packageJsonPath) {
       console.log(chalk.yellow('ℹ️  No package.json found, skipping script injection'));
       return;
@@ -33,7 +33,7 @@ async function injectNpmScripts(): Promise<void> {
 
     // Get default scripts to inject
     const scriptsToInject = PackageManager.getDefaultScripts();
-    
+
     // Inject scripts
     const result = await PackageManager.injectScripts(packageJsonPath, scriptsToInject);
 
@@ -68,7 +68,7 @@ async function handleClaudeCodeIntegration(): Promise<void> {
   try {
     // Check if this is a global installation
     const isGlobalInstall = await PackageManager.isGlobalInstall();
-    
+
     if (!isGlobalInstall) {
       console.log(chalk.gray('🏠 Local installation - skipping Claude Code auto-registration'));
       console.log(chalk.gray('   Use "ccanywhere claude-register" to manually register hooks'));
@@ -79,7 +79,7 @@ async function handleClaudeCodeIntegration(): Promise<void> {
 
     // Detect Claude Code environment
     const environment = await ClaudeCodeDetector.detectEnvironment();
-    
+
     if (!environment.isClaudeCode) {
       console.log(chalk.gray('🔍 Claude Code not detected'));
       console.log(chalk.gray('   You can register hooks later with: ccanywhere claude-register'));
@@ -88,7 +88,7 @@ async function handleClaudeCodeIntegration(): Promise<void> {
 
     console.log(chalk.green('✅ Claude Code detected!'));
     console.log(chalk.gray(`   Config: ${environment.configDir}`));
-    
+
     // Check if hooks are already injected
     const alreadyInjected = await HookInjector.areHooksInjected();
     if (alreadyInjected) {
@@ -98,19 +98,19 @@ async function handleClaudeCodeIntegration(): Promise<void> {
 
     // Auto-inject hooks with conservative defaults
     console.log(chalk.blue('🔧 Auto-registering CCanywhere hooks with Claude Code...'));
-    
+
     const result = await HookInjector.injectHooks({
       enablePreCommit: false, // Conservative: don't auto-enable pre-commit
-      enablePostRun: true,    // Enable post-run for full pipeline
-      enablePreTest: false,   // Conservative: don't auto-enable pre-test
-      enablePostTest: false,  // Conservative: don't auto-enable post-test
-      createBackup: true,     // Always create backup
-      force: false           // Don't overwrite existing
+      enablePostRun: true, // Enable post-run for full pipeline
+      enablePreTest: false, // Conservative: don't auto-enable pre-test
+      enablePostTest: false, // Conservative: don't auto-enable post-test
+      createBackup: true, // Always create backup
+      force: false // Don't overwrite existing
     });
 
     if (result.success) {
       console.log(chalk.green('🎉 CCanywhere is now integrated with Claude Code!'));
-      
+
       if (result.hooksAdded.length > 0) {
         console.log(chalk.cyan('   Registered hooks:'));
         for (const hook of result.hooksAdded) {
@@ -128,13 +128,11 @@ async function handleClaudeCodeIntegration(): Promise<void> {
       console.log(chalk.gray('  • Your diffs and artifacts will be generated seamlessly'));
       console.log(chalk.gray('  • Use "ccanywhere claude-register --status" to see current configuration'));
       console.log(chalk.gray('  • Use "ccanywhere claude-register" to modify hook settings'));
-
     } else {
       console.log(chalk.yellow('⚠️  Auto-registration failed (this is okay):'));
       console.log(chalk.yellow(`   ${result.message}`));
       console.log(chalk.gray('   You can register manually with: ccanywhere claude-register'));
     }
-
   } catch (error) {
     // Don't fail the installation on Claude Code integration errors
     console.log(chalk.yellow('⚠️  Claude Code integration encountered an issue:'));
@@ -167,9 +165,7 @@ async function postInstall(): Promise<void> {
     console.log('3. Test your setup with ' + chalk.cyan('npm run ccanywhere:test'));
     console.log('4. Run your first build with ' + chalk.cyan('npm run ccanywhere:run'));
     console.log();
-    console.log(
-      'For more information, visit: ' + chalk.cyan('https://github.com/mylukin/ccanywhere')
-    );
+    console.log('For more information, visit: ' + chalk.cyan('https://github.com/mylukin/ccanywhere'));
   } catch (error) {
     console.warn(chalk.yellow('Warning: Post-install setup encountered issues'));
     console.warn(error instanceof Error ? error.message : String(error));

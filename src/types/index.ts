@@ -31,9 +31,11 @@ export interface CcanywhereConfig {
   };
 
   /** Deployment configuration - webhook URL or config object */
-  deployment?: string | {
-    webhook: string;
-  };
+  deployment?:
+    | string
+    | {
+        webhook: string;
+      };
 
   /** Notification configuration */
   notifications?: {
@@ -66,7 +68,7 @@ export interface CcanywhereConfig {
     base?: string;
     lockTimeout?: number;
     cleanupDays?: number;
-    excludePaths?: string[];  // Paths to exclude from diff generation
+    excludePaths?: string[]; // Paths to exclude from diff generation
   };
 
   /** Test configuration */

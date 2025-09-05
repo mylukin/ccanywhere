@@ -361,11 +361,7 @@ export class BuildPipeline {
   /**
    * Send error notification
    */
-  private async sendErrorNotification(
-    context: RuntimeContext,
-    error: string,
-    step: string
-  ): Promise<void> {
+  private async sendErrorNotification(context: RuntimeContext, error: string, step: string): Promise<void> {
     const message = this.notificationManager.createErrorNotification(context.revision, error, step);
 
     await this.notificationManager.send(message);

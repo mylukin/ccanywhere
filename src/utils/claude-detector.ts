@@ -49,24 +49,23 @@ export class ClaudeCodeDetector {
       if (configDir) {
         result.configDir = configDir;
         result.isClaudeCode = true;
-        
+
         // Try to find hooks configuration
         const hooksPath = await this.findHooksConfigPath(configDir);
         if (hooksPath) {
           result.hooksConfigPath = hooksPath;
         }
-        
+
         this.logger.debug(`Claude Code config directory found: ${configDir}`);
       }
 
       // Try to detect version
       result.version = await this.detectVersion();
-      
+
       // Determine installation type
       if (result.configDir) {
         result.installationType = this.determineInstallationType(result.configDir);
       }
-
     } catch (error) {
       this.logger.debug('Error detecting Claude Code environment:', error);
     }
@@ -78,12 +77,7 @@ export class ClaudeCodeDetector {
    * Check Claude Code-specific environment variables
    */
   private static checkEnvironmentVariables(): boolean {
-    const claudeVars = [
-      'CLAUDE_CODE_HOME',
-      'CLAUDE_CONFIG_DIR', 
-      'CLAUDE_WORKSPACE',
-      'CLAUDE_CODE_VERSION'
-    ];
+    const claudeVars = ['CLAUDE_CODE_HOME', 'CLAUDE_CONFIG_DIR', 'CLAUDE_WORKSPACE', 'CLAUDE_CODE_VERSION'];
 
     return claudeVars.some(varName => process.env[varName]);
   }
@@ -118,7 +112,7 @@ export class ClaudeCodeDetector {
   private static getConfigCandidates(): string[] {
     const homeDir = os.homedir();
     const platform = os.platform();
-    
+
     const candidates: string[] = [];
 
     // Environment variable override
@@ -140,8 +134,8 @@ export class ClaudeCodeDetector {
           path.join(homeDir, '.claude')
         );
         break;
-        
-      case 'win32': // Windows
+
+      case 'win32': { // Windows
         const appData = process.env.APPDATA || path.join(homeDir, 'AppData/Roaming');
         const localAppData = process.env.LOCALAPPDATA || path.join(homeDir, 'AppData/Local');
         candidates.push(
@@ -152,8 +146,9 @@ export class ClaudeCodeDetector {
           path.join(homeDir, '.claude')
         );
         break;
-        
-      default: // Linux and others
+      }
+
+      default: { // Linux and others
         const xdgConfigHome = process.env.XDG_CONFIG_HOME || path.join(homeDir, '.config');
         candidates.push(
           path.join(xdgConfigHome, 'claude-code'),
@@ -162,6 +157,7 @@ export class ClaudeCodeDetector {
           path.join(homeDir, '.claude')
         );
         break;
+      }
     }
 
     return candidates;
@@ -175,7 +171,7 @@ export class ClaudeCodeDetector {
       // Look for Claude Code-specific files
       const indicatorFiles = [
         'config.json',
-        'settings.json', 
+        'settings.json',
         'hooks.js',
         'hooks.json',
         'claude.config.js',
@@ -291,26 +287,20 @@ export class ClaudeCodeDetector {
    */
   private static determineInstallationType(configDir: string): 'user' | 'system' {
     const homeDir = os.homedir();
-    
+
     if (configDir.startsWith(homeDir)) {
       return 'user';
     }
-    
+
     // Check common system paths
-    const systemPaths = [
-      '/usr/local',
-      '/opt',
-      '/etc',
-      'C:\\Program Files',
-      'C:\\ProgramData'
-    ];
-    
+    const systemPaths = ['/usr/local', '/opt', '/etc', 'C:\\Program Files', 'C:\\ProgramData'];
+
     for (const systemPath of systemPaths) {
       if (configDir.startsWith(systemPath)) {
         return 'system';
       }
     }
-    
+
     return 'user';
   }
 
@@ -319,7 +309,7 @@ export class ClaudeCodeDetector {
    */
   static async getClaudeCodePaths(): Promise<ClaudeCodePaths | null> {
     const env = await this.detectEnvironment();
-    
+
     if (!env.isClaudeCode || !env.configDir) {
       return null;
     }
@@ -354,18 +344,18 @@ export class ClaudeCodeDetector {
   static async ensureConfigDirectory(): Promise<string | null> {
     try {
       const env = await this.detectEnvironment();
-      
-      if (env.configDir && await fs.pathExists(env.configDir)) {
+
+      if (env.configDir && (await fs.pathExists(env.configDir))) {
         return env.configDir;
       }
 
       // Try to create in default location
       const homeDir = os.homedir();
       const defaultPath = path.join(homeDir, '.config/claude-code');
-      
+
       await fs.ensureDir(defaultPath);
       this.logger.info(`Created Claude Code config directory: ${defaultPath}`);
-      
+
       return defaultPath;
     } catch (error) {
       this.logger.error('Failed to ensure config directory:', error);

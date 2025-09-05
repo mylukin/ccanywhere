@@ -94,9 +94,7 @@ export class FileLockManager implements LockManager {
       }
     } catch (error) {
       // Don't throw on release failures - just log
-      console.warn(
-        `Failed to release lock ${lockFile}: ${error instanceof Error ? error.message : String(error)}`
-      );
+      console.warn(`Failed to release lock ${lockFile}: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -174,9 +172,7 @@ export class FileLockManager implements LockManager {
         console.log(`Cleaned up ${removedCount} stale lock(s)`);
       }
     } catch (error) {
-      throw new LockError(
-        `Failed to clean lock directory: ${error instanceof Error ? error.message : String(error)}`
-      );
+      throw new LockError(`Failed to clean lock directory: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -206,9 +202,7 @@ export class FileLockManager implements LockManager {
         console.log(`Removed stale lock from dead process ${lockInfo.pid}`);
         return false; // Don't wait, try again immediately
       } catch (error) {
-        console.warn(
-          `Failed to remove stale lock: ${error instanceof Error ? error.message : String(error)}`
-        );
+        console.warn(`Failed to remove stale lock: ${error instanceof Error ? error.message : String(error)}`);
         return true; // Continue waiting
       }
     }

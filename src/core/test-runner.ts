@@ -195,20 +195,14 @@ export class PlaywrightTestRunner implements TestRunner {
         // Playwright may exit with non-zero code even on partial success
         return execaErr.stdout || execaErr.stderr || '';
       }
-      throw new BuildError(
-        `Test execution failed: ${error instanceof Error ? error.message : String(error)}`
-      );
+      throw new BuildError(`Test execution failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
   /**
    * Parse test results from Playwright output
    */
-  private async parseTestResults(
-    output: string,
-    context: RuntimeContext,
-    startTime: number
-  ): Promise<TestResult> {
+  private async parseTestResults(output: string, context: RuntimeContext, startTime: number): Promise<TestResult> {
     const duration = Date.now() - startTime;
 
     // Parse Playwright's summary output
@@ -298,9 +292,7 @@ export class PlaywrightTestRunner implements TestRunner {
           const targetFile = join(traceDir, `trace-${i + 1}.zip`);
           await copy(traceFile, targetFile);
 
-          traceUrls.push(
-            `${context.config.urls?.artifacts || ''}/traces-${revision}/trace-${i + 1}.zip`
-          );
+          traceUrls.push(`${context.config.urls?.artifacts || ''}/traces-${revision}/trace-${i + 1}.zip`);
         }
 
         testResult.traceUrls = traceUrls;
@@ -323,9 +315,7 @@ export class PlaywrightTestRunner implements TestRunner {
         }
       }
     } catch (error) {
-      console.warn(
-        `Failed to copy some test artifacts: ${error instanceof Error ? error.message : String(error)}`
-      );
+      console.warn(`Failed to copy some test artifacts: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 

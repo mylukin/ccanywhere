@@ -21,9 +21,7 @@ const program = new Command();
 
 program
   .name('ccanywhere')
-  .description(
-    'Claude Code Anywhere - A TypeScript CI/CD tool for mobile-friendly development workflows'
-  )
+  .description('Claude Code Anywhere - A TypeScript CI/CD tool for mobile-friendly development workflows')
   .version('0.1.0');
 
 // Global options
@@ -115,9 +113,7 @@ program
       console.log(`Repository: ${chalk.green(config.repo?.url || 'Not configured')}`);
       console.log(`Branch: ${chalk.green(config.repo?.branch || 'Not configured')}`);
       console.log(`Artifacts URL: ${chalk.green(config.urls?.artifacts || 'Not configured')}`);
-      console.log(
-        `Notification Channels: ${chalk.green(config.notifications?.channels?.join(', ') || 'None')}`
-      );
+      console.log(`Notification Channels: ${chalk.green(config.notifications?.channels?.join(', ') || 'None')}`);
 
       if (config.deployment) {
         console.log(`Deployment: ${chalk.green('Configured')}`);
@@ -145,13 +141,24 @@ async function main() {
   try {
     await program.parseAsync(process.argv);
   } catch (error) {
-    if (error instanceof Error && 'code' in error && (error.code === 'commander.helpDisplayed' || error.code === 'commander.help' || error.code === 'commander.version')) {
+    if (
+      error instanceof Error &&
+      'code' in error &&
+      (error.code === 'commander.helpDisplayed' ||
+        error.code === 'commander.help' ||
+        error.code === 'commander.version')
+    ) {
       // Help or version was displayed, exit normally
       process.exit(0);
     }
 
     // For commander errors (like unknown commands), don't show "Fatal error:" since commander already shows a clear error
-    if (error instanceof Error && 'code' in error && typeof error.code === 'string' && error.code.startsWith('commander.')) {
+    if (
+      error instanceof Error &&
+      'code' in error &&
+      typeof error.code === 'string' &&
+      error.code.startsWith('commander.')
+    ) {
       // Commander already displayed the error, just exit
       process.exit(1);
     }

@@ -36,10 +36,10 @@ export class ClaudeHooks {
   static async preCommit(context: ClaudeHookContext): Promise<ClaudeHookResult> {
     try {
       this.logger.info('🔍 Running CCanywhere pre-commit hook');
-      
+
       const configLoader = ConfigLoader.getInstance();
       const config = await configLoader.loadConfig(context.workingDir);
-      
+
       if (!(config as any).hooks?.preCommit) {
         this.logger.debug('Pre-commit hook disabled in configuration');
         return { success: true, message: 'Pre-commit hook disabled' };
@@ -65,7 +65,7 @@ export class ClaudeHooks {
       }
 
       this.logger.info('📊 Analyzed staged changes');
-      
+
       // Optional: Send notification about commit
       if ((config.notifications as any)?.onCommit && config.notifications) {
         const notificationManager = new NotificationManager(config.notifications);
@@ -81,10 +81,9 @@ export class ClaudeHooks {
         message: 'Analyzed staged changes',
         data: { diffResult }
       };
-
     } catch (error) {
       this.logger.error('Pre-commit hook failed:', error);
-      
+
       // Don't block commits on CCanywhere failures unless configured to do so
       if (process.env.CCANYWHERE_STRICT_HOOKS === 'true') {
         return {
@@ -107,10 +106,10 @@ export class ClaudeHooks {
   static async postRun(context: ClaudeHookContext): Promise<ClaudeHookResult> {
     try {
       this.logger.info('🚀 Running CCanywhere post-run hook');
-      
+
       const configLoader = ConfigLoader.getInstance();
       const config = await configLoader.loadConfig(context.workingDir);
-      
+
       if (!(config as any).hooks?.postRun) {
         this.logger.debug('Post-run hook disabled in configuration');
         return { success: true, message: 'Post-run hook disabled' };
@@ -120,29 +119,25 @@ export class ClaudeHooks {
       const { BuildPipeline } = await import('./pipeline.js');
       const { Logger } = await import('../utils/logger.js');
       const logger = Logger.getInstance();
-      
+
       const pipeline = new BuildPipeline({
         workDir: context.workingDir,
         config: config,
         logger: logger
       });
-      
-      const result = await pipeline.run(
-        config.repo?.branch || 'main',
-        'HEAD'
-      );
+
+      const result = await pipeline.run(config.repo?.branch || 'main', 'HEAD');
 
       this.logger.info('✅ CCanywhere pipeline completed successfully');
-      
+
       return {
         success: true,
         message: 'CCanywhere pipeline completed',
         data: result
       };
-
     } catch (error) {
       this.logger.error('Post-run hook failed:', error);
-      
+
       // Post-run failures shouldn't block Claude Code operations
       return {
         success: true,
@@ -157,10 +152,10 @@ export class ClaudeHooks {
   static async preTest(context: ClaudeHookContext): Promise<ClaudeHookResult> {
     try {
       this.logger.info('🧪 Running CCanywhere pre-test hook');
-      
+
       const configLoader = ConfigLoader.getInstance();
       const config = await configLoader.loadConfig(context.workingDir);
-      
+
       if (!(config as any).hooks?.preTest) {
         this.logger.debug('Pre-test hook disabled in configuration');
         return { success: true, message: 'Pre-test hook disabled' };
@@ -184,7 +179,6 @@ export class ClaudeHooks {
         success: true,
         message: 'Pre-test setup completed'
       };
-
     } catch (error) {
       this.logger.error('Pre-test hook failed:', error);
       return {
@@ -200,10 +194,10 @@ export class ClaudeHooks {
   static async postTest(context: ClaudeHookContext): Promise<ClaudeHookResult> {
     try {
       this.logger.info('📊 Running CCanywhere post-test hook');
-      
+
       const configLoader = ConfigLoader.getInstance();
       const config = await configLoader.loadConfig(context.workingDir);
-      
+
       if (!(config as any).hooks?.postTest) {
         this.logger.debug('Post-test hook disabled in configuration');
         return { success: true, message: 'Post-test hook disabled' };
@@ -223,7 +217,6 @@ export class ClaudeHooks {
         success: true,
         message: 'Post-test processing completed'
       };
-
     } catch (error) {
       this.logger.error('Post-test hook failed:', error);
       return {
@@ -248,18 +241,15 @@ export class ClaudeHooks {
   /**
    * Generate hook configuration for Claude Code
    */
-  static generateHookConfig(options: {
-    enablePreCommit?: boolean;
-    enablePostRun?: boolean;
-    enablePreTest?: boolean;
-    enablePostTest?: boolean;
-  } = {}) {
-    const {
-      enablePreCommit = true,
-      enablePostRun = true,
-      enablePreTest = false,
-      enablePostTest = false
-    } = options;
+  static generateHookConfig(
+    options: {
+      enablePreCommit?: boolean;
+      enablePostRun?: boolean;
+      enablePreTest?: boolean;
+      enablePostTest?: boolean;
+    } = {}
+  ) {
+    const { enablePreCommit = true, enablePostRun = true, enablePreTest = false, enablePostTest = false } = options;
 
     const hooks: Record<string, any> = {};
 

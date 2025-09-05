@@ -39,12 +39,7 @@ export class ConfigLoader {
       config = await this.loadFromFile(configPath);
     } else {
       // Try to find config file in standard locations
-      const standardPaths = [
-        'ccanywhere.config.json',
-        'ccanywhere.config.js',
-        '.ccanywhere.json',
-        '.ccanywhere.js'
-      ];
+      const standardPaths = ['ccanywhere.config.json', 'ccanywhere.config.js', '.ccanywhere.json', '.ccanywhere.js'];
 
       for (const path of standardPaths) {
         if (await pathExists(path)) {
@@ -156,8 +151,7 @@ export class ConfigLoader {
     }
 
     // Notifications configuration
-    const channels =
-      env.NOTIFY_CHANNELS?.split(',').map(c => c.trim() as NotificationChannel) || [];
+    const channels = env.NOTIFY_CHANNELS?.split(',').map(c => c.trim() as NotificationChannel) || [];
     if (channels.length > 0) {
       config.notifications = { channels };
 

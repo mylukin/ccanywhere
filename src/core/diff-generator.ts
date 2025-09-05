@@ -54,7 +54,7 @@ export class HtmlDiffGenerator implements DiffGenerator {
       // File naming
       const fileName = `diff-${context.revision}.html`;
       const filePath = join(context.artifactsDir, fileName);
-      
+
       // Write to local artifacts directory first
       await writeFile(filePath, htmlContent, 'utf8');
 
@@ -62,20 +62,18 @@ export class HtmlDiffGenerator implements DiffGenerator {
       const stats = await fs.stat(filePath);
 
       let finalUrl: string;
-      
+
       // Prepare storage key with path
       const storageKey = `diffs/${fileName}`;
-      
+
       // Upload to cloud storage if enabled
       if (storageProvider) {
         try {
           const cloudUrl = await storageProvider.upload(storageKey, htmlContent, 'text/html; charset=utf-8');
-          
+
           // Use artifacts base URL if configured, otherwise use direct cloud URL
           const baseUrl = context.config.artifacts?.baseUrl || context.config.urls?.artifacts;
-          finalUrl = baseUrl 
-            ? `${baseUrl}/${storageKey}`
-            : cloudUrl;
+          finalUrl = baseUrl ? `${baseUrl}/${storageKey}` : cloudUrl;
         } catch (storageError) {
           // If cloud storage fails, log warning but continue with local URL
           console.warn('Cloud storage upload failed:', storageError);
@@ -101,9 +99,7 @@ export class HtmlDiffGenerator implements DiffGenerator {
       if (error instanceof BuildError) {
         throw error;
       }
-      throw new BuildError(
-        `Failed to generate diff: ${error instanceof Error ? error.message : String(error)}`
-      );
+      throw new BuildError(`Failed to generate diff: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -117,47 +113,50 @@ export class HtmlDiffGenerator implements DiffGenerator {
         cwd: workDir,
         reject: false
       });
-      
+
       // Check for uncommitted changes in working directory (staged and unstaged)
       const excludeArgs = excludePaths.map(path => `:(exclude)${path}`);
       const workingDirResult = await execa('git', ['diff', '--quiet', 'HEAD', ...excludeArgs], {
         cwd: workDir,
         reject: false
       });
-      
+
       // Check for staged changes
       const stagedResult = await execa('git', ['diff', '--quiet', '--cached', ...excludeArgs], {
         cwd: workDir,
         reject: false
       });
-      
+
       // Check for untracked files (excluding specified paths)
       const untrackedResult = await execa('git', ['ls-files', '--others', '--exclude-standard', ...excludeArgs], {
         cwd: workDir,
         reject: false
       });
-      
+
       // git diff --quiet returns 1 if there are differences, 0 if identical
       const hasCommittedChanges = committedResult.exitCode !== 0;
       const hasWorkingDirChanges = workingDirResult.exitCode !== 0;
       const hasStagedChanges = stagedResult.exitCode !== 0;
       const hasUntrackedFiles = untrackedResult.stdout.trim().length > 0;
-      
+
       return hasCommittedChanges || hasWorkingDirChanges || hasStagedChanges || hasUntrackedFiles;
     } catch (error) {
-      throw new BuildError(
-        `Failed to check for changes: ${error instanceof Error ? error.message : String(error)}`
-      );
+      throw new BuildError(`Failed to check for changes: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
   /**
    * Get git diff content including both committed changes and working directory changes
    */
-  private async getDiffContent(base: string, head: string, workDir: string, excludePaths: string[] = []): Promise<string> {
+  private async getDiffContent(
+    base: string,
+    head: string,
+    workDir: string,
+    excludePaths: string[] = []
+  ): Promise<string> {
     try {
       const diffParts: string[] = [];
-      
+
       // Get committed changes between base and head
       const excludeArgs = excludePaths.map(path => `:(exclude)${path}`);
       const committedResult = await execa('git', ['diff', '--minimal', `${base}...${head}`, ...excludeArgs], {
@@ -167,7 +166,7 @@ export class HtmlDiffGenerator implements DiffGenerator {
       if (committedResult.stdout.trim()) {
         diffParts.push(committedResult.stdout);
       }
-      
+
       // Get staged changes
       const stagedResult = await execa('git', ['diff', '--minimal', '--cached', ...excludeArgs], {
         cwd: workDir,
@@ -176,7 +175,7 @@ export class HtmlDiffGenerator implements DiffGenerator {
       if (stagedResult.stdout.trim()) {
         diffParts.push(stagedResult.stdout);
       }
-      
+
       // Get working directory changes (unstaged)
       const workingDirResult = await execa('git', ['diff', '--minimal', ...excludeArgs], {
         cwd: workDir,
@@ -185,13 +184,13 @@ export class HtmlDiffGenerator implements DiffGenerator {
       if (workingDirResult.stdout.trim()) {
         diffParts.push(workingDirResult.stdout);
       }
-      
+
       // Get untracked files and generate diffs for them (excluding specified paths)
       const untrackedResult = await execa('git', ['ls-files', '--others', '--exclude-standard', ...excludeArgs], {
         cwd: workDir,
         reject: false
       });
-      
+
       const untrackedFiles = untrackedResult.stdout.trim().split('\n').filter(Boolean);
       for (const file of untrackedFiles) {
         try {
@@ -208,22 +207,20 @@ export class HtmlDiffGenerator implements DiffGenerator {
           console.warn(`Failed to get diff for untracked file ${file}:`, untrackedError);
         }
       }
-      
+
       // Combine all diff parts
       const combinedDiff = diffParts.join('\n');
-      
+
       if (!combinedDiff.trim()) {
         throw new BuildError('No diff content available');
       }
-      
+
       return combinedDiff;
     } catch (error) {
       if (error instanceof BuildError) {
         throw error;
       }
-      throw new BuildError(
-        `Failed to get diff content: ${error instanceof Error ? error.message : String(error)}`
-      );
+      throw new BuildError(`Failed to get diff content: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -263,11 +260,7 @@ export class HtmlDiffGenerator implements DiffGenerator {
   /**
    * Generate HTML content using template and diff2html
    */
-  private async generateHtml(
-    diffContent: string,
-    commitInfo: CommitInfo,
-    context: RuntimeContext
-  ): Promise<string> {
+  private async generateHtml(diffContent: string, commitInfo: CommitInfo, context: RuntimeContext): Promise<string> {
     try {
       // Generate HTML diff using diff2html
       const diffHtml = diff2html.html(diffContent, {
@@ -277,10 +270,7 @@ export class HtmlDiffGenerator implements DiffGenerator {
       });
 
       // Get CSS bundle from diff2html
-      const cssPath = resolve(
-        __dirname,
-        '../../node_modules/diff2html/bundles/css/diff2html.min.css'
-      );
+      const cssPath = resolve(__dirname, '../../node_modules/diff2html/bundles/css/diff2html.min.css');
       const cssBundle = await readFile(cssPath, 'utf8');
       const jsBundle = ''; // diff2html doesn't provide default JS
 
@@ -306,9 +296,7 @@ export class HtmlDiffGenerator implements DiffGenerator {
 
       return html.replace('</head>', `${configScript}</head>`);
     } catch (error) {
-      throw new BuildError(
-        `Failed to generate HTML: ${error instanceof Error ? error.message : String(error)}`
-      );
+      throw new BuildError(`Failed to generate HTML: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -331,11 +319,7 @@ export class HtmlDiffGenerator implements DiffGenerator {
   /**
    * Generate diff using external diff2html-cli (fallback method)
    */
-  async generateWithCli(
-    base: string,
-    head: string,
-    context: RuntimeContext
-  ): Promise<BuildArtifact> {
+  async generateWithCli(base: string, head: string, context: RuntimeContext): Promise<BuildArtifact> {
     try {
       await ensureDir(context.artifactsDir);
 
@@ -343,24 +327,15 @@ export class HtmlDiffGenerator implements DiffGenerator {
       const outputPath = join(context.artifactsDir, fileName);
 
       // Use diff2html-cli
-      await execa(
-        'npx',
-        [
-          'diff2html-cli',
-          '-i',
-          'stdin',
-          '-s',
-          'line',
-          '-F',
-          outputPath,
-          '--hwt',
-          this.templatePath
-        ],
-        {
-          cwd: context.workDir,
-          input: await this.getDiffContent(base, head, context.workDir, context.config.build?.excludePaths || ['.artifacts'])
-        }
-      );
+      await execa('npx', ['diff2html-cli', '-i', 'stdin', '-s', 'line', '-F', outputPath, '--hwt', this.templatePath], {
+        cwd: context.workDir,
+        input: await this.getDiffContent(
+          base,
+          head,
+          context.workDir,
+          context.config.build?.excludePaths || ['.artifacts']
+        )
+      });
 
       // Get file size
       const stats = await fs.stat(outputPath);

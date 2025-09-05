@@ -63,9 +63,7 @@ export const EmailConfigSchema = z.object({
 
 export const NotificationsConfigSchema = z
   .object({
-    channels: z
-      .array(NotificationChannelSchema)
-      .min(1, 'At least one notification channel is required'),
+    channels: z.array(NotificationChannelSchema).min(1, 'At least one notification channel is required'),
     telegram: TelegramConfigSchema.optional(),
     dingtalk: DingTalkConfigSchema.optional(),
     wecom: WeComConfigSchema.optional(),
@@ -116,13 +114,15 @@ export const BuildConfigSchema = z.object({
   excludePaths: z.array(z.string()).default(['.artifacts']).optional()
 });
 
-export const TestConfigSchema = z.object({
-  enabled: z.boolean().default(true),
-  configFile: z.string().optional(),
-  reporter: z.string().optional(),
-  timeout: z.number().min(1000).max(300000).optional(),
-  workers: z.number().min(1).max(10).optional()
-}).optional();
+export const TestConfigSchema = z
+  .object({
+    enabled: z.boolean().default(true),
+    configFile: z.string().optional(),
+    reporter: z.string().optional(),
+    timeout: z.number().min(1000).max(300000).optional(),
+    workers: z.number().min(1).max(10).optional()
+  })
+  .optional();
 
 export const SecurityConfigSchema = z
   .object({
@@ -181,7 +181,11 @@ export const ArtifactsConfigSchema = z
   .object({
     baseUrl: z.string().url('Artifacts base URL must be a valid URL').optional(),
     retentionDays: z.number().min(1).max(365).default(7).optional(),
-    maxSize: z.string().regex(/^\d+(B|KB|MB|GB)$/, 'Max size must be in format like "100MB"').default('100MB').optional(),
+    maxSize: z
+      .string()
+      .regex(/^\d+(B|KB|MB|GB)$/, 'Max size must be in format like "100MB"')
+      .default('100MB')
+      .optional(),
     storage: StorageConfigSchema.optional()
   })
   .optional();
