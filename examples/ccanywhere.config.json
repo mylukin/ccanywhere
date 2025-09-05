@@ -6,14 +6,25 @@
   },
   "deployment": "https://deploy.example.com/api/webhook/deploy",
   "notifications": {
-    "channels": ["telegram"],
+    "channels": [
+      "telegram"
+    ],
     "telegram": {
       "botToken": "YOUR_BOT_TOKEN",
       "chatId": "YOUR_CHAT_ID"
     },
     "email": {
       "to": "admin@example.com",
-      "from": "noreply@example.com"
+      "from": "noreply@example.com",
+      "smtp": {
+        "host": "smtp.gmail.com",
+        "port": 587,
+        "secure": false,
+        "auth": {
+          "user": "your-email@gmail.com",
+          "pass": "your-app-password"
+        }
+      }
     },
     "dingtalk": {
       "webhook": "https://oapi.dingtalk.com/robot/send?access_token=YOUR_TOKEN",
@@ -27,7 +38,9 @@
     "base": "origin/main",
     "lockTimeout": 300,
     "cleanupDays": 7,
-    "excludePaths": [".artifacts"]
+    "excludePaths": [
+      ".artifacts"
+    ]
   },
   "test": {
     "enabled": false,
@@ -39,6 +52,7 @@
     "maxSize": "100MB",
     "storage": {
       "provider": "r2",
+      "folder": "diffs",
       "s3": {
         "accessKeyId": "YOUR_AWS_ACCESS_KEY_ID",
         "secretAccessKey": "YOUR_AWS_SECRET_ACCESS_KEY",
@@ -47,7 +61,7 @@
       },
       "r2": {
         "accountId": "YOUR_CLOUDFLARE_ACCOUNT_ID",
-        "accessKeyId": "YOUR_R2_ACCESS_KEY_ID", 
+        "accessKeyId": "YOUR_R2_ACCESS_KEY_ID",
         "secretAccessKey": "YOUR_R2_SECRET_ACCESS_KEY",
         "bucket": "my-r2-bucket"
       },

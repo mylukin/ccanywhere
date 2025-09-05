@@ -62,6 +62,7 @@ Edit the generated `ccanywhere.config.json`:
     "maxSize": "100MB",
     "storage": {
       "provider": "r2",
+      "folder": "diffs",  // Storage folder path (default: "diffs")
       "r2": {
         "accountId": "YOUR_CLOUDFLARE_ACCOUNT_ID",
         "accessKeyId": "YOUR_R2_ACCESS_KEY_ID",
@@ -384,6 +385,51 @@ CCanywhere generates mobile-optimized diff pages with:
 - Syntax highlighting
 - Direct links to GitHub/GitLab
 - Quick access to deployment and test results
+
+## 📁 Storage Organization
+
+CCanywhere automatically organizes storage paths based on your project structure:
+
+### Storage Path Structure
+
+Generated artifacts are stored with the following path pattern:
+```
+{folder}/{project-name}/{filename}
+```
+
+For example:
+- Repository: `https://github.com/mylukin/my-project`
+- Generated path: `diffs/mylukin/my-project/diff-7531080.html`
+- Full URL: `https://assets.example.com/diffs/mylukin/my-project/diff-7531080.html`
+
+### Automatic Project Detection
+
+The project name is automatically extracted from your repository URL:
+- GitHub: `https://github.com/owner/repo` → `owner/repo`
+- GitLab: `https://gitlab.com/owner/repo` → `owner/repo`
+- Bitbucket: `https://bitbucket.org/owner/repo` → `owner/repo`
+- SSH URLs: `git@github.com:owner/repo.git` → `owner/repo`
+
+This ensures:
+- **Better Organization**: Each project's artifacts are isolated in their own directory
+- **Easy Management**: Clear project separation for permissions and lifecycle management
+- **Meaningful URLs**: Instantly recognizable project paths in URLs
+- **Multi-Project Support**: Multiple projects can share the same storage bucket without conflicts
+
+### Customizing Storage Paths
+
+You can customize the storage folder in your configuration:
+```json
+{
+  "artifacts": {
+    "storage": {
+      "folder": "builds"  // Custom folder (default: "diffs")
+    }
+  }
+}
+```
+
+This would result in paths like: `builds/mylukin/my-project/diff-7531080.html`
 
 ## 🏗️ Build Configuration
 

@@ -1,40 +1,57 @@
 {
   // Repository configuration (Optional - Auto-detected from .git)
   // If your project is a Git repository, this section can be omitted
+  // The project name is extracted from the URL for storage path organization
+  // Example: https://github.com/owner/repo → storage: diffs/owner/repo/
   "repo": {
-    "kind": "github",      // Optional: auto-detected from remote URL
-    "url": "https://github.com/mylukin/my-project", // Optional: auto-detected
+    "kind": "github",      // Optional: auto-detected from remote URL (github, gitlab, bitbucket, gitee)
+    "url": "https://github.com/mylukin/my-project", // Optional: auto-detected, used for project path
     "branch": "main"       // Optional: auto-detected from current branch
   },
   
-  // URLs configuration (Required for deployment features)
-  "urls": {
-    "artifacts": "https://artifacts.example.com"
-  },
-  
   // Deployment configuration (Optional)
-  "deployment": {
-    "webhook": "https://deploy.example.com/api/webhook/deploy",
-    "statusUrl": "https://deploy.example.com/api/status",
-    "maxWait": 300,
-    "pollInterval": 5
-  },
+  // Can be a simple webhook URL string or an object with more options
+  "deployment": "https://deploy.example.com/api/webhook/deploy",
+  // Or use object format for more control:
+  // "deployment": {
+  //   "webhook": "https://deploy.example.com/api/webhook/deploy",
+  //   "statusUrl": "https://deploy.example.com/api/status",
+  //   "maxWait": 300,      // Max wait time for deployment status (seconds)
+  //   "pollInterval": 5    // Status check interval (seconds)
+  // },
   
   // Notification configuration (Optional)
   "notifications": {
-    "channels": ["telegram"],
+    "channels": ["telegram"],  // Available: telegram, dingtalk, wecom, email
+    
+    // Telegram configuration
     "telegram": {
-      "botToken": "YOUR_BOT_TOKEN",
-      "chatId": "YOUR_CHAT_ID"
+      "botToken": "YOUR_BOT_TOKEN",  // Bot token from @BotFather
+      "chatId": "YOUR_CHAT_ID"       // Chat ID (can be negative for groups)
     },
+    
+    // Email configuration with SMTP
     "email": {
-      "to": "admin@example.com",
-      "from": "noreply@example.com"
+      "to": "admin@example.com",     // Recipient email
+      "from": "noreply@example.com", // Sender email
+      "smtp": {                      // Optional: uses local mail if not specified
+        "host": "smtp.gmail.com",
+        "port": 587,
+        "secure": false,              // true for 465, false for other ports
+        "auth": {
+          "user": "your-email@gmail.com",
+          "pass": "your-app-password"    // Use app-specific password for Gmail
+        }
+      }
     },
+    
+    // DingTalk configuration
     "dingtalk": {
       "webhook": "https://oapi.dingtalk.com/robot/send?access_token=YOUR_TOKEN",
-      "secret": "YOUR_SECRET"
+      "secret": "YOUR_SECRET"  // Optional: signature secret for security
     },
+    
+    // WeCom (WeChat Work) configuration
     "wecom": {
       "webhook": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_KEY"
     }
@@ -42,21 +59,64 @@
   
   // Build configuration (Optional - uses defaults if not specified)
   "build": {
-    "base": "origin/main",
-    "lockTimeout": 300,
-    "cleanupDays": 7,
-    "excludePaths": [".artifacts"]  // Optional: paths to exclude from diff generation (default: [".artifacts"])
+    "base": "origin/main",       // Base branch for diff comparison
+    "lockTimeout": 300,          // Lock timeout in seconds (default: 300)
+    "cleanupDays": 7,           // Days to keep old artifacts (default: 7)
+    "excludePaths": [           // Paths to exclude from diff generation
+      ".artifacts",             // Default excludes artifacts directory
+      "node_modules",          // Exclude dependencies
+      ".git",                  // Exclude git directory
+      "dist"                   // Exclude build output
+    ]
   },
   
   // Test configuration (Optional)
   "test": {
-    "enabled": false,  // Set to true to enable Playwright testing
-    "configFile": "./playwright.config.ts"
+    "enabled": false,                      // Set to true to enable Playwright testing
+    "configFile": "./playwright.config.ts" // Playwright config file path
   },
   
-  // Artifacts configuration (Optional)
+  // Artifacts configuration (Unified configuration block)
   "artifacts": {
-    "retentionDays": 7,
-    "maxSize": "100MB"
+    "baseUrl": "https://artifacts.example.com",  // Base URL for accessing artifacts
+    "retentionDays": 7,                         // Days to retain artifacts
+    "maxSize": "100MB",                        // Max size per artifact
+    
+    // Storage configuration
+    "storage": {
+      "provider": "r2",        // Storage provider: r2 (Cloudflare), s3 (AWS), oss (Aliyun)
+      "folder": "diffs",       // Storage folder path (default: "diffs")
+                              // Files stored as: {folder}/{project-name}/{filename}
+                              // Example: diffs/mylukin/my-project/diff-7531080.html
+                              // Without repo config: diffs/diff-7531080.html
+      
+      // AWS S3 configuration (when provider is "s3")
+      "s3": {
+        "accessKeyId": "YOUR_AWS_ACCESS_KEY_ID",
+        "secretAccessKey": "YOUR_AWS_SECRET_ACCESS_KEY",
+        "region": "us-east-1",
+        "bucket": "my-artifacts-bucket"
+      },
+      
+      // Cloudflare R2 configuration (when provider is "r2") - Recommended
+      "r2": {
+        "accountId": "YOUR_CLOUDFLARE_ACCOUNT_ID",
+        "accessKeyId": "YOUR_R2_ACCESS_KEY_ID",
+        "secretAccessKey": "YOUR_R2_SECRET_ACCESS_KEY",
+        "bucket": "my-r2-bucket"
+      },
+      
+      // Aliyun OSS configuration (when provider is "oss")
+      "oss": {
+        "accessKeyId": "YOUR_ALIYUN_ACCESS_KEY_ID",
+        "accessKeySecret": "YOUR_ALIYUN_ACCESS_KEY_SECRET",
+        "region": "oss-cn-hangzhou",
+        "bucket": "my-oss-bucket"
+      }
+    }
   }
+  
+  // Legacy configuration formats (still supported for backward compatibility):
+  // "urls": { "artifacts": "https://artifacts.example.com" }  → migrated to artifacts.baseUrl
+  // "storage": { ... }                                        → migrated to artifacts.storage
 }

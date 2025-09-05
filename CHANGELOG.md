@@ -1,5 +1,26 @@
 # Changelog
 
+## [Unreleased] - 2025-09-05
+
+### Added
+- **Storage Folder Configuration**: Added configurable `folder` parameter to storage configuration
+  - Allows users to customize the storage folder path (default: "diffs")
+  - Supports both `artifacts.storage.folder` and legacy `storage.folder` configuration
+  - Automatically normalizes paths (removes trailing slashes, handles empty values)
+  - Full backward compatibility maintained with "diffs" as default
+
+- **Automatic Project Path Organization**: Storage paths now include project names for better organization
+  - Automatically extracts project name from repository URL (GitHub, GitLab, Bitbucket, etc.)
+  - Storage path pattern: `{folder}/{project-name}/{filename}`
+  - Example: `diffs/mylukin/my-project/diff-7531080.html`
+  - Supports SSH URLs, custom enterprise instances, and various URL formats
+  - Gracefully falls back to simple folder structure when no repository is configured
+  - Works perfectly without Git - project remains fully functional
+
+### Changed
+- Updated `StorageFactory` to include `getStorageFolder()` utility method
+- Enhanced storage path construction in `HtmlDiffGenerator` to use configurable folder
+
 ## [0.1.1] - 2024-12-19
 
 ### 🔧 Configuration Refactoring

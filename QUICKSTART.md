@@ -49,6 +49,7 @@ ccanywhere init
     "maxSize": "100MB",
     "storage": {
       "provider": "r2",
+      "folder": "diffs",  // 存储文件夹路径（默认："diffs"）
       "r2": {
         "accountId": "您的Cloudflare账户ID",
         "accessKeyId": "您的R2访问密钥ID",
@@ -138,6 +139,7 @@ npm install -g ccanywhere
 {
   "storage": {
     "provider": "r2",  // 可选: r2(默认), s3, oss
+    "folder": "diffs",  // 存储文件夹路径（默认："diffs"，可自定义）
     "r2": {  // Cloudflare R2 (推荐)
       "accountId": "您的Cloudflare账户ID",
       "accessKeyId": "您的R2访问密钥ID",

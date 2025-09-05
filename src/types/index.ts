@@ -93,6 +93,7 @@ export interface CcanywhereConfig {
     maxSize?: string;
     storage?: {
       provider: StorageProvider;
+      folder?: string; // Storage folder path for organizing artifacts (default: "diffs")
       s3?: {
         accessKeyId: string;
         secretAccessKey: string;
@@ -119,6 +120,7 @@ export interface CcanywhereConfig {
   /** Storage configuration (deprecated - use artifacts.storage instead) */
   storage?: {
     provider: StorageProvider;
+    folder?: string; // Storage folder path for organizing artifacts (default: "diffs")
     s3?: {
       accessKeyId: string;
       secretAccessKey: string;
