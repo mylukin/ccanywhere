@@ -48,7 +48,8 @@
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
     "clean": "rm -rf dist",
-    "prepublishOnly": "npm run clean && npm run build && npm run test"
+    "prepublishOnly": "npm run clean && npm run build && npm run test",
+    "postinstall": "node dist/scripts/postinstall.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.882.0",

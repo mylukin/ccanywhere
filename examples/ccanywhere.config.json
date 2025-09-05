@@ -30,7 +30,7 @@
     "excludePaths": [".artifacts"]
   },
   "test": {
-    "enabled": true,
+    "enabled": false,
     "configFile": "./playwright.config.ts"
   },
   "artifacts": {

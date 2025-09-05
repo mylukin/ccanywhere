@@ -50,7 +50,7 @@
   
   // Test configuration (Optional)
   "test": {
-    "enabled": true,
+    "enabled": false,  // Set to true to enable Playwright testing
     "configFile": "./playwright.config.ts"
   },
   
