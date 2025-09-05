@@ -4,17 +4,19 @@
     "url": "https://github.com/mylukin/my-project",
     "branch": "main"
   },
-  "urls": {
-    "artifacts": "https://cdn.example.com/artifacts"
-  },
-  "storage": {
-    "provider": "oss",
-    "oss": {
-      "accessKeyId": "your-aliyun-access-key-id",
-      "accessKeySecret": "your-aliyun-access-key-secret",
-      "region": "oss-cn-hangzhou",
-      "bucket": "my-oss-bucket",
-      "endpoint": "https://oss-cn-hangzhou.aliyuncs.com"
+  "artifacts": {
+    "baseUrl": "https://cdn.example.com/artifacts",
+    "retentionDays": 7,
+    "maxSize": "100MB",
+    "storage": {
+      "provider": "oss",
+      "oss": {
+        "accessKeyId": "your-aliyun-access-key-id",
+        "accessKeySecret": "your-aliyun-access-key-secret",
+        "region": "oss-cn-hangzhou",
+        "bucket": "my-oss-bucket",
+        "endpoint": "https://oss-cn-hangzhou.aliyuncs.com"
+      }
     }
   },
   "deployment": {

@@ -129,7 +129,6 @@ export class PlaywrightTestRunner implements TestRunner {
     const testEnv = {
       ...process.env,
       ARTIFACTS_DIR: context.artifactsDir,
-      STAGING_URL: context.config.urls?.staging || '',
       TEST_TIMEOUT: this.config.timeout?.toString(),
       CI: 'true',
       PLAYWRIGHT_HTML_REPORT: join(context.artifactsDir, `playwright-report-${context.revision}`)

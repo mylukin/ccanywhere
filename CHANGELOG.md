@@ -1,5 +1,46 @@
 # Changelog
 
+## [0.1.1] - 2024-12-19
+
+### 🔧 Configuration Refactoring
+
+#### Changed
+- **BREAKING/COMPATIBLE**: Merged scattered storage-related configuration into unified `artifacts` block
+- Moved `urls.artifacts` to `artifacts.baseUrl` for better semantic structure  
+- Moved standalone `artifacts` properties to unified configuration block
+- Moved `storage` configuration to `artifacts.storage` for logical grouping
+- Updated all example configuration files with new structure
+- Updated documentation to reflect new configuration format
+
+#### Added
+- Full backward compatibility support for existing configuration formats
+- New environment variables: `ARTIFACTS_BASE_URL`, `ARTIFACTS_RETENTION_DAYS`, `ARTIFACTS_MAX_SIZE`
+- Enhanced configuration validation schema for unified artifacts configuration
+
+#### Migration Guide
+**Old configuration:**
+```json
+{
+  "urls": { "artifacts": "https://artifacts.example.com" },
+  "artifacts": { "retentionDays": 7, "maxSize": "100MB" },
+  "storage": { "provider": "s3", "s3": { ... } }
+}
+```
+
+**New configuration:**
+```json
+{
+  "artifacts": {
+    "baseUrl": "https://artifacts.example.com",
+    "retentionDays": 7,
+    "maxSize": "100MB",
+    "storage": { "provider": "s3", "s3": { ... } }
+  }
+}
+```
+
+*Note: Old configuration format continues to work with automatic migration.*
+
 ## [0.1.0] - 2024-09-04
 
 ### 🎉 Initial Release - Complete TypeScript Rewrite

@@ -25,10 +25,9 @@ export interface CcanywhereConfig {
     branch?: string;
   };
 
-  /** Server URLs */
+  /** Server URLs (deprecated - use artifacts.baseUrl instead) */
   urls?: {
     artifacts?: string;
-    staging?: string;
   };
 
   /** Deployment configuration */
@@ -87,7 +86,37 @@ export interface CcanywhereConfig {
     linkExpiry?: number;
   };
 
-  /** Storage configuration */
+  /** Artifacts configuration - unified storage and URL configuration */
+  artifacts?: {
+    baseUrl?: string;
+    retentionDays?: number;
+    maxSize?: string;
+    storage?: {
+      provider: StorageProvider;
+      s3?: {
+        accessKeyId: string;
+        secretAccessKey: string;
+        region: string;
+        bucket: string;
+        endpoint?: string;
+      };
+      r2?: {
+        accountId: string;
+        accessKeyId: string;
+        secretAccessKey: string;
+        bucket: string;
+      };
+      oss?: {
+        accessKeyId: string;
+        accessKeySecret: string;
+        region: string;
+        bucket: string;
+        endpoint?: string;
+      };
+    };
+  };
+
+  /** Storage configuration (deprecated - use artifacts.storage instead) */
   storage?: {
     provider: StorageProvider;
     s3?: {

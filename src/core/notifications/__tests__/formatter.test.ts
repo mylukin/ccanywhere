@@ -10,7 +10,7 @@ describe('MessageFormatter', () => {
   const testMessage: NotificationMessage = {
     title: 'Test Build Success',
     diffUrl: 'https://example.com/diff.html',
-    previewUrl: 'https://staging.example.com',
+    previewUrl: 'https://preview.example.com',
     reportUrl: 'https://example.com/report.html',
     extra: 'Additional information here',
     timestamp: Date.now(),
@@ -25,7 +25,7 @@ describe('MessageFormatter', () => {
       expect(formatted.title).toBe('Test Build Success');
       expect(formatted.content).toContain('Test Build Success');
       expect(formatted.content).toContain('View Diff: https://example.com/diff.html');
-      expect(formatted.content).toContain('Preview: https://staging.example.com');
+      expect(formatted.content).toContain('Preview: https://preview.example.com');
       expect(formatted.content).toContain('Test Report: https://example.com/report.html');
       expect(formatted.content).toContain('Additional information here');
     });
@@ -36,7 +36,7 @@ describe('MessageFormatter', () => {
       expect(formatted.format).toBe('markdown');
       expect(formatted.content).toContain('**Test Build Success**');
       expect(formatted.content).toContain('[View Diff](https://example.com/diff.html)');
-      expect(formatted.content).toContain('[Preview Site](https://staging.example.com)');
+      expect(formatted.content).toContain('[Preview Site](https://preview.example.com)');
       expect(formatted.content).toContain('[Test Report](https://example.com/report.html)');
       expect(formatted.content).toContain('📝');
       expect(formatted.content).toContain('🌐');
@@ -49,7 +49,7 @@ describe('MessageFormatter', () => {
       expect(formatted.format).toBe('html');
       expect(formatted.content).toContain('<strong>Test Build Success</strong>');
       expect(formatted.content).toContain('<a href="https://example.com/diff.html">View Diff</a>');
-      expect(formatted.content).toContain('<a href="https://staging.example.com">Preview Site</a>');
+      expect(formatted.content).toContain('<a href="https://preview.example.com">Preview Site</a>');
       expect(formatted.content).toContain('<a href="https://example.com/report.html">Test Report</a>');
       expect(formatted.content).toContain('<br>');
     });

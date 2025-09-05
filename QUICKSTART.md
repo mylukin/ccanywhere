@@ -50,9 +50,20 @@ export default {
     }
   },
   
-  // 产物服务器
+  // 产物配置
   artifacts: {
-    baseUrl: 'https://artifacts.yourdomain.com'
+    baseUrl: 'https://artifacts.yourdomain.com',
+    retentionDays: 7,
+    maxSize: '100MB',
+    storage: {
+      provider: 's3',
+      s3: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+        region: 'us-east-1',
+        bucket: 'my-artifacts-bucket'
+      }
+    }
   }
 }
 ```
@@ -120,7 +131,7 @@ module.exports = {
 运行后，你会在配置的通知渠道收到消息，包含：
 
 1. **📝 Diff链接** - 移动端优化的代码差异页面
-2. **🌐 预览链接** - staging环境URL
+2. **🌐 预览链接** - 应用预览URL
 3. **📊 测试报告** - Playwright测试结果
 
 点击链接即可在手机浏览器中查看。
@@ -181,7 +192,6 @@ export default {
 {
   "scripts": {
     "deploy": "ccanywhere run",
-    "deploy:staging": "ccanywhere run --env staging",
     "deploy:production": "ccanywhere run --env production --confirm",
     "test:config": "ccanywhere test",
     "cleanup": "ccanywhere cleanup --days 7"

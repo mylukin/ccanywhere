@@ -4,16 +4,18 @@
     "url": "https://github.com/mylukin/my-project",
     "branch": "main"
   },
-  "urls": {
-    "artifacts": "https://cdn.example.com/artifacts"
-  },
-  "storage": {
-    "provider": "s3",
-    "s3": {
-      "accessKeyId": "AKIA...",
-      "secretAccessKey": "your-secret-key",
-      "region": "us-east-1",
-      "bucket": "my-artifacts-bucket"
+  "artifacts": {
+    "baseUrl": "https://cdn.example.com/artifacts",
+    "retentionDays": 7,
+    "maxSize": "100MB",
+    "storage": {
+      "provider": "s3",
+      "s3": {
+        "accessKeyId": "AKIA...",
+        "secretAccessKey": "your-secret-key",
+        "region": "us-east-1",
+        "bucket": "my-artifacts-bucket"
+      }
     }
   },
   "deployment": {

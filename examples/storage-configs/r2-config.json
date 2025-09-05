@@ -4,16 +4,18 @@
     "url": "https://github.com/mylukin/my-project",
     "branch": "main"
   },
-  "urls": {
-    "artifacts": "https://cdn.example.com/artifacts"
-  },
-  "storage": {
-    "provider": "r2",
-    "r2": {
-      "accountId": "your-cloudflare-account-id",
-      "accessKeyId": "your-r2-access-key-id",
-      "secretAccessKey": "your-r2-secret-access-key",
-      "bucket": "my-r2-bucket"
+  "artifacts": {
+    "baseUrl": "https://cdn.example.com/artifacts",
+    "retentionDays": 7,
+    "maxSize": "100MB",
+    "storage": {
+      "provider": "r2",
+      "r2": {
+        "accountId": "your-cloudflare-account-id",
+        "accessKeyId": "your-r2-access-key-id",
+        "secretAccessKey": "your-r2-secret-access-key",
+        "bucket": "my-r2-bucket"
+      }
     }
   },
   "deployment": {

@@ -62,7 +62,7 @@ export class DokployDeploymentTrigger implements DeploymentTrigger {
         const deploymentInfo: DeploymentInfo = {
           status: 'running',
           startTime,
-          url: context.config.urls?.staging
+          url: undefined
         };
 
         // If status URL is configured, wait for deployment completion
@@ -255,7 +255,7 @@ export class GenericWebhookDeploymentTrigger implements DeploymentTrigger {
           status: 'success',
           startTime,
           endTime: Date.now(),
-          url: context.config.urls?.staging
+          url: undefined
         };
       } else {
         throw new BuildError(`Webhook returned ${response.status}: ${response.statusText}`);

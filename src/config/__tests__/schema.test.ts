@@ -14,9 +14,10 @@ describe('Configuration Schema', () => {
           url: 'https://github.com/test/repo',
           branch: 'main'
         },
-        urls: {
-          artifacts: 'https://artifacts.test.com',
-          staging: 'https://staging.test.com'
+        artifacts: {
+          baseUrl: 'https://artifacts.test.com',
+          retentionDays: 7,
+          maxSize: '100MB'
         },
         notifications: {
           channels: ['telegram'],
@@ -42,9 +43,10 @@ describe('Configuration Schema', () => {
           url: 'not-a-url',
           branch: 'main'
         },
-        urls: {
-          artifacts: 'https://artifacts.test.com',
-          staging: 'https://staging.test.com'
+        artifacts: {
+          baseUrl: 'https://artifacts.test.com',
+          retentionDays: 7,
+          maxSize: '100MB'
         },
         notifications: {
           channels: ['telegram'],
@@ -65,9 +67,10 @@ describe('Configuration Schema', () => {
           url: 'https://github.com/test/repo',
           branch: 'main'
         },
-        urls: {
-          artifacts: 'https://artifacts.test.com',
-          staging: 'https://staging.test.com'
+        artifacts: {
+          baseUrl: 'https://artifacts.test.com',
+          retentionDays: 7,
+          maxSize: '100MB'
         },
         notifications: {
           channels: []
@@ -84,9 +87,10 @@ describe('Configuration Schema', () => {
           url: 'https://github.com/test/repo',
           branch: 'main'
         },
-        urls: {
-          artifacts: 'https://artifacts.test.com',
-          staging: 'https://staging.test.com'
+        artifacts: {
+          baseUrl: 'https://artifacts.test.com',
+          retentionDays: 7,
+          maxSize: '100MB'
         },
         notifications: {
           channels: ['telegram']
@@ -103,9 +107,10 @@ describe('Configuration Schema', () => {
           url: 'https://github.com/test/repo',
           branch: 'main'
         },
-        urls: {
-          artifacts: 'https://artifacts.test.com',
-          staging: 'https://staging.test.com'
+        artifacts: {
+          baseUrl: 'https://artifacts.test.com',
+          retentionDays: 7,
+          maxSize: '100MB'
         },
         notifications: {
           channels: ['telegram'],

@@ -111,7 +111,6 @@ program
       console.log(`Repository: ${chalk.green(config.repo?.url || 'Not configured')}`);
       console.log(`Branch: ${chalk.green(config.repo?.branch || 'Not configured')}`);
       console.log(`Artifacts URL: ${chalk.green(config.urls?.artifacts || 'Not configured')}`);
-      console.log(`Staging URL: ${chalk.green(config.urls?.staging || 'Not configured')}`);
       console.log(
         `Notification Channels: ${chalk.green(config.notifications?.channels?.join(', ') || 'None')}`
       );

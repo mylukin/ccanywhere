@@ -71,8 +71,11 @@ export class ConfigLoader {
     // Merge configurations (env overrides file, then git auto-detect)
     const mergedConfig = this.mergeConfigs(config, envConfig);
 
+    // Apply backward compatibility transformations
+    const compatibleConfig = this.applyBackwardCompatibility(mergedConfig);
+
     // Validate the final configuration
-    this.cachedConfig = validateConfig(mergedConfig);
+    this.cachedConfig = validateConfig(compatibleConfig);
 
     return this.cachedConfig;
   }
@@ -126,11 +129,19 @@ export class ConfigLoader {
       };
     }
 
-    // URLs configuration
-    if (env.ARTIFACTS_URL || env.STAGING_URL) {
+    // URLs configuration (deprecated - use ARTIFACTS_BASE_URL)
+    if (env.ARTIFACTS_URL) {
       config.urls = {
-        artifacts: env.ARTIFACTS_URL,
-        staging: env.STAGING_URL
+        artifacts: env.ARTIFACTS_URL
+      };
+    }
+
+    // Artifacts configuration
+    if (env.ARTIFACTS_BASE_URL || env.ARTIFACTS_RETENTION_DAYS || env.ARTIFACTS_MAX_SIZE) {
+      config.artifacts = {
+        baseUrl: env.ARTIFACTS_BASE_URL,
+        retentionDays: env.ARTIFACTS_RETENTION_DAYS ? parseInt(env.ARTIFACTS_RETENTION_DAYS) : undefined,
+        maxSize: env.ARTIFACTS_MAX_SIZE
       };
     }
 
@@ -227,6 +238,39 @@ export class ConfigLoader {
           (result as any)[key] = value;
         }
       }
+    }
+
+    return result;
+  }
+
+  /**
+   * Apply backward compatibility transformations
+   */
+  private applyBackwardCompatibility(config: Partial<CcanywhereConfig>): Partial<CcanywhereConfig> {
+    const result = { ...config };
+
+    // Initialize artifacts if it doesn't exist
+    if (!result.artifacts) {
+      result.artifacts = {};
+    }
+
+    // Migrate URLs.artifacts to artifacts.baseUrl if not already set
+    if (result.urls?.artifacts && !result.artifacts.baseUrl) {
+      result.artifacts.baseUrl = result.urls.artifacts;
+    }
+
+    // Migrate storage config to artifacts.storage if not already set
+    if (result.storage && !result.artifacts.storage) {
+      result.artifacts.storage = result.storage;
+    }
+
+    // Ensure backward compatibility fields are also set
+    if (result.artifacts.baseUrl && !result.urls?.artifacts) {
+      result.urls = { ...result.urls, artifacts: result.artifacts.baseUrl };
+    }
+
+    if (result.artifacts.storage && !result.storage) {
+      result.storage = result.artifacts.storage;
     }
 
     return result;

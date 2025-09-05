@@ -52,9 +52,19 @@ ccanywhere init
     "url": "https://github.com/mylukin/ccanywhere",
     "branch": "main"
   },
-  "urls": {
-    "artifacts": "https://artifacts.yourdomain.com",
-    "staging": "https://staging.yourdomain.com"
+  "artifacts": {
+    "baseUrl": "https://artifacts.yourdomain.com",
+    "retentionDays": 7,
+    "maxSize": "100MB",
+    "storage": {
+      "provider": "s3",
+      "s3": {
+        "accessKeyId": "您的AWS访问密钥ID",
+        "secretAccessKey": "您的AWS秘密访问密钥",
+        "region": "us-east-1",
+        "bucket": "my-artifacts-bucket"
+      }
+    }
   },
   "notifications": {
     "channels": ["telegram"],
@@ -71,8 +81,11 @@ ccanywhere init
 ```bash
 # 必需
 REPO_URL=https://github.com/mylukin/ccanywhere
-ARTIFACTS_URL=https://artifacts.yourdomain.com
-STAGING_URL=https://staging.yourdomain.com
+
+# 制品配置
+ARTIFACTS_BASE_URL=https://artifacts.yourdomain.com
+ARTIFACTS_RETENTION_DAYS=7
+ARTIFACTS_MAX_SIZE=100MB
 
 # 通知
 BOT_TOKEN_TELEGRAM=123456789:your-bot-token
@@ -186,7 +199,6 @@ REPO_BRANCH=main                                # 可选，自动检测
 
 # URLs
 ARTIFACTS_URL=https://artifacts.example.com
-STAGING_URL=https://staging.example.com
 
 # 部署
 DOKPLOY_WEBHOOK_URL=https://deploy.example.com/webhook
@@ -254,7 +266,7 @@ export default defineConfig({
   testDir: './tests',
   reporter: [['html', { outputFolder: 'playwright-report' }]],
   use: {
-    baseURL: process.env.STAGING_URL || 'http://localhost:3000',
+    baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
   },
   projects: [

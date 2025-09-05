@@ -35,8 +35,7 @@ afterEach(() => {
     branch: 'main'
   },
   urls: {
-    artifacts: 'https://artifacts.test.com',
-    staging: 'https://staging.test.com'
+    artifacts: 'https://artifacts.test.com'
   },
   notifications: {
     channels: ['telegram'],

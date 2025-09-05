@@ -129,9 +129,10 @@ function generateEnvFromConfig(config: any): string {
     `REPO_KIND=${config.repo.kind}`,
     `REPO_BRANCH=${config.repo.branch}`,
     '',
-    '# Server URLs',
-    `ARTIFACTS_URL=${config.urls.artifacts}`,
-    `STAGING_URL=${config.urls.staging}`,
+    '# Artifacts Configuration',
+    `ARTIFACTS_BASE_URL=${config.artifacts?.baseUrl || config.urls?.artifacts || ''}`,
+    `ARTIFACTS_RETENTION_DAYS=${config.artifacts?.retentionDays || ''}`,
+    `ARTIFACTS_MAX_SIZE=${config.artifacts?.maxSize || ''}`,
     ''
   ];
   

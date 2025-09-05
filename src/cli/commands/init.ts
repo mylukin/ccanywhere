@@ -142,12 +142,6 @@ async function collectConfiguration(advanced: boolean): Promise<CcanywhereConfig
       name: 'artifactsUrl',
       message: 'Artifacts server URL:',
       validate: (input: string) => input.trim() !== '' || 'Artifacts URL is required'
-    },
-    {
-      type: 'input',
-      name: 'stagingUrl',
-      message: 'Staging server URL:',
-      validate: (input: string) => input.trim() !== '' || 'Staging URL is required'
     }
   ];
 
@@ -192,8 +186,7 @@ async function collectConfiguration(advanced: boolean): Promise<CcanywhereConfig
       branch: answers.repoBranch
     },
     urls: {
-      artifacts: answers.artifactsUrl,
-      staging: answers.stagingUrl
+      artifacts: answers.artifactsUrl
     },
     notifications: {
       channels: answers.notificationChannels
@@ -235,12 +228,13 @@ function generateEnvTemplate(config: CcanywhereConfig): string {
     );
   }
 
-  // Server URLs (optional)
-  if (config.urls) {
+  // Artifacts Configuration (optional)
+  if (config.artifacts || config.urls) {
     lines.push(
-      '# Server URLs',
-      `ARTIFACTS_URL=${config.urls.artifacts || ''}`,
-      `STAGING_URL=${config.urls.staging || ''}`,
+      '# Artifacts Configuration',
+      `ARTIFACTS_BASE_URL=${config.artifacts?.baseUrl || config.urls?.artifacts || ''}`,
+      `ARTIFACTS_RETENTION_DAYS=${config.artifacts?.retentionDays || ''}`,
+      `ARTIFACTS_MAX_SIZE=${config.artifacts?.maxSize || ''}`,
       ''
     );
   }
@@ -327,7 +321,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: [['html', { outputFolder: 'playwright-report' }]],
   use: {
-    baseURL: process.env.STAGING_URL || 'http://localhost:3000',
+    baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
   },
 

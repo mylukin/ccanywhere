@@ -68,18 +68,21 @@ export class HtmlDiffGenerator implements DiffGenerator {
           const storageKey = `diffs/${fileName}`;
           const cloudUrl = await storageProvider.upload(storageKey, htmlContent, 'text/html; charset=utf-8');
           
-          // Use artifacts URL prefix if configured, otherwise use direct cloud URL
-          finalUrl = context.config.urls?.artifacts 
-            ? `${context.config.urls.artifacts}/${storageKey}`
+          // Use artifacts base URL if configured, otherwise use direct cloud URL
+          const baseUrl = context.config.artifacts?.baseUrl || context.config.urls?.artifacts;
+          finalUrl = baseUrl 
+            ? `${baseUrl}/${storageKey}`
             : cloudUrl;
         } catch (storageError) {
           // If cloud storage fails, log warning but continue with local URL
           console.warn('Cloud storage upload failed:', storageError);
-          finalUrl = `${context.config.urls?.artifacts || ''}/${fileName}`;
+          const baseUrl = context.config.artifacts?.baseUrl || context.config.urls?.artifacts;
+          finalUrl = `${baseUrl || ''}/${fileName}`;
         }
       } else {
         // Use local/CDN URL
-        finalUrl = `${context.config.urls?.artifacts || ''}/${fileName}`;
+        const baseUrl = context.config.artifacts?.baseUrl || context.config.urls?.artifacts;
+        finalUrl = `${baseUrl || ''}/${fileName}`;
       }
 
       const artifact: BuildArtifact = {
@@ -357,9 +360,10 @@ export class HtmlDiffGenerator implements DiffGenerator {
       // Get file size
       const stats = await fs.stat(outputPath);
 
+      const baseUrl = context.config.artifacts?.baseUrl || context.config.urls?.artifacts;
       const artifact: BuildArtifact = {
         type: 'diff',
-        url: `${context.config.urls?.artifacts || ''}/${fileName}`,
+        url: `${baseUrl || ''}/${fileName}`,
         path: outputPath,
         size: stats.size,
         timestamp: context.timestamp

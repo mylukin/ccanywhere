@@ -9,8 +9,7 @@
   
   // URLs configuration (Required for deployment features)
   "urls": {
-    "artifacts": "https://artifacts.example.com",
-    "staging": "https://staging.example.com"
+    "artifacts": "https://artifacts.example.com"
   },
   
   // Deployment configuration (Optional)

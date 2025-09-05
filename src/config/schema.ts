@@ -21,8 +21,7 @@ export const RepoConfigSchema = z
 
 export const UrlsConfigSchema = z
   .object({
-    artifacts: z.string().url('Artifacts URL must be a valid URL').optional(),
-    staging: z.string().url('Staging URL must be a valid URL').optional()
+    artifacts: z.string().url('Artifacts URL must be a valid URL').optional()
   })
   .optional();
 
@@ -176,15 +175,26 @@ export const StorageConfigSchema = z
   })
   .optional();
 
+// New artifacts configuration schema
+export const ArtifactsConfigSchema = z
+  .object({
+    baseUrl: z.string().url('Artifacts base URL must be a valid URL').optional(),
+    retentionDays: z.number().min(1).max(365).default(7).optional(),
+    maxSize: z.string().regex(/^\d+(B|KB|MB|GB)$/, 'Max size must be in format like "100MB"').default('100MB').optional(),
+    storage: StorageConfigSchema.optional()
+  })
+  .optional();
+
 export const CcanywhereConfigSchema = z.object({
   repo: RepoConfigSchema,
-  urls: UrlsConfigSchema,
+  urls: UrlsConfigSchema, // Deprecated - kept for backward compatibility
   deployment: DeploymentConfigSchema,
   notifications: NotificationsConfigSchema.optional(),
   build: BuildConfigSchema.optional(),
   test: TestConfigSchema,
   security: SecurityConfigSchema,
-  storage: StorageConfigSchema
+  artifacts: ArtifactsConfigSchema,
+  storage: StorageConfigSchema // Deprecated - kept for backward compatibility
 });
 
 /**

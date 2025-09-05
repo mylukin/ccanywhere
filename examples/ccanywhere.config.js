@@ -17,8 +17,7 @@ export default {
 
   // URLs configuration
   urls: {
-    artifacts: process.env.ARTIFACTS_URL || 'https://artifacts.example.com',
-    staging: process.env.STAGING_URL || 'https://staging.example.com'
+    artifacts: process.env.ARTIFACTS_URL || 'https://artifacts.example.com'
   },
 
   // Deployment configuration

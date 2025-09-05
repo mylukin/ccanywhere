@@ -52,9 +52,19 @@ Edit the generated `ccanywhere.config.json`:
     "url": "https://github.com/mylukin/ccanywhere",
     "branch": "main"
   },
-  "urls": {
-    "artifacts": "https://artifacts.yourdomain.com",
-    "staging": "https://staging.yourdomain.com"
+  "artifacts": {
+    "baseUrl": "https://artifacts.yourdomain.com",
+    "retentionDays": 7,
+    "maxSize": "100MB",
+    "storage": {
+      "provider": "s3",
+      "s3": {
+        "accessKeyId": "YOUR_AWS_ACCESS_KEY_ID",
+        "secretAccessKey": "YOUR_AWS_SECRET_ACCESS_KEY",
+        "region": "us-east-1",
+        "bucket": "my-artifacts-bucket"
+      }
+    }
   },
   "notifications": {
     "channels": ["telegram"],
@@ -71,8 +81,11 @@ Configure your environment variables in `.env`:
 ```bash
 # Required
 REPO_URL=https://github.com/mylukin/ccanywhere
-ARTIFACTS_URL=https://artifacts.yourdomain.com
-STAGING_URL=https://staging.yourdomain.com
+
+# Artifacts Configuration
+ARTIFACTS_BASE_URL=https://artifacts.yourdomain.com
+ARTIFACTS_RETENTION_DAYS=7
+ARTIFACTS_MAX_SIZE=100MB
 
 # Notifications
 BOT_TOKEN_TELEGRAM=123456789:your-bot-token
@@ -186,7 +199,6 @@ REPO_BRANCH=main                                # Optional, auto-detected
 
 # URLs
 ARTIFACTS_URL=https://artifacts.example.com
-STAGING_URL=https://staging.example.com
 
 # Deployment
 DOKPLOY_WEBHOOK_URL=https://deploy.example.com/webhook
@@ -254,7 +266,7 @@ export default defineConfig({
   testDir: './tests',
   reporter: [['html', { outputFolder: 'playwright-report' }]],
   use: {
-    baseURL: process.env.STAGING_URL || 'http://localhost:3000',
+    baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
   },
   projects: [
@@ -360,7 +372,6 @@ class SlackNotifier implements ChannelNotifier {
 - File permissions set to 600 for sensitive files
 - Lock files prevent concurrent builds
 - Audit logs track all operations
-- Optional read-only mode for staging environments
 
 ## 📊 Monitoring
 
