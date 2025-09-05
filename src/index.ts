@@ -12,6 +12,12 @@ export * from './core/lock-manager.js';
 export * from './core/logger.js';
 export * from './core/notifications/index.js';
 
+// Claude Code integration
+export * from './core/claude-hook.js';
+export * from './utils/claude-detector.js';
+export * from './utils/hook-injector.js';
+export * from './utils/error-handler.js';
+
 // Main pipeline class
 export { BuildPipeline } from './core/pipeline.js';
 

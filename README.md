@@ -16,6 +16,7 @@ English | [简体中文](README-zh.md)
 - **📬 Multi-Channel Notifications**: Support for Telegram, DingTalk, WeCom, and Email
 - **🔒 Concurrency Control**: File-based locking prevents concurrent builds
 - **📊 JSON Audit Logging**: Comprehensive logging with structured JSON output
+- **🎯 Claude Code Integration**: Seamless hooks for automatic CI/CD on Claude Code operations
 - **⚡ TypeScript First**: Fully typed with excellent IDE support
 - **🛠 CLI Interface**: Easy-to-use command-line interface
 - **🔧 Configurable**: Flexible configuration via JSON or environment variables
@@ -144,6 +145,47 @@ ccanywhere cleanup --days 7
 
 # Show system information
 ccanywhere info
+
+# Claude Code integration
+ccanywhere claude-register --status      # Check hook status
+ccanywhere claude-register              # Interactive hook setup
+ccanywhere claude-register --post-run   # Enable specific hooks
+ccanywhere claude-register --remove     # Remove all hooks
+```
+
+### Claude Code Integration
+
+CCanywhere provides seamless integration with Claude Code through automatic hook injection:
+
+```bash
+# For global installations, hooks are registered automatically
+npm install -g ccanywhere
+
+# Manual hook management
+ccanywhere claude-register --status       # Check current status
+ccanywhere claude-register               # Interactive registration
+ccanywhere claude-register --post-run    # Enable post-run hook
+ccanywhere claude-register --pre-commit  # Enable pre-commit analysis
+ccanywhere claude-register --remove      # Remove all hooks
+
+# Restore from backup if needed
+ccanywhere claude-register --restore /path/to/backup
+```
+
+**Available Hooks:**
+- **Pre-commit**: Analyzes staged changes before commits
+- **Post-run**: Runs full CCanywhere pipeline after Claude Code operations  
+- **Pre-test**: Sets up environment before test execution
+- **Post-test**: Processes results and sends notifications
+
+**Benefits:**
+- ✅ Automatic diff generation after Claude Code operations
+- ✅ Zero-configuration for global installs
+- ✅ Non-invasive integration with existing workflows
+- ✅ Automatic backup creation for safety
+- ✅ Platform-specific path detection (Windows, macOS, Linux)
+
+See [Claude Code Integration Guide](./docs/CLAUDE-CODE-INTEGRATION.md) for detailed configuration options.
 ```
 
 ### Programmatic Usage

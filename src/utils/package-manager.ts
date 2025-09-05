@@ -226,4 +226,69 @@ export class PackageManager {
       return false;
     }
   }
+
+  /**
+   * Check if this is a global npm installation
+   */
+  static async isGlobalInstall(): Promise<boolean> {
+    try {
+      // Method 1: Check npm_config_global environment variable
+      if (process.env.npm_config_global === 'true') {
+        return true;
+      }
+
+      // Method 2: Check if npm_config_prefix is set (indicates global install)
+      if (process.env.npm_config_prefix) {
+        return true;
+      }
+
+      // Method 3: Check the installation path
+      // Global installs typically go to specific directories
+      const currentPath = process.cwd();
+      const globalPaths = [
+        '/usr/local/lib/node_modules',
+        '/usr/lib/node_modules', 
+        path.join(require('os').homedir(), '.npm-global'),
+        path.join(require('os').homedir(), 'AppData/Roaming/npm') // Windows
+      ];
+
+      // Check if current path contains any global path patterns
+      for (const globalPath of globalPaths) {
+        if (currentPath.includes('node_modules') && 
+            (currentPath.includes(globalPath) || currentPath.includes('global'))) {
+          return true;
+        }
+      }
+
+      // Method 4: Try to detect via npm command (if available)
+      try {
+        const { execSync } = await import('child_process');
+        const npmRoot = execSync('npm root -g', { encoding: 'utf8', stdio: 'pipe' }).trim();
+        if (currentPath.includes(npmRoot)) {
+          return true;
+        }
+      } catch {
+        // npm command not available or failed, continue with other methods
+      }
+
+      // Method 5: Check for specific environment indicators
+      const envIndicators = [
+        'npm_config_user_config',
+        'npm_config_globalconfig',
+        'npm_config_global_style'
+      ];
+
+      for (const indicator of envIndicators) {
+        if (process.env[indicator]) {
+          return true;
+        }
+      }
+
+      return false;
+    } catch (error) {
+      // On error, assume local install to be safe
+      console.log(chalk.gray(`Warning: Could not determine install type: ${error instanceof Error ? error.message : String(error)}`));
+      return false;
+    }
+  }
 }

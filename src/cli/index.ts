@@ -15,6 +15,7 @@ import { configCommand } from './commands/config.js';
 import { cleanupCommand } from './commands/cleanup.js';
 import { lockCommand } from './commands/lock.js';
 import { notifyCommand } from './commands/notify.js';
+import { createClaudeRegisterCommand } from './commands/claude-register.js';
 
 const program = new Command();
 
@@ -88,6 +89,9 @@ program
   .option('-t, --title <title>', 'Notification title', '🔔 Test from CCanywhere')
   .option('-m, --message <message>', 'Additional message')
   .action(notifyCommand);
+
+// Claude Code integration
+program.addCommand(createClaudeRegisterCommand());
 
 // Build info command
 program
