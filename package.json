@@ -33,6 +33,7 @@
   },
   "files": [
     "dist/**/*",
+    "scripts/**/*",
     "templates/**/*",
     "README.md",
     "LICENSE"
@@ -49,7 +50,7 @@
     "format:check": "prettier --check \"src/**/*.ts\"",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run clean && npm run build && npm run test",
-    "postinstall": "node -e \"try { require('./dist/scripts/postinstall.js') } catch(e) { console.log('Skipping postinstall (dist not built yet)') }\""
+    "postinstall": "node scripts/postinstall-wrapper.cjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.882.0",
