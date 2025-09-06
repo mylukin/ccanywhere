@@ -68,7 +68,7 @@ jest.unstable_mockModule('@/utils/hook-injector', () => ({
 // Import the module after mocking
 const { claudeRegisterCommand } = await import('../claude-register.js');
 
-describe.skip('claudeRegisterCommand', () => {
+describe('claudeRegisterCommand', () => {
   let originalConsole: any;
   let originalExit: any;
 
