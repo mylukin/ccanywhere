@@ -11,7 +11,6 @@ const chalk = chalkModule;
 import path from 'path';
 import { PackageManager } from '../utils/package-manager.js';
 import { ClaudeCodeDetector } from '../utils/claude-detector.js';
-import { claudeRegisterCommand } from '../cli/commands/claude-register.js';
 
 async function injectNpmScripts(): Promise<void> {
   try {
@@ -89,39 +88,37 @@ async function handleClaudeCodeIntegration(): Promise<void> {
     console.log(chalk.green('✅ Claude Code detected!'));
     console.log(chalk.gray(`   Config: ${environment.configDir}`));
 
-    // Auto-register hooks with conservative defaults (Stop event)
-    console.log(chalk.blue('🔧 Auto-registering CCanywhere hooks with Claude Code...'));
+    // Auto-register Stop hook silently (non-interactive for npm link/install)
+    console.log(chalk.blue('🔧 Registering CCanywhere Stop hook with Claude Code...'));
 
     try {
-      // Use the same command that users would run manually
-      await claudeRegisterCommand({
-        force: false, // Don't overwrite existing hooks
-        remove: false,
-        status: false,
-        manual: false,
-        postTool: false, // Use Stop event (default, better UX)
-        stop: true
+      // Directly inject Stop hook without prompts
+      const { HookInjector } = await import('../utils/hook-injector.js');
+      const result = await HookInjector.injectHooks({
+        enableStop: true,
+        createBackup: true,
+        force: false
       });
 
-      console.log(chalk.green('🎉 CCanywhere is now integrated with Claude Code!'));
-      console.log();
-      console.log(chalk.blue('📝 What happens now:'));
-      console.log(chalk.gray('  • CCanywhere will run automatically when you end Claude Code sessions'));
-      console.log(chalk.gray('  • You\'ll get a complete diff summary for each session'));
-      console.log(chalk.gray('  • Use "ccanywhere claude-register --status" to check configuration'));
-      console.log(chalk.gray('  • Use "ccanywhere claude-register --post-tool" for per-edit triggers'));
-    } catch (error) {
-      // If auto-registration fails, provide helpful guidance
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      
-      if (errorMessage.includes('already configured')) {
-        console.log(chalk.yellow('⚠️  CCanywhere hooks already registered with Claude Code'));
-        console.log(chalk.gray('   Use "ccanywhere claude-register --status" to check current settings'));
+      if (result.success) {
+        console.log(chalk.green('🎉 CCanywhere Stop hook registered successfully!'));
+        console.log();
+        console.log(chalk.blue('📝 What happens now:'));
+        console.log(chalk.gray('  • CCanywhere runs automatically when you end Claude Code sessions'));
+        console.log(chalk.gray('  • Generates diff summary for the entire session'));
+        console.log(chalk.gray('  • Silently skips in projects without CCanywhere config'));
+      } else if (result.message.includes('already')) {
+        console.log(chalk.yellow('⚠️  CCanywhere hooks already registered'));
+        console.log(chalk.gray('   Use "ccanywhere claude-register --status" to check'));
       } else {
-        console.log(chalk.yellow('⚠️  Auto-registration encountered an issue:'));
-        console.log(chalk.yellow(`   ${errorMessage}`));
-        console.log(chalk.gray('   You can register manually with: ccanywhere claude-register'));
+        console.log(chalk.yellow('⚠️  Could not register hooks automatically'));
+        console.log(chalk.gray('   Run "ccanywhere claude-register" manually'));
       }
+    } catch (error) {
+      // Don't fail installation on hook registration errors
+      console.log(chalk.yellow('⚠️  Hook registration skipped:'));
+      console.log(chalk.yellow(error instanceof Error ? error.message : String(error)));
+      console.log(chalk.gray('   Run "ccanywhere claude-register" to register manually'));
     }
   } catch (error) {
     // Don't fail the installation on Claude Code integration errors

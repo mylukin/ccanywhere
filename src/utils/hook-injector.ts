@@ -11,10 +11,7 @@ import { ClaudeHooks } from '../core/claude-hook.js';
 import { ErrorHandler, ClaudeCodeError } from './error-handler.js';
 
 export interface HookInjectionOptions {
-  enablePreCommit?: boolean;
-  enablePostRun?: boolean;
-  enablePreTest?: boolean;
-  enablePostTest?: boolean;
+  enableStop?: boolean;
   createBackup?: boolean;
   force?: boolean;
 }
@@ -73,42 +70,16 @@ export class HookInjector {
         }
       }
 
-      // Generate CCanywhere hook configuration
-      // Use shell commands instead of module-based hooks for Claude Code compatibility
+      // Generate CCanywhere hook configuration for Stop event only
       const ccanywhereHooks: Record<string, any> = {};
       
-      // The command with environment variable to indicate hook mode
-      const hookCommand = 'CCANYWHERE_HOOK_MODE=true ccanywhere run 2>&1 >> /tmp/ccanywhere-hook.log || true';
-      
-      if (options.enablePreCommit) {
-        ccanywhereHooks.preCommit = {
-          name: 'CCanywhere Pre-commit Analysis',
+      // Simple Stop hook - runs when Claude Code session ends
+      // Uses --hook-mode to skip prompts in projects without config
+      if (options.enableStop !== false) {  // Default to true
+        ccanywhereHooks.Stop = {
+          name: 'CCanywhere Session Summary',
           type: 'command',
-          command: hookCommand
-        };
-      }
-      
-      if (options.enablePostRun) {
-        ccanywhereHooks.postRun = {
-          name: 'CCanywhere Pipeline',
-          type: 'command',
-          command: hookCommand
-        };
-      }
-      
-      if (options.enablePreTest) {
-        ccanywhereHooks.preTest = {
-          name: 'CCanywhere Pre-test Setup',
-          type: 'command',
-          command: hookCommand
-        };
-      }
-      
-      if (options.enablePostTest) {
-        ccanywhereHooks.postTest = {
-          name: 'CCanywhere Post-test Processing',
-          type: 'command',
-          command: hookCommand
+          command: 'cd "$CLAUDE_PROJECT_DIR" && ccanywhere run --hook-mode 2>&1 >> /tmp/ccanywhere-hook.log || true'
         };
       }
 
@@ -168,7 +139,7 @@ export class HookInjector {
 
       // Remove CCanywhere-related hooks
       const cleanedConfig = { ...existingConfig };
-      const ccanywhereHookNames = ['preCommit', 'postRun', 'preTest', 'postTest'];
+      const ccanywhereHookNames = ['Stop', 'PostToolUse', 'UserPromptSubmit', 'preCommit', 'postRun', 'preTest', 'postTest'];
       let removedCount = 0;
 
       for (const hookName of ccanywhereHookNames) {
@@ -442,7 +413,7 @@ export class HookInjector {
       }
 
       // Check if any CCanywhere hooks are present
-      const ccanywhereHookNames = ['preCommit', 'postRun', 'preTest', 'postTest'];
+      const ccanywhereHookNames = ['Stop', 'PostToolUse', 'UserPromptSubmit', 'preCommit', 'postRun', 'preTest', 'postTest'];
       return ccanywhereHookNames.some(hookName => {
         const hook = existingConfig.content[hookName];
         return hook && (

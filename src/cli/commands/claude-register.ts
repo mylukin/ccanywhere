@@ -5,8 +5,6 @@
 
 import chalkModule from 'chalk';
 const chalk = chalkModule;
-import inquirerModule from 'inquirer';
-const inquirer = inquirerModule;
 import { Command } from 'commander';
 import { ClaudeCodeDetector } from '../../utils/claude-detector.js';
 import { HookInjector } from '../../utils/hook-injector.js';
@@ -17,14 +15,6 @@ interface ClaudeRegisterOptions {
   remove?: boolean;
   status?: boolean;
   manual?: boolean;
-  postTool?: boolean;
-  stop?: boolean;
-  restore?: string;
-  preCommit?: boolean;
-  backup?: boolean;
-  postRun?: boolean;
-  preTest?: boolean;
-  postTest?: boolean;
 }
 
 /**
@@ -73,19 +63,9 @@ export async function claudeRegisterCommand(options: ClaudeRegisterOptions): Pro
       return;
     }
 
-    // Handle restore option
-    if (options.restore) {
-      try {
-        const success = await HookInjector.restoreFromBackup(options.restore);
-        if (success) {
-          console.log(chalk.green('✅ Successfully restored from backup'));
-        } else {
-          console.log(chalk.red('❌ Restore failed'));
-        }
-      } catch (error) {
-        console.log(chalk.red('❌ Restore failed:'));
-        console.log(chalk.red(error instanceof Error ? error.message : String(error)));
-      }
+    // Handle manual option
+    if (options.manual) {
+      showManualInstructions();
       return;
     }
 
@@ -130,55 +110,12 @@ export async function claudeRegisterCommand(options: ClaudeRegisterOptions): Pro
       return;
     }
 
-    // If no specific hook options provided, use interactive mode
-    let hookOptions = {
-      enablePreCommit: options.preCommit,
-      enablePostRun: options.postRun,
-      enablePreTest: options.preTest,
-      enablePostTest: options.postTest,
-      createBackup: options.backup !== false,
+    // Simple Stop hook configuration
+    const hookOptions = {
+      enableStop: true, // Only use Stop event for Claude Code sessions
+      createBackup: true,
       force: options.force
     };
-
-    // Interactive mode if no hook types specified
-    const hasHookType = options.preCommit || options.postRun || options.preTest || options.postTest;
-    if (!hasHookType) {
-      const answers = await inquirer.prompt([
-        {
-          type: 'checkbox',
-          name: 'hooks',
-          message: 'Which hooks would you like to enable?',
-          choices: [
-            { name: 'Pre-Commit - Run before committing', value: 'preCommit' },
-            { name: 'Post-Run - Run after completing tasks', value: 'postRun' },
-            { name: 'Pre-Test - Run before tests', value: 'preTest' },
-            { name: 'Post-Test - Run after tests', value: 'postTest' }
-          ],
-          default: ['postRun']
-        },
-        {
-          type: 'confirm',
-          name: 'backup',
-          message: 'Create backup of existing configuration?',
-          default: true
-        },
-        {
-          type: 'confirm',
-          name: 'force',
-          message: 'Overwrite existing hooks if present?',
-          default: false
-        }
-      ]);
-
-      hookOptions = {
-        enablePreCommit: answers.hooks.includes('preCommit'),
-        enablePostRun: answers.hooks.includes('postRun'),
-        enablePreTest: answers.hooks.includes('preTest'),
-        enablePostTest: answers.hooks.includes('postTest'),
-        createBackup: answers.backup,
-        force: answers.force
-      };
-    }
 
     // Inject hooks
     const result = await HookInjector.injectHooks(hookOptions);
@@ -222,6 +159,44 @@ export async function claudeRegisterCommand(options: ClaudeRegisterOptions): Pro
   }
 }
 
+/**
+ * Show manual instructions for configuring hooks
+ */
+function showManualInstructions(): void {
+  console.log(chalk.blue('📚 Manual Hook Configuration Instructions'));
+  console.log(chalk.gray('='.repeat(50)));
+  console.log();
+  console.log(chalk.yellow('For Claude Code (Stop event):'));
+  console.log(chalk.gray('1. Open your Claude Code settings'));
+  console.log(chalk.gray('2. Add this to your hooks configuration:'));
+  console.log();
+  console.log(
+    chalk.cyan(
+      JSON.stringify(
+        {
+          hooks: {
+            Stop: [
+              {
+                matcher: '.*',
+                hooks: [
+                  {
+                    type: 'command',
+                    command: 'cd "$CLAUDE_PROJECT_DIR" && ccanywhere run --hook-mode'
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        null,
+        2
+      )
+    )
+  );
+  console.log();
+  console.log(chalk.yellow('⚠️  Important: Use --hook-mode to skip prompts in projects without config'));
+}
+
 
 /**
  * Create the claude-register command
@@ -233,14 +208,6 @@ export function createClaudeRegisterCommand(): Command {
     .option('--remove', 'Remove CCanywhere hooks from Claude Code')
     .option('--status', 'Show current hook registration status')
     .option('--manual', 'Show manual configuration instructions')
-    .option('--post-tool', 'Use PostToolUse event (runs after each file edit)')
-    .option('--stop', 'Use Stop event (runs at session end, default)')
-    .option('--restore <path>', 'Restore from a backup file')
-    .option('--pre-commit', 'Enable pre-commit hook')
-    .option('--post-run', 'Enable post-run hook')
-    .option('--pre-test', 'Enable pre-test hook')
-    .option('--post-test', 'Enable post-test hook')
-    .option('--backup', 'Create backup when injecting hooks')
     .action(claudeRegisterCommand);
 }
 
