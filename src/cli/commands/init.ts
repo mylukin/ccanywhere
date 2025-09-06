@@ -4,7 +4,7 @@
 
 import { join } from 'path';
 import fsExtra from 'fs-extra';
-const { writeFile, pathExists } = fsExtra;
+const { writeFile, pathExists, readFile } = fsExtra;
 import inquirerModule from 'inquirer';
 const inquirer = inquirerModule;
 import chalkModule from 'chalk';
@@ -18,7 +18,6 @@ import { PackageManager } from '../../utils/package-manager.js';
 
 interface InitOptions extends CliOptions {
   force?: boolean;
-  template?: string;
 }
 
 export async function initCommand(options: InitOptions): Promise<void> {
@@ -48,24 +47,8 @@ export async function initCommand(options: InitOptions): Promise<void> {
       }
     }
 
-    // Get template
-    let template = options.template;
-    if (!template) {
-      const { selectedTemplate } = await inquirer.prompt([{
-        type: 'list',
-        name: 'selectedTemplate',
-        message: 'Choose a setup mode:',
-        choices: [
-          { name: '⚡ Quick - Recommended settings (Telegram pre-selected)', value: 'quick' },
-          { name: '📝 Custom - Choose your own settings', value: 'basic' },
-          { name: '🔧 Advanced - Full setup with all features', value: 'advanced' }
-        ]
-      }]);
-      template = selectedTemplate;
-    }
-
     // Collect configuration
-    const config = await collectConfiguration(template === 'advanced', template === 'quick');
+    const config = await collectConfiguration();
 
     // Generate files
     const spinner = ora('Generating configuration files...').start();
@@ -80,11 +63,15 @@ export async function initCommand(options: InitOptions): Promise<void> {
       spinner.text = 'Generated .env file';
     }
 
-    // Generate example files if needed
-    if (template === 'advanced' || config.test?.enabled) {
+    // Generate example files if needed (when Playwright testing is enabled)
+    if (config.test?.enabled) {
       await generateExampleFiles(workDir, config.test?.enabled);
       spinner.text = 'Generated example files';
     }
+
+    // Update .gitignore
+    await updateGitignore(workDir);
+    spinner.text = 'Updated .gitignore';
 
     spinner.succeed('Configuration files generated successfully!');
 
@@ -156,12 +143,6 @@ async function collectStorageConfiguration(): Promise<any> {
     },
     {
       type: 'input',
-      name: 'storageFolder',
-      message: 'Storage folder path (optional):',
-      default: 'diffs'
-    },
-    {
-      type: 'input',
       name: 'artifactsUrl',
       message: 'Public artifacts URL (CDN or direct access URL):',
       validate: (input: string) => {
@@ -173,6 +154,12 @@ async function collectStorageConfiguration(): Promise<any> {
           return 'Please enter a valid URL';
         }
       }
+    },
+    {
+      type: 'input',
+      name: 'storageFolder',
+      message: 'Storage folder path (optional):',
+      default: 'diffs'
     }
   ]);
 
@@ -483,7 +470,7 @@ async function collectChannelConfigurations(channels: string[]): Promise<any> {
   return configs;
 }
 
-async function collectConfiguration(advanced: boolean, quick: boolean = false): Promise<CcanywhereConfig> {
+async function collectConfiguration(): Promise<CcanywhereConfig> {
   console.log(chalk.blue('📝 Configuration setup'));
   console.log();
 
@@ -535,75 +522,65 @@ async function collectConfiguration(advanced: boolean, quick: boolean = false): 
   let notificationAnswers: any = {};
   let channelConfigs: any = {};
   
-  if (quick) {
-    // In quick mode, use Telegram by default
-    console.log(chalk.green('✓ Using Telegram as notification channel (Quick mode)'));
-    notificationAnswers.notificationChannels = ['telegram'];
-  } else {
-    // In custom/advanced mode, let user choose
-    console.log(chalk.yellow('📌 Tip: Use SPACE to select/deselect, ENTER to confirm'));
-    console.log(chalk.gray('   You can select multiple channels'));
-    console.log();
-    
-    notificationAnswers = await inquirer.prompt([{
-      type: 'checkbox',
-      name: 'notificationChannels',
-      message: 'Select notification channels (use SPACE to select):',
-      choices: [
-        { name: 'Telegram', value: 'telegram', checked: true },  // Default selection
-        { name: 'DingTalk', value: 'dingtalk', checked: false },
-        { name: 'WeCom (Enterprise WeChat)', value: 'wecom', checked: false },
-        { name: 'Email', value: 'email', checked: false }
-      ],
-      validate: (input: string[]) => {
-        if (input.length === 0) {
-          return chalk.red('⚠ Please select at least one channel (use SPACE key to select)');
-        }
-        return true;
+  // Show channel selection
+  console.log(chalk.yellow('📌 Tip: Use SPACE to select/deselect, ENTER to confirm'));
+  console.log(chalk.gray('   You can select multiple channels'));
+  console.log(chalk.green('   ✓ Telegram is pre-selected (recommended)'));
+  console.log();
+  
+  notificationAnswers = await inquirer.prompt([{
+    type: 'checkbox',
+    name: 'notificationChannels',
+    message: 'Select notification channels:',
+    choices: [
+      { name: 'Telegram', value: 'telegram', checked: true },  // Default selected
+      { name: 'DingTalk', value: 'dingtalk' },
+      { name: 'WeCom (Enterprise WeChat)', value: 'wecom' },
+      { name: 'Email', value: 'email' }
+    ],
+    validate: (input: string[]) => {
+      if (input.length === 0) {
+        return chalk.red('⚠ Please select at least one channel (use SPACE key to select)');
       }
-    }]);
-  }
+      return true;
+    }
+  }]);
   
   // Step 3.1: Configure selected notification channels immediately
   if (notificationAnswers.notificationChannels && notificationAnswers.notificationChannels.length > 0) {
     console.log();
-    if (!quick) {
-      console.log(chalk.blue('📬 Configuring notification channels...'));
-      console.log(chalk.gray(`   Selected: ${notificationAnswers.notificationChannels.join(', ')}`));
-      console.log();
-    }
+    console.log(chalk.blue('📬 Configuring notification channels...'));
+    console.log(chalk.gray(`   Selected: ${notificationAnswers.notificationChannels.join(', ')}`));
+    console.log();
     
     // Collect configuration for each selected channel
     channelConfigs = await collectChannelConfigurations(notificationAnswers.notificationChannels);
   }
 
-  // Step 4: Advanced options (if advanced mode)
-  let advancedAnswers: any = {};
-  if (advanced) {
-    console.log();
-    console.log(chalk.cyan('Step 4: Advanced Options'));
-    advancedAnswers = await inquirer.prompt([
-      {
-        type: 'confirm',
-        name: 'enableDeployment',
-        message: 'Enable automatic deployment?',
-        default: false
-      },
-      {
-        type: 'input',
-        name: 'deploymentWebhook',
-        message: 'Deployment webhook URL:',
-        when: (answers: any) => answers.enableDeployment,
-        validate: (input: string) => input.trim() !== '' || 'Webhook URL is required'
-      },
-      {
-        type: 'confirm',
-        name: 'enablePlaywright',
-        message: 'Configure Playwright testing?',
-        default: false
-      }
-    ]);
-  }
+  // Step 4: Advanced options
+  console.log();
+  console.log(chalk.cyan('Step 4: Advanced Options'));
+  const advancedAnswers = await inquirer.prompt([
+    {
+      type: 'confirm',
+      name: 'enableDeployment',
+      message: 'Enable automatic deployment?',
+      default: false
+    },
+    {
+      type: 'input',
+      name: 'deploymentWebhook',
+      message: 'Deployment webhook URL:',
+      when: (answers: any) => answers.enableDeployment,
+      validate: (input: string) => input.trim() !== '' || 'Webhook URL is required'
+    },
+    {
+      type: 'confirm',
+      name: 'enablePlaywright',
+      message: 'Configure Playwright testing?',
+      default: false
+    }
+  ]);
 
   // Merge all answers
   const answers = {
@@ -981,5 +958,52 @@ test('navigation works', async ({ page }) => {
     }
   } catch (error) {
     console.log(chalk.yellow('Could not add Playwright scripts to package.json'));
+  }
+}
+
+async function updateGitignore(workDir: string): Promise<void> {
+  const gitignorePath = join(workDir, '.gitignore');
+  const configPatterns = [
+    '# CCanywhere configuration files',
+    'ccanywhere.config.js',
+    'ccanywhere.config.json',
+    '.ccanywhere.json',
+    ''
+  ];
+  
+  try {
+    let content = '';
+    
+    // Read existing .gitignore if it exists
+    if (await pathExists(gitignorePath)) {
+      content = await readFile(gitignorePath, 'utf8');
+    }
+    
+    // Check if ccanywhere config files are already in .gitignore
+    const hasConfigFiles = configPatterns.slice(1, -1).some(pattern => 
+      content.includes(pattern)
+    );
+    
+    if (!hasConfigFiles) {
+      // Add a newline if file exists and doesn't end with one
+      if (content && !content.endsWith('\n')) {
+        content += '\n';
+      }
+      
+      // Add another newline to separate from existing content
+      if (content) {
+        content += '\n';
+      }
+      
+      // Add the config patterns
+      content += configPatterns.join('\n');
+      
+      // Write the updated .gitignore
+      await writeFile(gitignorePath, content);
+    }
+  } catch (error) {
+    // Log error for debugging but don't fail the init process
+    console.log(chalk.yellow('Note: Could not update .gitignore file'));
+    console.error('Gitignore update error:', error);
   }
 }

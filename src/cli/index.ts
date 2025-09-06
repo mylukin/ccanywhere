@@ -44,7 +44,6 @@ program
   .command('init')
   .description('Initialize CCanywhere in current directory')
   .option('-f, --force', 'Overwrite existing configuration')
-  .option('--template <name>', 'Use a specific template (quick, basic, advanced)')
   .action(initCommand);
 
 // Run build pipeline

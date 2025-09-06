@@ -112,7 +112,7 @@ describe('initCommand', () => {
 
     // Reset all mocks
     jest.clearAllMocks();
-    
+
     // Reset mock implementations
     mockPrompt.mockReset();
     mockPathExists.mockReset();
@@ -137,12 +137,10 @@ describe('initCommand', () => {
     });
     mockPackageManager.writePackageJson.mockResolvedValue(undefined);
     mockPackageManager.addScripts.mockReturnValue({
-      added: [
-        { name: 'test:e2e', command: 'playwright test' }
-      ],
+      added: [{ name: 'test:e2e', command: 'playwright test' }],
       skipped: []
     });
-    
+
     mockDetectGitInfo.mockResolvedValue({
       repoUrl: 'https://github.com/test/repo.git',
       repoKind: 'github',
@@ -166,8 +164,8 @@ describe('initCommand', () => {
     process.exit = originalExit;
   });
 
-  describe('basic initialization', () => {
-    it('should initialize with basic template', async () => {
+  describe('unified initialization', () => {
+    it('should initialize with unified flow', async () => {
       // Reset and setup mocks
       mockPathExists.mockReset();
       mockWriteFile.mockReset();
@@ -175,41 +173,44 @@ describe('initCommand', () => {
       mockOra.mockReset();
       mockOraInstance.start.mockReset();
       mockOraInstance.succeed.mockReset();
-      
+
       mockPathExists.mockResolvedValue(false);
       mockWriteFile.mockResolvedValue(undefined);
-      
+
       // Setup ora mock to return the instance
       mockOra.mockReturnValue(mockOraInstance);
       mockOraInstance.start.mockReturnValue(mockOraInstance);
       mockOraInstance.succeed.mockReturnValue(mockOraInstance);
-      
-      // Mock ALL the prompts in the correct order
+
+      // Mock ALL the prompts in the correct order for unified flow
       mockPrompt
-        .mockResolvedValueOnce({ selectedTemplate: 'basic' })  // Template selection
-        .mockResolvedValueOnce({  // Repository configuration (Step 1)
+        .mockResolvedValueOnce({
+          // Repository configuration (Step 1)
           repoUrl: 'https://github.com/test/repo.git',
           repoKind: 'github',
           repoBranch: 'main'
         })
-        .mockResolvedValueOnce({  // Storage configuration (Step 2) 
-          useCloudStorage: false
+        .mockResolvedValueOnce({
+          // Storage configuration (Step 2)
+          storageType: 'simple'
         })
-        .mockResolvedValueOnce({  // Artifacts URL when not using cloud storage
+        .mockResolvedValueOnce({
+          // Simple storage URL
           artifactsUrl: 'https://artifacts.test.com'
         })
-        .mockResolvedValueOnce({  // Notification channels (Step 3)
+        .mockResolvedValueOnce({
+          // Notification channels (Step 3)
           notificationChannels: ['telegram']
         })
-        .mockResolvedValueOnce({  // Telegram configuration
+        .mockResolvedValueOnce({
+          // Telegram configuration
           botToken: '123456:ABC-DEF',
           chatId: '-1001234567890'
         })
-        .mockResolvedValueOnce({  // Playwright testing (Step 4)
+        .mockResolvedValueOnce({
+          // Advanced options (Step 4)
+          enableDeployment: false,
           enablePlaywright: false
-        })
-        .mockResolvedValueOnce({  // Deployment webhook (Step 5)
-          enableDeployment: false
         });
 
       // Call the command
@@ -219,7 +220,7 @@ describe('initCommand', () => {
         // Log the error but don't fail the test yet
         console.log('Error during initCommand:', error);
       }
-      
+
       // Debug output
       console.log('mockPrompt calls:', mockPrompt.mock.calls.length);
       console.log('mockWriteFile calls:', mockWriteFile.mock.calls.length);
@@ -229,60 +230,66 @@ describe('initCommand', () => {
 
       // Verify config file was written
       expect(mockWriteFile).toHaveBeenCalled();
-      const configCall = mockWriteFile.mock.calls.find((call: any[]) => 
-        call[0].includes('ccanywhere.config.json')
-      );
+      const configCall = mockWriteFile.mock.calls.find((call: any[]) => call[0].includes('ccanywhere.config.json'));
       expect(configCall).toBeDefined();
-      
+
       const configContent = JSON.parse(configCall[1]);
       expect(configContent.repo.kind).toBe('github');
       expect(configContent.test).toBeDefined();
       expect(configContent.test.enabled).toBe(false);
     });
 
-    it('should initialize with advanced template', async () => {
+    it('should initialize with cloud storage and advanced options', async () => {
       mockPathExists.mockResolvedValue(false);
-      
-      // Mock ALL the prompts in the correct order for advanced template
+
+      // Mock ALL the prompts in the correct order for cloud storage flow
       mockPrompt
-        .mockResolvedValueOnce({  // Repository configuration (Step 1)
+        .mockResolvedValueOnce({
+          // Repository configuration (Step 1)
           repoUrl: 'https://github.com/test/repo.git',
           repoKind: 'github',
           repoBranch: 'main'
         })
-        .mockResolvedValueOnce({  // Storage configuration - storage choice (Step 2.1)
+        .mockResolvedValueOnce({
+          // Storage configuration - storage choice (Step 2.1)
           storageType: 'cloud'
         })
-        .mockResolvedValueOnce({  // Storage configuration - provider details (Step 2.2)
+        .mockResolvedValueOnce({
+          // Storage configuration - provider details (Step 2.2)
           storageProvider: 'r2',
           storageFolder: 'diffs',
           artifactsUrl: 'https://artifacts.test.com'
         })
-        .mockResolvedValueOnce({  // R2 provider configuration (Step 2.3)
+        .mockResolvedValueOnce({
+          // R2 provider configuration (Step 2.3)
           accountId: 'test-account',
           accessKeyId: 'test-key',
           secretAccessKey: 'test-secret',
           bucket: 'test-bucket'
         })
-        .mockResolvedValueOnce({  // Notification channels (Step 3)
+        .mockResolvedValueOnce({
+          // Notification channels (Step 3)
           notificationChannels: ['telegram', 'email']
         })
-        .mockResolvedValueOnce({  // Telegram configuration (Step 3.1)
+        .mockResolvedValueOnce({
+          // Telegram configuration (Step 3.1)
           botToken: '123456:ABC-DEF',
           chatId: '-1001234567890'
         })
-        .mockResolvedValueOnce({  // Email configuration (Step 3.1)
+        .mockResolvedValueOnce({
+          // Email configuration (Step 3.1)
           to: 'test@example.com',
           from: 'noreply@example.com',
           configureSMTP: false
         })
-        .mockResolvedValueOnce({  // Advanced options (Step 4) - all answers together
+        .mockResolvedValueOnce({
+          // Advanced options (Step 4) - all answers together
           enableDeployment: true,
           deploymentWebhook: 'https://deploy.test.com/webhook',
           enablePlaywright: true
         });
 
-      await initCommand({ template: 'advanced' });
+      await initCommand({});
 
       expect(mockWriteFile).toHaveBeenCalledWith(
         '/test/project/ccanywhere.config.json',
@@ -294,32 +301,6 @@ describe('initCommand', () => {
       );
       expect(mockEnsureDir).toHaveBeenCalledWith('/test/project/tests');
     });
-
-    it('should use provided template option', async () => {
-      mockPathExists.mockResolvedValue(false);
-      mockPrompt
-        .mockResolvedValueOnce({
-          repoUrl: 'https://github.com/test/repo.git',
-          repoKind: 'github',
-          repoBranch: 'main',
-          useCloudStorage: false,
-          artifactsUrl: 'https://artifacts.test.com',
-          notificationChannels: ['telegram'],
-          enablePlaywright: false,
-          enableDeployment: false
-        })
-        .mockResolvedValueOnce({
-          botToken: '123456:ABC-DEF',
-          chatId: '-1001234567890'
-        });
-
-      await initCommand({ template: 'basic' });
-
-      // Should not prompt for template selection
-      expect(mockPrompt).not.toHaveBeenCalledWith(
-        expect.arrayContaining([expect.objectContaining({ name: 'selectedTemplate' })])
-      );
-    });
   });
 
   describe('config file handling', () => {
@@ -327,20 +308,33 @@ describe('initCommand', () => {
       mockPathExists.mockResolvedValue(true);
       mockPrompt
         .mockResolvedValueOnce({ overwrite: true })
-        .mockResolvedValueOnce({ selectedTemplate: 'basic' })
         .mockResolvedValueOnce({
+          // Repository configuration (Step 1)
           repoUrl: 'https://github.com/test/repo.git',
           repoKind: 'github',
-          repoBranch: 'main',
-          useCloudStorage: false,
-          artifactsUrl: 'https://artifacts.test.com',
-          notificationChannels: ['telegram'],
-          enablePlaywright: false,
-          enableDeployment: false
+          repoBranch: 'main'
         })
         .mockResolvedValueOnce({
+          // Storage configuration (Step 2)
+          storageType: 'simple'
+        })
+        .mockResolvedValueOnce({
+          // Simple storage URL
+          artifactsUrl: 'https://artifacts.test.com'
+        })
+        .mockResolvedValueOnce({
+          // Notification channels (Step 3)
+          notificationChannels: ['telegram']
+        })
+        .mockResolvedValueOnce({
+          // Telegram configuration
           botToken: '123456:ABC-DEF',
           chatId: '-1001234567890'
+        })
+        .mockResolvedValueOnce({
+          // Advanced options (Step 4)
+          enableDeployment: false,
+          enablePlaywright: false
         });
 
       await initCommand({});
@@ -366,27 +360,36 @@ describe('initCommand', () => {
 
     it('should skip overwrite prompt with force option', async () => {
       mockPathExists.mockResolvedValue(true);
-      
+
       // Mock ALL the prompts in the correct order (no overwrite prompt with force)
       mockPrompt
-        .mockResolvedValueOnce({ selectedTemplate: 'basic' })  // Template selection
-        .mockResolvedValueOnce({  // Repository configuration (Step 1)
+        .mockResolvedValueOnce({
+          // Repository configuration (Step 1)
           repoUrl: 'https://github.com/test/repo.git',
           repoKind: 'github',
           repoBranch: 'main'
         })
-        .mockResolvedValueOnce({  // Storage configuration (Step 2.1)
+        .mockResolvedValueOnce({
+          // Storage configuration (Step 2.1)
           storageType: 'simple'
         })
-        .mockResolvedValueOnce({  // Simple storage URL (Step 2.2)
+        .mockResolvedValueOnce({
+          // Simple storage URL (Step 2.2)
           artifactsUrl: 'https://artifacts.test.com'
         })
-        .mockResolvedValueOnce({  // Notification channels (Step 3)
+        .mockResolvedValueOnce({
+          // Notification channels (Step 3)
           notificationChannels: ['telegram']
         })
-        .mockResolvedValueOnce({  // Telegram configuration
+        .mockResolvedValueOnce({
+          // Telegram configuration
           botToken: '123456:ABC-DEF',
           chatId: '-1001234567890'
+        })
+        .mockResolvedValueOnce({
+          // Advanced options (Step 4)
+          enableDeployment: false,
+          enablePlaywright: false
         });
 
       await initCommand({ force: true });
@@ -408,13 +411,33 @@ describe('initCommand', () => {
       });
       mockPathExists.mockResolvedValue(false);
       mockPrompt
-        .mockResolvedValueOnce({ selectedTemplate: 'basic' })
         .mockResolvedValueOnce({
+          // Repository configuration (Step 1)
           repoUrl: 'https://github.com/auto/detected.git', // Should default to auto-detected
           repoKind: 'github',
-          repoBranch: 'develop',
-          artifactsUrl: 'https://artifacts.test.com',
+          repoBranch: 'develop'
+        })
+        .mockResolvedValueOnce({
+          // Storage configuration (Step 2)
+          storageType: 'simple'
+        })
+        .mockResolvedValueOnce({
+          // Simple storage URL
+          artifactsUrl: 'https://artifacts.test.com'
+        })
+        .mockResolvedValueOnce({
+          // Notification channels (Step 3)
           notificationChannels: ['telegram']
+        })
+        .mockResolvedValueOnce({
+          // Telegram configuration
+          botToken: '123456:ABC-DEF',
+          chatId: '-1001234567890'
+        })
+        .mockResolvedValueOnce({
+          // Advanced options (Step 4)
+          enableDeployment: false,
+          enablePlaywright: false
         });
 
       await initCommand({});
@@ -431,13 +454,33 @@ describe('initCommand', () => {
       });
       mockPathExists.mockResolvedValue(false);
       mockPrompt
-        .mockResolvedValueOnce({ selectedTemplate: 'basic' })
         .mockResolvedValueOnce({
+          // Repository configuration (Step 1)
           repoUrl: 'https://github.com/manual/entry.git',
           repoKind: 'github',
-          repoBranch: 'main',
-          artifactsUrl: 'https://artifacts.test.com',
+          repoBranch: 'main'
+        })
+        .mockResolvedValueOnce({
+          // Storage configuration (Step 2)
+          storageType: 'simple'
+        })
+        .mockResolvedValueOnce({
+          // Simple storage URL
+          artifactsUrl: 'https://artifacts.test.com'
+        })
+        .mockResolvedValueOnce({
+          // Notification channels (Step 3)
           notificationChannels: ['telegram']
+        })
+        .mockResolvedValueOnce({
+          // Telegram configuration
+          botToken: '123456:ABC-DEF',
+          chatId: '-1001234567890'
+        })
+        .mockResolvedValueOnce({
+          // Advanced options (Step 4)
+          enableDeployment: false,
+          enablePlaywright: false
         });
 
       await initCommand({});
@@ -452,117 +495,137 @@ describe('initCommand', () => {
       mockPathExists
         .mockResolvedValueOnce(false) // config file doesn't exist
         .mockResolvedValueOnce(true); // .env file exists
-      
+
       // Mock ALL the prompts in the correct order
       mockPrompt
-        .mockResolvedValueOnce({ selectedTemplate: 'basic' })  // Template selection
-        .mockResolvedValueOnce({  // Repository configuration (Step 1)
+        .mockResolvedValueOnce({
+          // Repository configuration (Step 1)
           repoUrl: 'https://github.com/test/repo.git',
           repoKind: 'github',
           repoBranch: 'main'
         })
-        .mockResolvedValueOnce({  // Storage configuration (Step 2.1)
+        .mockResolvedValueOnce({
+          // Storage configuration (Step 2.1)
           storageType: 'simple'
         })
-        .mockResolvedValueOnce({  // Simple storage URL (Step 2.2)
+        .mockResolvedValueOnce({
+          // Simple storage URL (Step 2.2)
           artifactsUrl: 'https://artifacts.test.com'
         })
-        .mockResolvedValueOnce({  // Notification channels (Step 3)
+        .mockResolvedValueOnce({
+          // Notification channels (Step 3)
           notificationChannels: ['telegram']
         })
-        .mockResolvedValueOnce({  // Telegram configuration
+        .mockResolvedValueOnce({
+          // Telegram configuration
           botToken: '123456:ABC-DEF',
           chatId: '-1001234567890'
+        })
+        .mockResolvedValueOnce({
+          // Advanced options (Step 4)
+          enableDeployment: false,
+          enablePlaywright: false
         });
 
       await initCommand({});
 
-      // Should only write config file, not .env
-      expect(mockWriteFile).toHaveBeenCalledTimes(1);
-      expect(mockWriteFile).toHaveBeenCalledWith(
-        '/test/project/ccanywhere.config.json',
-        expect.any(String)
-      );
+      // Should write config file and .gitignore, but not .env
+      expect(mockWriteFile).toHaveBeenCalledTimes(2);
+      expect(mockWriteFile).toHaveBeenCalledWith('/test/project/ccanywhere.config.json', expect.any(String));
+      expect(mockWriteFile).toHaveBeenCalledWith('/test/project/.gitignore', expect.any(String));
     });
 
     it('should generate .env with telegram configuration', async () => {
       mockPathExists.mockResolvedValue(false);
-      
-      // Mock ALL the prompts in the correct order for basic template (no advanced options)
+
+      // Mock ALL the prompts in the correct order for unified flow
       mockPrompt
-        .mockResolvedValueOnce({ selectedTemplate: 'basic' })  // Template selection
-        .mockResolvedValueOnce({  // Repository configuration (Step 1)
+        .mockResolvedValueOnce({
+          // Repository configuration (Step 1)
           repoUrl: 'https://github.com/test/repo.git',
           repoKind: 'github',
           repoBranch: 'main'
         })
-        .mockResolvedValueOnce({  // Storage configuration (Step 2.1)
+        .mockResolvedValueOnce({
+          // Storage configuration (Step 2.1)
           storageType: 'simple'
         })
-        .mockResolvedValueOnce({  // Simple storage URL (Step 2.2)
+        .mockResolvedValueOnce({
+          // Simple storage URL (Step 2.2)
           artifactsUrl: 'https://artifacts.test.com'
         })
-        .mockResolvedValueOnce({  // Notification channels (Step 3)
+        .mockResolvedValueOnce({
+          // Notification channels (Step 3)
           notificationChannels: ['telegram']
         })
-        .mockResolvedValueOnce({  // Telegram configuration
+        .mockResolvedValueOnce({
+          // Telegram configuration
           botToken: '123456:ABC-DEF',
           chatId: '-1001234567890'
+        })
+        .mockResolvedValueOnce({
+          // Advanced options (Step 4)
+          enableDeployment: false,
+          enablePlaywright: false
         });
 
       await initCommand({});
 
-      expect(mockWriteFile).toHaveBeenCalledWith(
-        '/test/project/.env',
-        expect.stringContaining('# BOT_TOKEN_TELEGRAM')
-      );
+      expect(mockWriteFile).toHaveBeenCalledWith('/test/project/.env', expect.stringContaining('# BOT_TOKEN_TELEGRAM'));
     });
 
     it('should generate .env with multiple notification channels', async () => {
       mockPathExists.mockResolvedValue(false);
-      
-      // Mock ALL the prompts in the correct order for advanced template
+
+      // Mock ALL the prompts in the correct order for unified flow with multiple channels
       mockPrompt
-        .mockResolvedValueOnce({  // Repository configuration (Step 1)
+        .mockResolvedValueOnce({
+          // Repository configuration (Step 1)
           repoUrl: 'https://github.com/test/repo.git',
           repoKind: 'github',
           repoBranch: 'main'
         })
-        .mockResolvedValueOnce({  // Storage configuration (Step 2.1)
+        .mockResolvedValueOnce({
+          // Storage configuration (Step 2.1)
           storageType: 'simple'
         })
-        .mockResolvedValueOnce({  // Simple storage URL (Step 2.2)
+        .mockResolvedValueOnce({
+          // Simple storage URL (Step 2.2)
           artifactsUrl: 'https://artifacts.test.com'
         })
-        .mockResolvedValueOnce({  // Notification channels (Step 3)
+        .mockResolvedValueOnce({
+          // Notification channels (Step 3)
           notificationChannels: ['telegram', 'dingtalk', 'wecom', 'email']
         })
-        .mockResolvedValueOnce({  // Telegram configuration (Step 3.1)
+        .mockResolvedValueOnce({
+          // Telegram configuration (Step 3.1)
           botToken: '123456:ABC-DEF',
           chatId: '-1001234567890'
         })
-        .mockResolvedValueOnce({  // DingTalk configuration (Step 3.1)
+        .mockResolvedValueOnce({
+          // DingTalk configuration (Step 3.1)
           url: 'https://oapi.dingtalk.com/robot/send?access_token=test'
         })
-        .mockResolvedValueOnce({  // WeCom configuration (Step 3.1)
+        .mockResolvedValueOnce({
+          // WeCom configuration (Step 3.1)
           url: 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=test'
         })
-        .mockResolvedValueOnce({  // Email configuration (Step 3.1)
+        .mockResolvedValueOnce({
+          // Email configuration (Step 3.1)
           to: 'test@example.com',
           from: 'noreply@example.com',
           configureSMTP: false
         })
-        .mockResolvedValueOnce({  // Advanced options (Step 4) - all answers together
+        .mockResolvedValueOnce({
+          // Advanced options (Step 4) - all answers together
           enableDeployment: true,
           deploymentWebhook: 'https://deploy.test.com/webhook',
           enablePlaywright: false
         });
 
-      await initCommand({ template: 'advanced' });
+      await initCommand({});
 
-      const envContent = mockWriteFile.mock.calls.find(
-        (call: any) => call[0] === '/test/project/.env'
-      )?.[1] as string;
+      const envContent = mockWriteFile.mock.calls.find((call: any) => call[0] === '/test/project/.env')?.[1] as string;
 
       expect(envContent).toContain('# BOT_TOKEN_TELEGRAM');
       expect(envContent).toContain('# DINGTALK_WEBHOOK');
@@ -577,57 +640,82 @@ describe('initCommand', () => {
       mockPathExists.mockResolvedValue(false);
 
       mockPrompt
-        .mockResolvedValueOnce({ selectedTemplate: 'basic' })
         .mockResolvedValueOnce({
+          // Repository configuration (Step 1)
           repoUrl: 'https://github.com/test/repo.git',
           repoKind: 'github',
-          repoBranch: 'main',
-          artifactsUrl: 'https://artifacts.test.com',
+          repoBranch: 'main'
+        })
+        .mockResolvedValueOnce({
+          // Storage configuration (Step 2)
+          storageType: 'simple'
+        })
+        .mockResolvedValueOnce({
+          // Simple storage URL
+          artifactsUrl: 'https://artifacts.test.com'
+        })
+        .mockResolvedValueOnce({
+          // Notification channels (Step 3)
           notificationChannels: ['telegram']
+        })
+        .mockResolvedValueOnce({
+          // Telegram configuration
+          botToken: '123456:ABC-DEF',
+          chatId: '-1001234567890'
+        })
+        .mockResolvedValueOnce({
+          // Advanced options (Step 4)
+          enableDeployment: false,
+          enablePlaywright: false
         });
 
       await initCommand({});
 
       // Find the repo URL question and test validation
-      const repoUrlQuestion = mockPrompt.mock.calls[1][0].find(
-        (q: any) => q.name === 'repoUrl'
-      );
+      const repoUrlQuestion = mockPrompt.mock.calls[0][0].find((q: any) => q.name === 'repoUrl');
       expect(repoUrlQuestion.validate('')).not.toBe(true);
       expect(repoUrlQuestion.validate('https://github.com/test/repo.git')).toBe(true);
     });
 
     it('should validate notification channels are required', async () => {
       mockPathExists.mockResolvedValue(false);
-      
+
       // Mock ALL the prompts in the correct order
       mockPrompt
-        .mockResolvedValueOnce({ selectedTemplate: 'basic' })  // Template selection
-        .mockResolvedValueOnce({  // Repository configuration (Step 1)
+        .mockResolvedValueOnce({
+          // Repository configuration (Step 1)
           repoUrl: 'https://github.com/test/repo.git',
           repoKind: 'github',
           repoBranch: 'main'
         })
-        .mockResolvedValueOnce({  // Storage configuration (Step 2.1)
+        .mockResolvedValueOnce({
+          // Storage configuration (Step 2.1)
           storageType: 'simple'
         })
-        .mockResolvedValueOnce({  // Simple storage URL (Step 2.2)
+        .mockResolvedValueOnce({
+          // Simple storage URL (Step 2.2)
           artifactsUrl: 'https://artifacts.test.com'
         })
-        .mockResolvedValueOnce({  // Notification channels (Step 3)
+        .mockResolvedValueOnce({
+          // Notification channels (Step 3)
           notificationChannels: ['telegram']
         })
-        .mockResolvedValueOnce({  // Telegram configuration
+        .mockResolvedValueOnce({
+          // Telegram configuration
           botToken: '123456:ABC-DEF',
           chatId: '-1001234567890'
+        })
+        .mockResolvedValueOnce({
+          // Advanced options (Step 4)
+          enableDeployment: false,
+          enablePlaywright: false
         });
 
       await initCommand({});
 
       // Find the notification channels question and test validation
-      // The notification channels question should be in the 5th prompt call (index 4)
-      const channelsQuestion = mockPrompt.mock.calls[4][0].find(
-        (q: any) => q.name === 'notificationChannels'
-      );
+      // The notification channels question should be in the 4th prompt call (index 3)
+      const channelsQuestion = mockPrompt.mock.calls[3][0].find((q: any) => q.name === 'notificationChannels');
       expect(channelsQuestion.validate([])).not.toBe(true);
       expect(channelsQuestion.validate(['telegram'])).toBe(true);
     });
@@ -638,13 +726,33 @@ describe('initCommand', () => {
       mockPathExists.mockResolvedValue(false);
       mockWriteFile.mockRejectedValue(new Error('File write failed'));
       mockPrompt
-        .mockResolvedValueOnce({ selectedTemplate: 'basic' })
         .mockResolvedValueOnce({
+          // Repository configuration (Step 1)
           repoUrl: 'https://github.com/test/repo.git',
           repoKind: 'github',
-          repoBranch: 'main',
-          artifactsUrl: 'https://artifacts.test.com',
+          repoBranch: 'main'
+        })
+        .mockResolvedValueOnce({
+          // Storage configuration (Step 2)
+          storageType: 'simple'
+        })
+        .mockResolvedValueOnce({
+          // Simple storage URL
+          artifactsUrl: 'https://artifacts.test.com'
+        })
+        .mockResolvedValueOnce({
+          // Notification channels (Step 3)
           notificationChannels: ['telegram']
+        })
+        .mockResolvedValueOnce({
+          // Telegram configuration
+          botToken: '123456:ABC-DEF',
+          chatId: '-1001234567890'
+        })
+        .mockResolvedValueOnce({
+          // Advanced options (Step 4)
+          enableDeployment: false,
+          enablePlaywright: false
         });
 
       await initCommand({});
@@ -657,13 +765,33 @@ describe('initCommand', () => {
       mockDetectGitInfo.mockRejectedValue(new Error('Git detection failed'));
       mockPathExists.mockResolvedValue(false);
       mockPrompt
-        .mockResolvedValueOnce({ selectedTemplate: 'basic' })
         .mockResolvedValueOnce({
+          // Repository configuration (Step 1)
           repoUrl: 'https://github.com/test/repo.git',
           repoKind: 'github',
-          repoBranch: 'main',
-          artifactsUrl: 'https://artifacts.test.com',
+          repoBranch: 'main'
+        })
+        .mockResolvedValueOnce({
+          // Storage configuration (Step 2)
+          storageType: 'simple'
+        })
+        .mockResolvedValueOnce({
+          // Simple storage URL
+          artifactsUrl: 'https://artifacts.test.com'
+        })
+        .mockResolvedValueOnce({
+          // Notification channels (Step 3)
           notificationChannels: ['telegram']
+        })
+        .mockResolvedValueOnce({
+          // Telegram configuration
+          botToken: '123456:ABC-DEF',
+          chatId: '-1001234567890'
+        })
+        .mockResolvedValueOnce({
+          // Advanced options (Step 4)
+          enableDeployment: false,
+          enablePlaywright: false
         });
 
       await initCommand({});
@@ -674,7 +802,7 @@ describe('initCommand', () => {
 
     it('should handle prompt errors', async () => {
       mockPathExists.mockResolvedValue(false);
-      mockPrompt.mockResolvedValueOnce({ selectedTemplate: 'basic' }).mockRejectedValue(new Error('User cancelled'));
+      mockPrompt.mockRejectedValue(new Error('User cancelled'));
 
       await initCommand({});
 
@@ -684,37 +812,43 @@ describe('initCommand', () => {
   });
 
   describe('example file generation', () => {
-    it('should generate example files for advanced template', async () => {
+    it('should generate example files when Playwright is enabled', async () => {
       mockPathExists.mockResolvedValue(false);
       mockEnsureDir.mockResolvedValue(undefined);
       mockWriteFile.mockResolvedValue(undefined);
-      
-      // Mock ALL the prompts in the correct order for advanced template
+
+      // Mock ALL the prompts in the correct order for unified flow with Playwright enabled
       mockPrompt
-        .mockResolvedValueOnce({  // Repository configuration (Step 1)
+        .mockResolvedValueOnce({
+          // Repository configuration (Step 1)
           repoUrl: 'https://github.com/test/repo.git',
           repoKind: 'github',
           repoBranch: 'main'
         })
-        .mockResolvedValueOnce({  // Storage configuration (Step 2.1)
+        .mockResolvedValueOnce({
+          // Storage configuration (Step 2.1)
           storageType: 'simple'
         })
-        .mockResolvedValueOnce({  // Simple storage URL (Step 2.2)
+        .mockResolvedValueOnce({
+          // Simple storage URL (Step 2.2)
           artifactsUrl: 'https://artifacts.test.com'
         })
-        .mockResolvedValueOnce({  // Notification channels (Step 3)
+        .mockResolvedValueOnce({
+          // Notification channels (Step 3)
           notificationChannels: ['telegram']
         })
-        .mockResolvedValueOnce({  // Telegram configuration (Step 3.1)
+        .mockResolvedValueOnce({
+          // Telegram configuration (Step 3.1)
           botToken: '123456:ABC-DEF',
           chatId: '-1001234567890'
         })
-        .mockResolvedValueOnce({  // Advanced options (Step 4) - all answers together
+        .mockResolvedValueOnce({
+          // Advanced options (Step 4) - all answers together
           enableDeployment: false,
           enablePlaywright: true
         });
 
-      await initCommand({ template: 'advanced' });
+      await initCommand({});
 
       expect(mockWriteFile).toHaveBeenCalledWith(
         '/test/project/playwright.config.ts',
@@ -728,34 +862,162 @@ describe('initCommand', () => {
     });
 
     it('should not overwrite existing example files', async () => {
-      mockPathExists
-        .mockResolvedValueOnce(false) // config file
-        .mockResolvedValueOnce(false) // .env file
-        .mockResolvedValueOnce(true) // playwright.config.ts exists
-        .mockResolvedValueOnce(true); // test file exists
-      
+      // Mock pathExists to return specific values for different paths
+      mockPathExists.mockImplementation((path: string) => {
+        if (path.includes('ccanywhere.config.json')) return Promise.resolve(false);
+        if (path.includes('.env')) return Promise.resolve(false);
+        if (path.includes('package.json')) return Promise.resolve(true);
+        if (path.includes('playwright.config.ts')) return Promise.resolve(true);
+        if (path.includes('tests/example.spec.ts')) return Promise.resolve(true);
+        return Promise.resolve(false);
+      });
+
       mockPrompt
-        .mockResolvedValueOnce({ selectedTemplate: 'advanced' })
         .mockResolvedValueOnce({
+          // Repository configuration (Step 1)
           repoUrl: 'https://github.com/test/repo.git',
           repoKind: 'github',
-          repoBranch: 'main',
-          artifactsUrl: 'https://artifacts.test.com',
-          enableDeployment: false,
+          repoBranch: 'main'
+        })
+        .mockResolvedValueOnce({
+          // Storage configuration (Step 2)
+          storageType: 'simple'
+        })
+        .mockResolvedValueOnce({
+          // Simple storage URL
+          artifactsUrl: 'https://artifacts.test.com'
+        })
+        .mockResolvedValueOnce({
+          // Notification channels (Step 3)
           notificationChannels: ['telegram']
+        })
+        .mockResolvedValueOnce({
+          // Telegram configuration
+          botToken: '123456:ABC-DEF',
+          chatId: '-1001234567890'
+        })
+        .mockResolvedValueOnce({
+          // Advanced options (Step 4)
+          enableDeployment: false,
+          enablePlaywright: true
         });
 
       await initCommand({});
 
       // Should not write example files if they exist
-      expect(mockWriteFile).not.toHaveBeenCalledWith(
-        '/test/project/playwright.config.ts',
-        expect.any(String)
+      expect(mockWriteFile).not.toHaveBeenCalledWith('/test/project/playwright.config.ts', expect.any(String));
+      expect(mockWriteFile).not.toHaveBeenCalledWith('/test/project/tests/example.spec.ts', expect.any(String));
+    });
+  });
+
+  describe('gitignore handling', () => {
+    it('should add ccanywhere config files to .gitignore', async () => {
+      // Reset all mocks
+      mockWriteFile.mockReset();
+      mockWriteFile.mockResolvedValue(undefined);
+      
+      mockPrompt.mockReset();
+      
+      mockPathExists.mockImplementation((path: string) => {
+        if (path.includes('.gitignore')) return Promise.resolve(false);
+        if (path.includes('ccanywhere.config.json')) return Promise.resolve(false);
+        if (path.includes('.env')) return Promise.resolve(false);
+        return Promise.resolve(false);
+      });
+      mockReadFile.mockResolvedValue('');
+
+      mockPrompt
+        .mockResolvedValueOnce({
+          // Repository configuration (Step 1)
+          repoUrl: 'https://github.com/test/repo.git',
+          repoKind: 'github',
+          repoBranch: 'main'
+        })
+        .mockResolvedValueOnce({
+          // Storage type selection (Step 2.1)
+          storageType: 'simple'
+        })
+        .mockResolvedValueOnce({
+          // Simple storage URL (Step 2.2)
+          artifactsUrl: 'https://artifacts.test.com'
+        })
+        .mockResolvedValueOnce({
+          // Notification channels (Step 3)
+          notificationChannels: ['telegram']
+        })
+        .mockResolvedValueOnce({
+          // Telegram configuration (Step 3.1)
+          botToken: '123456:ABC-DEF',
+          chatId: '-1001234567890'
+        })
+        .mockResolvedValueOnce({
+          // Advanced options (Step 4)
+          enableDeployment: false,
+          enablePlaywright: false
+        });
+
+      await initCommand({});
+
+      // Check that .gitignore was updated with ccanywhere config files
+      const gitignoreCall = mockWriteFile.mock.calls.find((call: any) => 
+        call[0].includes('.gitignore')
       );
-      expect(mockWriteFile).not.toHaveBeenCalledWith(
-        '/test/project/tests/example.spec.ts',
-        expect.any(String)
+      expect(gitignoreCall).toBeDefined();
+      
+      const gitignoreContent = gitignoreCall?.[1] as string;
+      expect(gitignoreContent).toContain('# CCanywhere configuration files');
+      expect(gitignoreContent).toContain('ccanywhere.config.js');
+      expect(gitignoreContent).toContain('ccanywhere.config.json');
+      expect(gitignoreContent).toContain('.ccanywhere.json');
+    });
+
+    it('should not duplicate entries in existing .gitignore', async () => {
+      const existingGitignore = 'node_modules/\n.env\nccanywhere.config.json\n';
+      
+      mockPathExists.mockImplementation((path: string) => {
+        if (path.includes('.gitignore')) return Promise.resolve(true);
+        return Promise.resolve(false);
+      });
+      
+      mockReadFile.mockResolvedValue(existingGitignore);
+
+      mockPrompt
+        .mockResolvedValueOnce({
+          // Repository configuration (Step 1)
+          repoUrl: 'https://github.com/test/repo.git',
+          repoKind: 'github',
+          repoBranch: 'main'
+        })
+        .mockResolvedValueOnce({
+          // Storage type selection (Step 2.1)
+          storageType: 'simple'
+        })
+        .mockResolvedValueOnce({
+          // Simple storage URL (Step 2.2)
+          artifactsUrl: 'https://artifacts.test.com'
+        })
+        .mockResolvedValueOnce({
+          // Notification channels (Step 3)
+          notificationChannels: ['telegram']
+        })
+        .mockResolvedValueOnce({
+          // Telegram configuration (Step 3.1)
+          botToken: '123456:ABC-DEF',
+          chatId: '-1001234567890'
+        })
+        .mockResolvedValueOnce({
+          // Advanced options (Step 4)
+          enableDeployment: false,
+          enablePlaywright: false
+        });
+
+      await initCommand({});
+
+      // Should not write .gitignore if config files already exist
+      const gitignoreCall = mockWriteFile.mock.calls.find((call: any) => 
+        call[0] === '/test/project/.gitignore'
       );
+      expect(gitignoreCall).toBeUndefined();
     });
   });
 });

@@ -139,9 +139,16 @@ export class ConfigLoader {
     }
 
     // Artifacts configuration
-    if (env.ARTIFACTS_BASE_URL || env.ARTIFACTS_RETENTION_DAYS || env.ARTIFACTS_MAX_SIZE || 
-        env.STORAGE_PROVIDER || env.STORAGE_FOLDER ||
-        env.R2_ACCOUNT_ID || env.S3_ACCESS_KEY_ID || env.OSS_ACCESS_KEY_ID) {
+    if (
+      env.ARTIFACTS_BASE_URL ||
+      env.ARTIFACTS_RETENTION_DAYS ||
+      env.ARTIFACTS_MAX_SIZE ||
+      env.STORAGE_PROVIDER ||
+      env.STORAGE_FOLDER ||
+      env.R2_ACCOUNT_ID ||
+      env.S3_ACCESS_KEY_ID ||
+      env.OSS_ACCESS_KEY_ID
+    ) {
       config.artifacts = {
         baseUrl: env.ARTIFACTS_BASE_URL,
         retentionDays: env.ARTIFACTS_RETENTION_DAYS ? parseInt(env.ARTIFACTS_RETENTION_DAYS) : undefined,
@@ -152,7 +159,7 @@ export class ConfigLoader {
       // Storage configuration
       const storageProvider = env.STORAGE_PROVIDER || 'r2';
       const storageFolder = env.STORAGE_FOLDER || 'diffs';
-      
+
       // R2 configuration (default)
       if (storageProvider === 'r2' && env.R2_ACCOUNT_ID) {
         config.artifacts.storage = {
@@ -166,7 +173,7 @@ export class ConfigLoader {
           }
         };
       }
-      
+
       // S3 configuration
       else if (storageProvider === 's3' && env.S3_ACCESS_KEY_ID) {
         config.artifacts.storage = {
@@ -180,7 +187,7 @@ export class ConfigLoader {
           }
         };
       }
-      
+
       // OSS configuration
       else if (storageProvider === 'oss' && env.OSS_ACCESS_KEY_ID) {
         config.artifacts.storage = {
@@ -194,7 +201,7 @@ export class ConfigLoader {
           }
         };
       }
-      
+
       // Clean up undefined storage if not configured
       if (!config.artifacts.storage) {
         delete (config.artifacts as any).storage;
