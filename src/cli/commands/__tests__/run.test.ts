@@ -61,6 +61,29 @@ jest.unstable_mockModule('@/core/pipeline', () => ({
   BuildPipeline: mockBuildPipeline
 }));
 
+// Mock inquirer
+const mockInquirer = {
+  prompt: jest.fn() as any
+};
+jest.unstable_mockModule('inquirer', () => ({
+  default: mockInquirer
+}));
+
+// Mock fs-extra
+const mockFsExtra = {
+  pathExists: jest.fn() as any
+};
+jest.unstable_mockModule('fs-extra', () => ({
+  default: mockFsExtra,
+  pathExists: mockFsExtra.pathExists
+}));
+
+// Mock initCommand
+const mockInitCommand = jest.fn() as any;
+jest.unstable_mockModule('@/cli/commands/init', () => ({
+  initCommand: mockInitCommand
+}));
+
 // Import the module after mocking
 const { runCommand } = await import('../run.js');
 
@@ -103,6 +126,15 @@ describe('runCommand', () => {
       testResults: null,
       commitInfo: null
     });
+    
+    // Setup fs-extra mock to simulate config files exist by default
+    mockFsExtra.pathExists.mockResolvedValue(true);
+    
+    // Setup inquirer mock for initialization prompt
+    mockInquirer.prompt.mockResolvedValue({ shouldInit: false });
+    
+    // Setup init command mock
+    mockInitCommand.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -412,6 +444,70 @@ describe('runCommand', () => {
 
       await runCommand({ config: 'custom.config.json' });
 
+      expect(mockConfigLoader.loadConfig).toHaveBeenCalledWith('custom.config.json');
+    });
+  });
+
+  describe('configuration handling', () => {
+    it('should handle missing configuration with user declining to initialize', async () => {
+      mockFsExtra.pathExists.mockResolvedValue(false);
+      mockInquirer.prompt.mockResolvedValue({ shouldInit: false });
+
+      await runCommand({});
+
+      expect(mockInquirer.prompt).toHaveBeenCalledWith([
+        expect.objectContaining({
+          type: 'confirm',
+          name: 'shouldInit',
+          message: 'Would you like to initialize CCanywhere now?',
+          default: true
+        })
+      ]);
+      expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Run "ccanywhere init" to set up configuration'));
+      expect(process.exit).toHaveBeenCalledWith(0);
+    });
+
+    it('should handle missing configuration with user accepting to initialize', async () => {
+      mockFsExtra.pathExists.mockResolvedValue(false);
+      mockInquirer.prompt.mockResolvedValue({ shouldInit: true });
+
+      await runCommand({});
+
+      expect(mockInquirer.prompt).toHaveBeenCalled();
+      expect(mockInitCommand).toHaveBeenCalledWith({});
+      expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Please configure your .env file and run again'));
+      expect(process.exit).toHaveBeenCalledWith(0);
+    });
+
+    it('should skip initialization prompt in hook mode when no config exists', async () => {
+      mockFsExtra.pathExists.mockResolvedValue(false);
+
+      await runCommand({ hookMode: true });
+
+      expect(mockInquirer.prompt).not.toHaveBeenCalled();
+      expect(process.exit).toHaveBeenCalledWith(0);
+    });
+
+    it('should skip initialization prompt when CCANYWHERE_HOOK_MODE is set', async () => {
+      mockFsExtra.pathExists.mockResolvedValue(false);
+      process.env.CCANYWHERE_HOOK_MODE = 'true';
+
+      await runCommand({});
+
+      expect(mockInquirer.prompt).not.toHaveBeenCalled();
+      expect(process.exit).toHaveBeenCalledWith(0);
+
+      delete process.env.CCANYWHERE_HOOK_MODE;
+    });
+
+    it('should check custom config file when specified', async () => {
+      mockFsExtra.pathExists.mockImplementation((path: string) => {
+        return Promise.resolve(path === 'custom.config.json');
+      });
+
+      await runCommand({ config: 'custom.config.json' });
+
+      expect(mockFsExtra.pathExists).toHaveBeenCalledWith('custom.config.json');
       expect(mockConfigLoader.loadConfig).toHaveBeenCalledWith('custom.config.json');
     });
   });
