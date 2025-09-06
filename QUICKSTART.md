@@ -41,7 +41,12 @@ ccanywhere init
     }
   },
   
-  "deployment": "https://deploy.yourdomain.com/api/webhook",
+  "deployment": {
+    "webhook": "https://deploy.yourdomain.com/api/webhook",
+    "statusUrl": "https://deploy.yourdomain.com/status/{deploymentId}",
+    "maxWait": 600,
+    "pollInterval": 30
+  },
   
   "artifacts": {
     "baseUrl": "https://artifacts.yourdomain.com",
@@ -80,6 +85,9 @@ ccanywhere cleanup --days 7
 
 # Claude Code集成管理
 ccanywhere claude-register --status
+
+# 从配置生成环境变量文件
+ccanywhere config init-env
 ```
 
 ### 高级用法
@@ -229,6 +237,9 @@ CHAT_ID_TELEGRAM=your-chat-id
 
 # 部署
 DEPLOYMENT_WEBHOOK_URL=https://deploy.example.com/hook
+DEPLOYMENT_STATUS_URL=https://deploy.example.com/status/{deploymentId}
+MAX_WAIT=600
+POLL_INTERVAL=30
 
 # 日志
 LOG_LEVEL=info

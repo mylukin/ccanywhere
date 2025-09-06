@@ -4,6 +4,7 @@
 
 import fs from 'fs-extra';
 import path from 'path';
+import os from 'os';
 import chalkModule from 'chalk';
 const chalk = chalkModule;
 
@@ -258,8 +259,8 @@ export class PackageManager {
       const globalPaths = [
         '/usr/local/lib/node_modules',
         '/usr/lib/node_modules',
-        path.join(require('os').homedir(), '.npm-global'),
-        path.join(require('os').homedir(), 'AppData/Roaming/npm') // Windows
+        path.join(os.homedir(), '.npm-global'),
+        path.join(os.homedir(), 'AppData/Roaming/npm') // Windows
       ];
 
       // Check if current path contains any global path patterns

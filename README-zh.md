@@ -42,7 +42,18 @@ npm install -g ccanywhere
 
 # 或作为开发依赖安装
 npm install -D ccanywhere
+
+# 如果您想使用 Playwright 测试（可选）
+npm install -D @playwright/test
 ```
+
+**🎉 自动 Claude Code 集成**：全局安装时，CCanywhere 会自动检测并与 Claude Code 集成！安装过程将会：
+- 检测您的 Claude Code 安装
+- 注册钩子以在会话结束时触发 CCanywhere（Stop 事件）
+- 创建 Claude 设置的备份
+- 提供设置确认和使用说明
+
+无需手动配置！只需安装并开始使用 Claude Code。
 
 ### 初始化项目
 
@@ -214,9 +225,10 @@ CCanywhere 会自动检测 Git 仓库信息：
 
 CCanywhere 支持多种配置格式：
 
-- `ccanywhere.config.json`
-- `ccanywhere.config.js`
-- `.ccanywhere.json`
+- `ccanywhere.config.json` - 标准 JSON 配置
+- `ccanywhere.config.js` - JavaScript 配置（支持动态值）
+- `.ccanywhere.json` - 隐藏 JSON 配置
+- `.ccanywhere.js` - 隐藏 JavaScript 配置
 
 ### 环境变量
 
@@ -350,15 +362,24 @@ CCanywhere 支持基于 webhook 的部署触发：
 }
 ```
 
-或使用对象语法：
+或使用对象语法配置高级部署选项：
 
 ```json
 {
   "deployment": {
-    "webhook": "https://deploy.yourdomain.com/api/webhook/deploy"
+    "webhook": "https://deploy.yourdomain.com/api/webhook/deploy",
+    "statusUrl": "https://deploy.yourdomain.com/status/{deploymentId}",
+    "maxWait": 600,
+    "pollInterval": 30
   }
 }
 ```
+
+**部署配置字段说明:**
+- `webhook`: 部署 webhook URL（必需）
+- `statusUrl`: 可选的状态检查 URL，包含 `{deploymentId}` 占位符
+- `maxWait`: 部署最大等待时间（秒，默认：600）
+- `pollInterval`: 状态轮询间隔（秒，默认：30）
 
 部署 webhook 将接收包含以下信息的负载：
 - `ref`: Git 提交哈希

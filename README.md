@@ -37,7 +37,7 @@ CCanywhere integrates with Claude Code's hook system to:
 ### Installation
 
 ```bash
-# Install globally
+# Install globally (recommended for Claude Code integration)
 npm install -g ccanywhere
 
 # Or install as dev dependency
@@ -46,6 +46,14 @@ npm install -D ccanywhere
 # If you want to use Playwright testing (optional)
 npm install -D @playwright/test
 ```
+
+**🎉 Automatic Claude Code Integration**: When installed globally, CCanywhere automatically detects and integrates with Claude Code! The installation process will:
+- Detect your Claude Code installation
+- Register hooks to trigger CCanywhere at session end (Stop event)
+- Create backups of your Claude settings
+- Provide setup confirmation and usage instructions
+
+No manual configuration needed! Just install and start using Claude Code.
 
 ### Initialize Your Project
 
@@ -178,22 +186,31 @@ ccanywhere test
 
 ### Claude Code Integration
 
-CCanywhere provides seamless integration with Claude Code through automatic hook injection:
+CCanywhere provides seamless integration with Claude Code through automatic hook registration:
 
+**🔄 Automatic Setup (Recommended)**:
 ```bash
-# For global installations, hooks are registered automatically
+# Global installation automatically registers hooks
 npm install -g ccanywhere
-
-# Manual hook management
-ccanywhere claude-register --status       # Check current status
-ccanywhere claude-register               # Interactive registration
-ccanywhere claude-register --post-run    # Enable post-run hook
-ccanywhere claude-register --pre-commit  # Enable pre-commit analysis
-ccanywhere claude-register --remove      # Remove all hooks
-
-# Restore from backup if needed
-ccanywhere claude-register --restore /path/to/backup
+# That's it! CCanywhere will run when you end Claude Code sessions
 ```
+
+**⚙️ Manual Hook Management**:
+```bash
+ccanywhere claude-register --status       # Check current status
+ccanywhere claude-register               # Register with Stop event (session end)
+ccanywhere claude-register --post-tool   # Register with PostToolUse (after each edit)
+ccanywhere claude-register --remove      # Remove hooks
+```
+
+**🎯 Hook Event Options**:
+- **Stop Event** (Default): Runs when you end a Claude Code session
+  - ✅ One notification per session with complete summary
+  - ✅ Better user experience, less intrusive
+  - ✅ Comprehensive diff of all changes made
+- **PostToolUse Event**: Runs after each file operation
+  - ⚠️ More frequent notifications (after each edit)
+  - ⚠️ May be overwhelming for active development
 
 **Available Hooks:**
 - **Pre-commit**: Analyzes staged changes before commits
@@ -254,9 +271,10 @@ If your project is a Git repository, manual repository configuration is not requ
 
 CCanywhere supports multiple configuration formats:
 
-- `ccanywhere.config.json`
-- `ccanywhere.config.js`
-- `.ccanywhere.json`
+- `ccanywhere.config.json` - Standard JSON configuration
+- `ccanywhere.config.js` - JavaScript configuration (supports dynamic values)
+- `.ccanywhere.json` - Hidden JSON configuration
+- `.ccanywhere.js` - Hidden JavaScript configuration
 
 ### Environment Variables
 
@@ -390,15 +408,24 @@ CCanywhere supports webhook-based deployment triggers:
 }
 ```
 
-Or with object syntax:
+Or with object syntax for advanced deployment options:
 
 ```json
 {
   "deployment": {
-    "webhook": "https://deploy.yourdomain.com/api/webhook/deploy"
+    "webhook": "https://deploy.yourdomain.com/api/webhook/deploy",
+    "statusUrl": "https://deploy.yourdomain.com/status/{deploymentId}",
+    "maxWait": 600,
+    "pollInterval": 30
   }
 }
 ```
+
+**Deployment Configuration Fields:**
+- `webhook`: Deployment webhook URL (required)
+- `statusUrl`: Optional status check URL with `{deploymentId}` placeholder
+- `maxWait`: Maximum wait time for deployment in seconds (default: 600)
+- `pollInterval`: Status polling interval in seconds (default: 30)
 
 The deployment webhook is called with a payload containing:
 - `ref`: Git commit hash
