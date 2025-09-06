@@ -110,22 +110,5 @@ export default {
         bucket: 'my-oss-bucket'
       }
     }
-  },
-
-  // Environment-specific overrides
-  ...(process.env.NODE_ENV === 'production' ? {
-    notifications: {
-      channels: ['telegram', 'email', 'dingtalk', 'wecom']
-    }
-  } : {}),
-
-  // Custom hooks (optional)
-  hooks: {
-    beforeBuild: async (context) => {
-      console.log(`Starting build for ${context.revision}`);
-    },
-    afterBuild: async (context, result) => {
-      console.log(`Build ${result.success ? 'succeeded' : 'failed'}`);
-    }
   }
 };

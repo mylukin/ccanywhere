@@ -150,6 +150,20 @@ ccanywhere notify --channels telegram --title "Hello World"
 # 清理旧制品
 ccanywhere cleanup --days 7
 
+# 显示项目信息
+ccanywhere info
+
+# 管理构建锁
+ccanywhere lock status        # 检查锁状态
+ccanywhere lock clean         # 清理失效锁
+ccanywhere lock force-release # 强制释放锁
+
+# 配置管理
+ccanywhere config show        # 显示当前配置
+ccanywhere config validate    # 验证配置文件
+ccanywhere config edit        # 编辑配置文件
+ccanywhere config init-env    # 从配置生成 .env
+
 # Claude Code 集成
 ccanywhere claude-register --status      # 检查钩子状态
 ccanywhere claude-register              # 交互式设置
@@ -408,12 +422,54 @@ CCanywhere 根据项目结构自动组织存储路径：
 
 这将生成类似的路径：`builds/mylukin/my-project/diff-7531080.html`
 
-### 无 Git 仓库时的行为
+### 构建配置
 
-当项目没有使用 Git 管理或未配置仓库 URL 时，CCanywhere 仍然可以正常工作：
-- 不配置仓库：`diffs/diff-7531080.html`
-- 仅自定义文件夹：`builds/diff-7531080.html`
-- 系统会优雅地回退到简单的文件夹结构
+#### 排除路径配置
+
+您可以从差异生成中排除特定路径：
+
+```json
+{
+  "build": {
+    "base": "origin/main",
+    "lockTimeout": 300,
+    "cleanupDays": 7,
+    "excludePaths": [".artifacts", "node_modules", ".git", "dist"]
+  }
+}
+```
+
+- `excludePaths`: 要从差异生成中排除的路径数组
+- 默认值：如未指定则为 `[".artifacts"]`
+- 用途：忽略生成的文件、依赖项或构建输出
+
+#### 环境变量配置
+
+现在支持所有存储提供商环境变量。您也可以配置构建选项：
+
+```bash
+# 从差异中排除路径（逗号分隔）
+EXCLUDE_PATHS=.artifacts,node_modules,dist,coverage
+
+# 支持所有存储提供商环境变量
+# Cloudflare R2
+R2_ACCOUNT_ID=你的账户ID
+R2_ACCESS_KEY_ID=你的访问密钥
+R2_SECRET_ACCESS_KEY=你的秘密密钥
+R2_BUCKET=你的存储桶
+
+# AWS S3
+S3_ACCESS_KEY_ID=你的访问密钥
+S3_SECRET_ACCESS_KEY=你的秘密密钥
+S3_REGION=us-east-1
+S3_BUCKET=你的存储桶
+
+# 阿里云 OSS
+OSS_ACCESS_KEY_ID=你的访问密钥
+OSS_ACCESS_KEY_SECRET=你的密钥
+OSS_REGION=oss-cn-hangzhou
+OSS_BUCKET=你的存储桶
+```
 
 ## 🔧 高级用法
 

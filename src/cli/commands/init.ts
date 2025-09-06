@@ -11,8 +11,10 @@ import chalkModule from 'chalk';
 const chalk = chalkModule;
 import oraModule from 'ora';
 const ora = oraModule;
+import { execSync } from 'child_process';
 import type { CcanywhereConfig, CliOptions } from '../../types/index.js';
 import { detectGitInfo } from '../../utils/git.js';
+import { PackageManager } from '../../utils/package-manager.js';
 
 interface InitOptions extends CliOptions {
   force?: boolean;
@@ -531,6 +533,7 @@ async function collectConfiguration(advanced: boolean, quick: boolean = false): 
   console.log(chalk.cyan('Step 3: Notification Configuration'));
   
   let notificationAnswers: any = {};
+  let channelConfigs: any = {};
   
   if (quick) {
     // In quick mode, use Telegram by default
@@ -559,6 +562,19 @@ async function collectConfiguration(advanced: boolean, quick: boolean = false): 
         return true;
       }
     }]);
+  }
+  
+  // Step 3.1: Configure selected notification channels immediately
+  if (notificationAnswers.notificationChannels && notificationAnswers.notificationChannels.length > 0) {
+    console.log();
+    if (!quick) {
+      console.log(chalk.blue('📬 Configuring notification channels...'));
+      console.log(chalk.gray(`   Selected: ${notificationAnswers.notificationChannels.join(', ')}`));
+      console.log();
+    }
+    
+    // Collect configuration for each selected channel
+    channelConfigs = await collectChannelConfigurations(notificationAnswers.notificationChannels);
   }
 
   // Step 4: Advanced options (if advanced mode)
@@ -605,7 +621,8 @@ async function collectConfiguration(advanced: boolean, quick: boolean = false): 
       branch: answers.repoBranch
     },
     notifications: {
-      channels: answers.notificationChannels
+      channels: answers.notificationChannels,
+      ...channelConfigs  // Merge channel configurations that were collected earlier
     },
     build: {
       base: 'origin/main',
@@ -648,20 +665,6 @@ async function collectConfiguration(advanced: boolean, quick: boolean = false): 
     enabled: answers.enablePlaywright || false,
     configFile: './playwright.config.ts'
   };
-
-  // Collect channel-specific configurations
-  if (answers.notificationChannels && answers.notificationChannels.length > 0) {
-    console.log();
-    console.log(chalk.blue('📬 Configuring notification channels...'));
-    console.log(chalk.gray(`   Selected: ${answers.notificationChannels.join(', ')}`));
-    console.log();
-    
-    // Collect configuration for each selected channel
-    const channelConfigs = await collectChannelConfigurations(answers.notificationChannels);
-    
-    // Merge channel configurations into the main config
-    Object.assign(config.notifications!, channelConfigs);
-  }
 
   // Add deployment if enabled
   if (answers.enableDeployment && answers.deploymentWebhook) {
@@ -826,6 +829,72 @@ async function generateExampleFiles(workDir: string, includePlaywright: boolean 
   if (!includePlaywright) {
     return;
   }
+
+  // Check if package.json exists
+  const packageJsonPath = join(workDir, 'package.json');
+  const hasPackageJson = await pathExists(packageJsonPath);
+  
+  const spinner = ora();
+  
+  try {
+    // Initialize package.json if it doesn't exist
+    if (!hasPackageJson) {
+      spinner.start('Initializing package.json...');
+      try {
+        execSync('npm init -y', { 
+          cwd: workDir, 
+          stdio: 'pipe',
+          encoding: 'utf8' 
+        });
+        spinner.succeed('Initialized package.json');
+      } catch (error) {
+        spinner.fail('Failed to initialize package.json');
+        console.error(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+        console.log(chalk.yellow('Please run "npm init" manually and re-run this command'));
+        return;
+      }
+    }
+
+    // Install Playwright dependencies
+    spinner.start('Installing Playwright dependencies...');
+    try {
+      // Check if Playwright is already installed
+      const packageJson = await PackageManager.readPackageJson(packageJsonPath);
+      const hasPlaywright = 
+        (packageJson.devDependencies && packageJson.devDependencies['@playwright/test']) ||
+        (packageJson.dependencies && packageJson.dependencies['@playwright/test']);
+      
+      if (!hasPlaywright) {
+        // Install Playwright
+        execSync('npm install --save-dev @playwright/test', {
+          cwd: workDir,
+          stdio: 'pipe',
+          encoding: 'utf8'
+        });
+        
+        // Install Playwright browsers
+        execSync('npx playwright install', {
+          cwd: workDir,
+          stdio: 'pipe',
+          encoding: 'utf8'
+        });
+        
+        spinner.succeed('Installed Playwright dependencies');
+      } else {
+        spinner.succeed('Playwright is already installed');
+      }
+    } catch (error) {
+      spinner.fail('Failed to install Playwright dependencies');
+      console.error(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+      console.log(chalk.yellow('Please install Playwright manually: npm install --save-dev @playwright/test'));
+    }
+  } catch (error) {
+    if (spinner.isSpinning) {
+      spinner.fail('An error occurred');
+    }
+    console.error(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+  }
+
   // Generate example playwright config
   const playwrightConfig = `import { defineConfig, devices } from '@playwright/test';
 
@@ -878,5 +947,39 @@ test('navigation works', async ({ page }) => {
 
     await fsExtra.ensureDir(testDir);
     await writeFile(testPath, testContent);
+  }
+
+  // Add Playwright scripts to package.json
+  try {
+    const packageJson = await PackageManager.readPackageJson(packageJsonPath);
+    const scriptsToAdd = [
+      {
+        name: 'test:e2e',
+        command: 'playwright test',
+        description: 'Run Playwright E2E tests'
+      },
+      {
+        name: 'test:e2e:ui',
+        command: 'playwright test --ui',
+        description: 'Run Playwright tests with UI'
+      },
+      {
+        name: 'test:e2e:debug',
+        command: 'playwright test --debug',
+        description: 'Debug Playwright tests'
+      }
+    ];
+    
+    const result = PackageManager.addScripts(packageJson, scriptsToAdd);
+    
+    if (result.added.length > 0) {
+      await PackageManager.writePackageJson(packageJsonPath, packageJson);
+      console.log(chalk.green('✓ Added Playwright test scripts to package.json'));
+      result.added.forEach(script => {
+        console.log(chalk.gray(`  - npm run ${script.name}`));
+      });
+    }
+  } catch (error) {
+    console.log(chalk.yellow('Could not add Playwright scripts to package.json'));
   }
 }

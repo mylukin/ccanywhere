@@ -159,6 +159,20 @@ ccanywhere claude-register              # Interactive hook setup
 ccanywhere claude-register --post-run   # Enable specific hooks
 ccanywhere claude-register --remove     # Remove all hooks
 
+# Show project information
+ccanywhere info
+
+# Manage build locks
+ccanywhere lock status        # Check lock status
+ccanywhere lock clean         # Clean stale locks
+ccanywhere lock force-release # Force release locks
+
+# Configuration management
+ccanywhere config show        # Show current configuration
+ccanywhere config validate    # Validate configuration file
+ccanywhere config edit        # Edit configuration file
+ccanywhere config init-env    # Generate .env from config
+
 # Run tests (including Playwright tests)
 ccanywhere test
 ```
@@ -471,9 +485,30 @@ You can exclude specific paths from being included in the generated diff files:
 
 ### Environment Variable Configuration
 
+All storage provider environment variables are now supported. You can also configure build options:
+
 ```bash
-# Exclude paths (comma-separated)
+# Exclude paths from diffs (comma-separated)
 EXCLUDE_PATHS=.artifacts,node_modules,dist,coverage
+
+# All storage provider environment variables are supported
+# Cloudflare R2
+R2_ACCOUNT_ID=your-account-id
+R2_ACCESS_KEY_ID=your-access-key
+R2_SECRET_ACCESS_KEY=your-secret-key
+R2_BUCKET=your-bucket
+
+# AWS S3
+S3_ACCESS_KEY_ID=your-access-key
+S3_SECRET_ACCESS_KEY=your-secret-key
+S3_REGION=us-east-1
+S3_BUCKET=your-bucket
+
+# Alibaba Cloud OSS
+OSS_ACCESS_KEY_ID=your-access-key
+OSS_ACCESS_KEY_SECRET=your-secret-key
+OSS_REGION=oss-cn-hangzhou
+OSS_BUCKET=your-bucket
 ```
 
 ## 🔧 Advanced Usage

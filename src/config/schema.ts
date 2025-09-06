@@ -117,7 +117,7 @@ export const BuildConfigSchema = z.object({
 
 export const TestConfigSchema = z
   .object({
-    enabled: z.boolean().default(true),
+    enabled: z.boolean().default(false),
     configFile: z.string().optional(),
     reporter: z.string().optional(),
     timeout: z.number().min(1000).max(300000).optional(),

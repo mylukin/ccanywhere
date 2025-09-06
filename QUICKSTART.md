@@ -17,7 +17,7 @@ yarn global add ccanywhere
 # 在你的项目目录中运行
 ccanywhere init
 
-# 这会创建 ccanywhere.config.js 配置文件
+# 这会创建 ccanywhere.config.json 配置文件
 # 并引导你完成基础设置
 ```
 

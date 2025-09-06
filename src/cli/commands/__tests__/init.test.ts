@@ -73,6 +73,20 @@ jest.unstable_mockModule('@/config/index', () => ({
   getDefaultConfig: mockGetDefaultConfig
 }));
 
+const mockExecSync = jest.fn() as any;
+jest.unstable_mockModule('child_process', () => ({
+  execSync: mockExecSync
+}));
+
+const mockPackageManager = {
+  readPackageJson: jest.fn() as any,
+  writePackageJson: jest.fn() as any,
+  addScripts: jest.fn() as any
+};
+jest.unstable_mockModule('@/utils/package-manager', () => ({
+  PackageManager: mockPackageManager
+}));
+
 // Import the module after mocking
 const { initCommand } = await import('../init.js');
 
@@ -105,12 +119,29 @@ describe('initCommand', () => {
     mockWriteFile.mockReset();
     mockEnsureDir.mockReset();
     mockReadFile.mockReset();
+    mockExecSync.mockReset();
+    mockPackageManager.readPackageJson.mockReset();
+    mockPackageManager.writePackageJson.mockReset();
+    mockPackageManager.addScripts.mockReset();
 
     // Setup default mock returns
     mockPathExists.mockResolvedValue(false);
     mockWriteFile.mockImplementation(async () => undefined);
     mockEnsureDir.mockImplementation(async () => undefined);
     mockReadFile.mockImplementation(async () => '');
+    mockExecSync.mockImplementation(() => '');
+    mockPackageManager.readPackageJson.mockResolvedValue({
+      name: 'test-project',
+      version: '1.0.0',
+      scripts: {}
+    });
+    mockPackageManager.writePackageJson.mockResolvedValue(undefined);
+    mockPackageManager.addScripts.mockReturnValue({
+      added: [
+        { name: 'test:e2e', command: 'playwright test' }
+      ],
+      skipped: []
+    });
     
     mockDetectGitInfo.mockResolvedValue({
       repoUrl: 'https://github.com/test/repo.git',
@@ -236,19 +267,19 @@ describe('initCommand', () => {
         .mockResolvedValueOnce({  // Notification channels (Step 3)
           notificationChannels: ['telegram', 'email']
         })
+        .mockResolvedValueOnce({  // Telegram configuration (Step 3.1)
+          botToken: '123456:ABC-DEF',
+          chatId: '-1001234567890'
+        })
+        .mockResolvedValueOnce({  // Email configuration (Step 3.1)
+          to: 'test@example.com',
+          from: 'noreply@example.com',
+          configureSMTP: false
+        })
         .mockResolvedValueOnce({  // Advanced options (Step 4) - all answers together
           enableDeployment: true,
           deploymentWebhook: 'https://deploy.test.com/webhook',
           enablePlaywright: true
-        })
-        .mockResolvedValueOnce({  // Telegram configuration (Step 5)
-          botToken: '123456:ABC-DEF',
-          chatId: '-1001234567890'
-        })
-        .mockResolvedValueOnce({  // Email configuration (Step 5)
-          to: 'test@example.com',
-          from: 'noreply@example.com',
-          configureSMTP: false
         });
 
       await initCommand({ template: 'advanced' });
@@ -506,25 +537,25 @@ describe('initCommand', () => {
         .mockResolvedValueOnce({  // Notification channels (Step 3)
           notificationChannels: ['telegram', 'dingtalk', 'wecom', 'email']
         })
+        .mockResolvedValueOnce({  // Telegram configuration (Step 3.1)
+          botToken: '123456:ABC-DEF',
+          chatId: '-1001234567890'
+        })
+        .mockResolvedValueOnce({  // DingTalk configuration (Step 3.1)
+          url: 'https://oapi.dingtalk.com/robot/send?access_token=test'
+        })
+        .mockResolvedValueOnce({  // WeCom configuration (Step 3.1)
+          url: 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=test'
+        })
+        .mockResolvedValueOnce({  // Email configuration (Step 3.1)
+          to: 'test@example.com',
+          from: 'noreply@example.com',
+          configureSMTP: false
+        })
         .mockResolvedValueOnce({  // Advanced options (Step 4) - all answers together
           enableDeployment: true,
           deploymentWebhook: 'https://deploy.test.com/webhook',
           enablePlaywright: false
-        })
-        .mockResolvedValueOnce({  // Telegram configuration
-          botToken: '123456:ABC-DEF',
-          chatId: '-1001234567890'
-        })
-        .mockResolvedValueOnce({  // DingTalk configuration
-          url: 'https://oapi.dingtalk.com/robot/send?access_token=test'
-        })
-        .mockResolvedValueOnce({  // WeCom configuration
-          url: 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=test'
-        })
-        .mockResolvedValueOnce({  // Email configuration
-          to: 'test@example.com',
-          from: 'noreply@example.com',
-          configureSMTP: false
         });
 
       await initCommand({ template: 'advanced' });
@@ -674,13 +705,13 @@ describe('initCommand', () => {
         .mockResolvedValueOnce({  // Notification channels (Step 3)
           notificationChannels: ['telegram']
         })
+        .mockResolvedValueOnce({  // Telegram configuration (Step 3.1)
+          botToken: '123456:ABC-DEF',
+          chatId: '-1001234567890'
+        })
         .mockResolvedValueOnce({  // Advanced options (Step 4) - all answers together
           enableDeployment: false,
           enablePlaywright: true
-        })
-        .mockResolvedValueOnce({  // Telegram configuration
-          botToken: '123456:ABC-DEF',
-          chatId: '-1001234567890'
         });
 
       await initCommand({ template: 'advanced' });

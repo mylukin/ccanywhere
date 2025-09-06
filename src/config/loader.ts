@@ -139,12 +139,66 @@ export class ConfigLoader {
     }
 
     // Artifacts configuration
-    if (env.ARTIFACTS_BASE_URL || env.ARTIFACTS_RETENTION_DAYS || env.ARTIFACTS_MAX_SIZE) {
+    if (env.ARTIFACTS_BASE_URL || env.ARTIFACTS_RETENTION_DAYS || env.ARTIFACTS_MAX_SIZE || 
+        env.STORAGE_PROVIDER || env.STORAGE_FOLDER ||
+        env.R2_ACCOUNT_ID || env.S3_ACCESS_KEY_ID || env.OSS_ACCESS_KEY_ID) {
       config.artifacts = {
         baseUrl: env.ARTIFACTS_BASE_URL,
         retentionDays: env.ARTIFACTS_RETENTION_DAYS ? parseInt(env.ARTIFACTS_RETENTION_DAYS) : undefined,
-        maxSize: env.ARTIFACTS_MAX_SIZE
+        maxSize: env.ARTIFACTS_MAX_SIZE,
+        storage: undefined as any
       };
+
+      // Storage configuration
+      const storageProvider = env.STORAGE_PROVIDER || 'r2';
+      const storageFolder = env.STORAGE_FOLDER || 'diffs';
+      
+      // R2 configuration (default)
+      if (storageProvider === 'r2' && env.R2_ACCOUNT_ID) {
+        config.artifacts.storage = {
+          provider: 'r2' as const,
+          folder: storageFolder,
+          r2: {
+            accountId: env.R2_ACCOUNT_ID,
+            accessKeyId: env.R2_ACCESS_KEY_ID || '',
+            secretAccessKey: env.R2_SECRET_ACCESS_KEY || '',
+            bucket: env.R2_BUCKET || ''
+          }
+        };
+      }
+      
+      // S3 configuration
+      else if (storageProvider === 's3' && env.S3_ACCESS_KEY_ID) {
+        config.artifacts.storage = {
+          provider: 's3' as const,
+          folder: storageFolder,
+          s3: {
+            accessKeyId: env.S3_ACCESS_KEY_ID,
+            secretAccessKey: env.S3_SECRET_ACCESS_KEY || '',
+            region: env.S3_REGION || 'us-east-1',
+            bucket: env.S3_BUCKET || ''
+          }
+        };
+      }
+      
+      // OSS configuration
+      else if (storageProvider === 'oss' && env.OSS_ACCESS_KEY_ID) {
+        config.artifacts.storage = {
+          provider: 'oss' as const,
+          folder: storageFolder,
+          oss: {
+            accessKeyId: env.OSS_ACCESS_KEY_ID,
+            accessKeySecret: env.OSS_ACCESS_KEY_SECRET || '',
+            region: env.OSS_REGION || 'oss-cn-hangzhou',
+            bucket: env.OSS_BUCKET || ''
+          }
+        };
+      }
+      
+      // Clean up undefined storage if not configured
+      if (!config.artifacts.storage) {
+        delete (config.artifacts as any).storage;
+      }
     }
 
     // Deployment configuration
@@ -203,6 +257,15 @@ export class ConfigLoader {
     if (env.BASE) config.build.base = env.BASE;
     if (env.LOCK_TIMEOUT) config.build.lockTimeout = parseInt(env.LOCK_TIMEOUT);
     if (env.CLEANUP_DAYS) config.build.cleanupDays = parseInt(env.CLEANUP_DAYS);
+    if (env.EXCLUDE_PATHS) config.build.excludePaths = env.EXCLUDE_PATHS.split(',').map(p => p.trim());
+
+    // Test configuration
+    if (env.TEST_ENABLED !== undefined || env.PLAYWRIGHT_CONFIG) {
+      config.test = {
+        enabled: env.TEST_ENABLED === 'true',
+        configFile: env.PLAYWRIGHT_CONFIG || './playwright.config.ts'
+      };
+    }
 
     // Security configuration
     if (env.READ_ONLY || env.LINK_EXPIRY) {
