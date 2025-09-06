@@ -2,7 +2,7 @@
  * Tests for utils logger - minimal coverage
  */
 
-import { describe, it, expect, jest, beforeEach } from '@jest/globals';
+import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
 
 describe('Utils Logger', () => {
   let Logger: any;
@@ -13,6 +13,13 @@ describe('Utils Logger', () => {
     // Import after mocks
     const module = await import('../logger.js');
     Logger = module.Logger;
+  });
+
+  afterEach(async () => {
+    // Clean up logger instance after each test
+    if (Logger) {
+      await Logger.reset();
+    }
   });
 
   it('should create logger instance', () => {
@@ -32,7 +39,7 @@ describe('Utils Logger', () => {
     expect(logger1).toBe(logger2);
   });
 
-  it('should have logging methods available', () => {
+  it('should have logging methods available', async () => {
     const logger = Logger.getInstance();
     
     // Test methods exist and don't throw
@@ -40,5 +47,8 @@ describe('Utils Logger', () => {
     expect(() => logger.error('test')).not.toThrow();
     expect(() => logger.debug('test')).not.toThrow();
     expect(() => logger.warn('test')).not.toThrow();
+    
+    // Small delay to ensure async operations complete
+    await new Promise(resolve => setTimeout(resolve, 10));
   });
 });

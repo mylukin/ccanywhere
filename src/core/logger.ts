@@ -21,6 +21,8 @@ export class JsonLogger implements Logger {
   private readonly logFilePath: string;
   private writeStream?: ReturnType<typeof createWriteStream>;
   private context?: RuntimeContext;
+  private pendingWrites: Promise<void>[] = [];
+  private closed = false;
 
   constructor(config: LoggerConfig) {
     this.config = {
@@ -127,6 +129,24 @@ export class JsonLogger implements Logger {
    * Write log entry
    */
   private async writeLog(level: LogLevel, message: string, meta?: any): Promise<void> {
+    // Don't write if logger is closed
+    if (this.closed) {
+      return;
+    }
+    
+    const writePromise = this.doWriteLog(level, message, meta);
+    this.pendingWrites.push(writePromise);
+    
+    // Clean up completed writes
+    writePromise.finally(() => {
+      const index = this.pendingWrites.indexOf(writePromise);
+      if (index > -1) {
+        this.pendingWrites.splice(index, 1);
+      }
+    });
+  }
+  
+  private async doWriteLog(level: LogLevel, message: string, meta?: any): Promise<void> {
     try {
       // Ensure log directory exists
       await ensureDir(this.config.logDir);
@@ -349,6 +369,13 @@ export class JsonLogger implements Logger {
    * Close the logger and cleanup resources
    */
   async close(): Promise<void> {
+    this.closed = true;
+    
+    // Wait for all pending writes to complete
+    if (this.pendingWrites.length > 0) {
+      await Promise.allSettled(this.pendingWrites);
+    }
+    
     if (this.writeStream) {
       this.writeStream.end();
       this.writeStream = undefined;

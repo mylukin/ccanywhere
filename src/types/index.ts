@@ -316,6 +316,7 @@ export interface Logger {
   buildStart(revision: string, branch: string, meta?: any): void;
   buildComplete(success: boolean, duration: number, meta?: any): void;
   buildError(step: string, error: string, meta?: any): void;
+  close?(): Promise<void>;
 }
 
 export interface DiffGenerator {

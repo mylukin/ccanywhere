@@ -38,9 +38,9 @@ export class Logger {
   /**
    * Reset the singleton instance
    */
-  static reset(): void {
+  static async reset(): Promise<void> {
     if (this.instance) {
-      this.instance.close();
+      await this.instance.close();
       this.instance = null;
     }
   }
