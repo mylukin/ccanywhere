@@ -142,7 +142,7 @@ describe('DingTalkNotifier', () => {
       );
     });
 
-    it('should include signature when secret is provided', async () => {
+    it('should send notification without signature modification', async () => {
       const message = {
         title: 'Test',
         extra: 'Message',
@@ -152,11 +152,9 @@ describe('DingTalkNotifier', () => {
 
       await provider.send(message);
 
-      // Note: No signature verification in new implementation
-      
+      // The new implementation doesn't add signature to URL
       const calledUrl = mockAxios.post.mock.calls[0][0];
-      expect(calledUrl).toContain('&timestamp=1672574400000');
-      expect(calledUrl).toContain('&sign=mock-signature');
+      expect(calledUrl).toBe(mockUrl);
     });
 
     it('should send notification with plain URL', async () => {
@@ -172,6 +170,7 @@ describe('DingTalkNotifier', () => {
 
       await provider.send(message);
 
+      // No crypto operations in simplified implementation
       expect(mockCrypto.createHmac).not.toHaveBeenCalled();
       
       const calledUrl = mockAxios.post.mock.calls[0][0];
@@ -290,36 +289,30 @@ describe('DingTalkNotifier', () => {
     });
   });
 
-  describe('signature generation', () => {
+  describe('URL handling', () => {
     beforeEach(() => {
       provider = new DingTalkNotifier(mockUrl);
     });
 
-    it('should generate correct signature', async () => {
-      const fixedTimestamp = 1672574400000;
-      Date.now = jest.fn(() => fixedTimestamp);
-
+    it('should use the webhook URL directly without modification', async () => {
       const message = { title: 'Test', extra: 'Message', timestamp: Date.now(), isError: false };
       await provider.send(message);
 
-      // Note: No signature verification in new implementation
-      
-      const hmacMock = mockCrypto.createHmac();
-      // Note: No signature update in new implementation
-      expect(hmacMock.digest).toHaveBeenCalledWith('base64');
+      // The new simplified implementation uses the URL directly
+      const calledUrl = mockAxios.post.mock.calls[0][0];
+      expect(calledUrl).toBe(mockUrl);
+      expect(mockAxios.post).toHaveBeenCalledTimes(1);
     });
 
-    it('should URL encode the signature', async () => {
-      mockCrypto.createHmac.mockReturnValue({
-        update: jest.fn().mockReturnThis(),
-        digest: jest.fn(() => 'signature+with+special=chars')
-      });
+    it('should work with URLs that already have parameters', async () => {
+      const urlWithParams = 'https://oapi.dingtalk.com/robot/send?access_token=test&custom=param';
+      provider = new DingTalkNotifier(urlWithParams);
 
       const message = { title: 'Test', extra: 'Message', timestamp: Date.now(), isError: false };
       await provider.send(message);
 
       const calledUrl = mockAxios.post.mock.calls[0][0];
-      expect(calledUrl).toContain('&sign=signature%2Bwith%2Bspecial%3Dchars');
+      expect(calledUrl).toBe(urlWithParams);
     });
   });
 

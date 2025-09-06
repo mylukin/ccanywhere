@@ -84,7 +84,7 @@ describe('WeComNotifier', () => {
       await notifier.send(message);
 
       expect(mockAxios.post).toHaveBeenCalledWith(
-        mockConfig.webhook,
+        mockUrl,
         {
           msgtype: 'text',
           text: {
@@ -106,7 +106,7 @@ describe('WeComNotifier', () => {
       await notifier.send(markdownMessage);
 
       expect(mockAxios.post).toHaveBeenCalledWith(
-        mockConfig.webhook,
+        mockUrl,
         {
           msgtype: 'markdown',
           markdown: {
@@ -145,7 +145,7 @@ describe('WeComNotifier', () => {
       await notifier.send(longMessage);
 
       expect(mockAxios.post).toHaveBeenCalledWith(
-        mockConfig.webhook,
+        mockUrl,
         expect.objectContaining({
           text: {
             content: longMessage
@@ -159,7 +159,7 @@ describe('WeComNotifier', () => {
       await notifier.send('');
 
       expect(mockAxios.post).toHaveBeenCalledWith(
-        mockConfig.webhook,
+        mockUrl,
         expect.objectContaining({
           text: {
             content: ''
@@ -209,7 +209,7 @@ describe('WeComNotifier', () => {
 
       expect(result.success).toBe(true);
       expect(mockAxios.post).toHaveBeenCalledWith(
-        mockConfig.webhook,
+        mockUrl,
         expect.objectContaining({
           text: {
             content: expect.stringContaining('Test message from CCanywhere')
@@ -375,7 +375,7 @@ describe('WeComNotifier', () => {
       await notifier.send(chineseMessage);
 
       expect(mockAxios.post).toHaveBeenCalledWith(
-        mockConfig.webhook,
+        mockUrl,
         expect.objectContaining({
           text: {
             content: chineseMessage
@@ -391,7 +391,7 @@ describe('WeComNotifier', () => {
       await notifier.send(emojiMessage);
 
       expect(mockAxios.post).toHaveBeenCalledWith(
-        mockConfig.webhook,
+        mockUrl,
         expect.objectContaining({
           text: {
             content: emojiMessage
