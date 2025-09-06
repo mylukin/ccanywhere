@@ -44,13 +44,8 @@ export interface CcanywhereConfig {
       botToken: string;
       chatId: string;
     };
-    dingtalk?: {
-      webhook: string;
-      secret?: string;
-    };
-    wecom?: {
-      webhook: string;
-    };
+    dingtalk?: string;
+    wecom?: string;
     email?: {
       to: string;
       from?: string;

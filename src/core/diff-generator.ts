@@ -66,12 +66,10 @@ export class HtmlDiffGenerator implements DiffGenerator {
       // Prepare storage key with configurable folder path and project organization
       const storageFolder = StorageFactory.getStorageFolder(context.config);
       const projectPath = StorageFactory.getProjectPath(context.config);
-      
+
       // Construct storage key: {folder}/{projectPath}/diff-{revision}.html
       // If projectPath is empty, maintains backward compatibility: {folder}/diff-{revision}.html
-      const storageKey = projectPath 
-        ? `${storageFolder}/${projectPath}/${fileName}`
-        : `${storageFolder}/${fileName}`;
+      const storageKey = projectPath ? `${storageFolder}/${projectPath}/${fileName}` : `${storageFolder}/${fileName}`;
 
       // Upload to cloud storage if enabled
       if (storageProvider) {

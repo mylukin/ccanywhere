@@ -45,16 +45,11 @@
       }
     },
     
-    // DingTalk configuration
-    "dingtalk": {
-      "webhook": "https://oapi.dingtalk.com/robot/send?access_token=YOUR_TOKEN",
-      "secret": "YOUR_SECRET"  // Optional: signature secret for security
-    },
+    // DingTalk configuration - Now a simple string
+    "dingtalk": "https://oapi.dingtalk.com/robot/send?access_token=YOUR_TOKEN",
     
-    // WeCom (WeChat Work) configuration
-    "wecom": {
-      "webhook": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_KEY"
-    }
+    // WeCom (WeChat Work) configuration - Now a simple string
+    "wecom": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_KEY"
   },
   
   // Build configuration (Optional - uses defaults if not specified)

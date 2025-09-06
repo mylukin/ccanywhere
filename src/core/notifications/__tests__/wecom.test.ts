@@ -39,16 +39,14 @@ const { WeComNotifier } = await import('../wecom');
 
 describe('WeComNotifier', () => {
   let notifier: any;
-  let mockConfig: any;
+  let mockUrl: string;
 
   beforeEach(() => {
     // Reset all mocks
     jest.clearAllMocks();
 
-    // Setup mock config
-    mockConfig = {
-      webhook: 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=test-key'
-    };
+    // Setup mock URL
+    mockUrl = 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=test-key';
 
     // Setup default mock returns
     mockAxios.post.mockResolvedValue({
@@ -57,27 +55,27 @@ describe('WeComNotifier', () => {
   });
 
   describe('constructor', () => {
-    it('should initialize with valid configuration', () => {
-      notifier = new WeComNotifier(mockConfig);
+    it('should initialize with valid URL', () => {
+      notifier = new WeComNotifier(mockUrl);
       expect(notifier).toBeDefined();
     });
 
-    it('should throw error for missing webhook', () => {
+    it('should throw error for empty URL', () => {
       expect(() => {
-        new WeComNotifier({} as any);
+        new WeComNotifier('');
       }).toThrow('WeCom webhook URL is required');
     });
 
-    it('should throw error for empty webhook', () => {
+    it('should throw error for whitespace-only URL', () => {
       expect(() => {
-        new WeComNotifier({ webhook: '' });
+        new WeComNotifier('   ');
       }).toThrow('WeCom webhook URL is required');
     });
   });
 
   describe('send method', () => {
     beforeEach(() => {
-      notifier = new WeComNotifier(mockConfig);
+      notifier = new WeComNotifier(mockUrl);
     });
 
     it('should send text message successfully', async () => {
@@ -203,7 +201,7 @@ describe('WeComNotifier', () => {
 
   describe('test method', () => {
     beforeEach(() => {
-      notifier = new WeComNotifier(mockConfig);
+      notifier = new WeComNotifier(mockUrl);
     });
 
     it('should return success for valid configuration', async () => {
@@ -263,7 +261,7 @@ describe('WeComNotifier', () => {
 
   describe('error code handling', () => {
     beforeEach(() => {
-      notifier = new WeComNotifier(mockConfig);
+      notifier = new WeComNotifier(mockUrl);
     });
 
     const errorCases = [
@@ -318,7 +316,7 @@ describe('WeComNotifier', () => {
 
       validUrls.forEach(webhook => {
         expect(() => {
-          new WeComNotifier({ webhook });
+          new WeComNotifier(webhook);
         }).not.toThrow();
       });
     });
@@ -326,7 +324,7 @@ describe('WeComNotifier', () => {
 
   describe('message type detection', () => {
     beforeEach(() => {
-      notifier = new WeComNotifier(mockConfig);
+      notifier = new WeComNotifier(mockUrl);
     });
 
     it('should use text type for simple messages', async () => {
@@ -368,7 +366,7 @@ describe('WeComNotifier', () => {
 
   describe('Unicode and special character handling', () => {
     beforeEach(() => {
-      notifier = new WeComNotifier(mockConfig);
+      notifier = new WeComNotifier(mockUrl);
     });
 
     it('should handle Chinese characters', async () => {
@@ -416,7 +414,7 @@ describe('WeComNotifier', () => {
 
   describe('error resilience', () => {
     beforeEach(() => {
-      notifier = new WeComNotifier(mockConfig);
+      notifier = new WeComNotifier(mockUrl);
     });
 
     it('should handle concurrent requests', async () => {

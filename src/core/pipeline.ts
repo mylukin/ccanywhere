@@ -132,7 +132,9 @@ export class BuildPipeline {
         try {
           await this.sendSuccessNotification(result);
         } catch (error) {
-          this.logger.error('Failed to send notification', { error: error instanceof Error ? error.message : String(error) });
+          this.logger.error('Failed to send notification', {
+            error: error instanceof Error ? error.message : String(error)
+          });
         }
       }
 

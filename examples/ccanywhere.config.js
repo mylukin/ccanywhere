@@ -48,15 +48,10 @@ export default {
     },
     
     // DingTalk (optional)
-    dingtalk: {
-      webhook: process.env.DINGTALK_WEBHOOK || 'https://oapi.dingtalk.com/robot/send?access_token=YOUR_TOKEN',
-      secret: process.env.DINGTALK_SECRET || 'YOUR_SECRET'
-    },
+    dingtalk: process.env.DINGTALK_WEBHOOK || 'https://oapi.dingtalk.com/robot/send?access_token=YOUR_TOKEN',
     
     // WeCom (optional)
-    wecom: {
-      webhook: process.env.WECOM_WEBHOOK || 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_KEY'
-    }
+    wecom: process.env.WECOM_WEBHOOK || 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_KEY'
   },
 
   // Build configuration

@@ -135,7 +135,8 @@ export class ClaudeCodeDetector {
         );
         break;
 
-      case 'win32': { // Windows
+      case 'win32': {
+        // Windows
         const appData = process.env.APPDATA || path.join(homeDir, 'AppData/Roaming');
         const localAppData = process.env.LOCALAPPDATA || path.join(homeDir, 'AppData/Local');
         candidates.push(
@@ -148,7 +149,8 @@ export class ClaudeCodeDetector {
         break;
       }
 
-      default: { // Linux and others
+      default: {
+        // Linux and others
         const xdgConfigHome = process.env.XDG_CONFIG_HOME || path.join(homeDir, '.config');
         candidates.push(
           path.join(xdgConfigHome, 'claude-code'),

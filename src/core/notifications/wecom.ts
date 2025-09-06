@@ -11,13 +11,13 @@ import { MessageFormatter } from './formatter.js';
 export class WeComNotifier implements ChannelNotifier {
   readonly channel = 'wecom' as const;
   
-  private readonly webhook: string;
+  private readonly url: string;
 
-  constructor(config: NonNullable<NonNullable<CcanywhereConfig['notifications']>['wecom']>) {
-    if (!config.webhook || config.webhook.trim() === '') {
+  constructor(url: string) {
+    if (!url || url.trim() === '') {
       throw new BuildError('WeCom webhook URL is required');
     }
-    this.webhook = config.webhook;
+    this.url = url;
   }
 
   async send(message: NotificationMessage | string): Promise<void> {
@@ -51,7 +51,7 @@ export class WeComNotifier implements ChannelNotifier {
         }
       };
 
-      const response = await axios.post(this.webhook, payload, {
+      const response = await axios.post(this.url, payload, {
         timeout: 10000,
         headers: {
           'Content-Type': 'application/json'

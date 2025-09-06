@@ -26,13 +26,8 @@
         }
       }
     },
-    "dingtalk": {
-      "webhook": "https://oapi.dingtalk.com/robot/send?access_token=YOUR_TOKEN",
-      "secret": "YOUR_SECRET"
-    },
-    "wecom": {
-      "webhook": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_KEY"
-    }
+    "dingtalk": "https://oapi.dingtalk.com/robot/send?access_token=YOUR_TOKEN",
+    "wecom": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_KEY"
   },
   "build": {
     "base": "origin/main",

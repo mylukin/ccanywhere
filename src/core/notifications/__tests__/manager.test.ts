@@ -310,7 +310,7 @@ describe('NotificationManager', () => {
     it('should initialize dingtalk provider', () => {
       manager = new NotificationManager({
         channels: ['dingtalk'] as NotificationChannel[],
-        dingtalk: { webhook: 'https://test.com/webhook' }
+        dingtalk: 'https://oapi.dingtalk.com/robot/send?access_token=test'
       });
 
       expect(manager).toBeDefined();
@@ -319,7 +319,7 @@ describe('NotificationManager', () => {
     it('should initialize wecom provider', () => {
       manager = new NotificationManager({
         channels: ['wecom'] as NotificationChannel[],
-        wecom: { webhook: 'https://test.com/webhook' }
+        wecom: 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=test'
       });
 
       expect(manager).toBeDefined();
@@ -341,8 +341,8 @@ describe('NotificationManager', () => {
         channels: ['telegram', 'email', 'dingtalk', 'wecom'] as NotificationChannel[],
         telegram: { botToken: 'test', chatId: 'test' },
         email: { to: 'test@example.com' },
-        dingtalk: { webhook: 'https://test.com/webhook' },
-        wecom: { webhook: 'https://test.com/webhook' }
+        dingtalk: 'https://oapi.dingtalk.com/robot/send?access_token=test',
+        wecom: 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=test'
       };
 
       manager = new NotificationManager(allChannelsConfig);
@@ -354,8 +354,8 @@ describe('NotificationManager', () => {
         channels: ['telegram', 'email', 'dingtalk', 'wecom'] as NotificationChannel[],
         telegram: { botToken: 'test', chatId: 'test' },
         email: { to: 'test@example.com' },
-        dingtalk: { webhook: 'https://test.com/webhook' },
-        wecom: { webhook: 'https://test.com/webhook' }
+        dingtalk: 'https://oapi.dingtalk.com/robot/send?access_token=test',
+        wecom: 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=test'
       };
 
       manager = new NotificationManager(allChannelsConfig);

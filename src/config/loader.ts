@@ -172,17 +172,12 @@ export class ConfigLoader {
 
       // DingTalk
       if (env.DINGTALK_WEBHOOK) {
-        config.notifications.dingtalk = {
-          webhook: env.DINGTALK_WEBHOOK,
-          secret: env.DINGTALK_SECRET
-        };
+        config.notifications.dingtalk = env.DINGTALK_WEBHOOK;
       }
 
       // WeCom
       if (env.WECOM_WEBHOOK) {
-        config.notifications.wecom = {
-          webhook: env.WECOM_WEBHOOK
-        };
+        config.notifications.wecom = env.WECOM_WEBHOOK;
       }
 
       // Email

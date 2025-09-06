@@ -3,7 +3,6 @@
  */
 
 import axios, { AxiosError } from 'axios';
-import { createHmac } from 'crypto';
 import type { CcanywhereConfig } from '../../types/index.js';
 import type { ChannelNotifier, NotificationMessage } from './types.js';
 import { BuildError } from '../../types/index.js';
@@ -12,20 +11,15 @@ import { MessageFormatter } from './formatter.js';
 export class DingTalkNotifier implements ChannelNotifier {
   readonly channel = 'dingtalk' as const;
   
-  private readonly webhook: string;
-  private readonly secret?: string;
+  private readonly url: string;
 
-  constructor(config: NonNullable<NonNullable<CcanywhereConfig['notifications']>['dingtalk']>) {
-    this.webhook = config.webhook;
-    this.secret = config.secret;
+  constructor(url: string) {
+    this.url = url;
   }
 
   async send(message: NotificationMessage): Promise<void> {
     try {
       const formatted = MessageFormatter.format(message, 'markdown');
-      
-      // Generate signature if secret is provided
-      const { url, timestamp, sign } = this.generateSignature();
 
       const payload = {
         msgtype: 'markdown',
@@ -35,7 +29,7 @@ export class DingTalkNotifier implements ChannelNotifier {
         }
       };
 
-      const response = await axios.post(url, payload, {
+      const response = await axios.post(this.url, payload, {
         timeout: 30000,
         headers: {
           'Content-Type': 'application/json'
@@ -61,24 +55,6 @@ export class DingTalkNotifier implements ChannelNotifier {
     }
   }
 
-  /**
-   * Generate webhook URL with signature
-   */
-  private generateSignature(): { url: string; timestamp: number; sign?: string } {
-    if (!this.secret) {
-      return { url: this.webhook, timestamp: Date.now() };
-    }
-
-    const timestamp = Date.now();
-    const stringToSign = `${timestamp}\n${this.secret}`;
-    const hmac = createHmac('sha256', this.secret);
-    hmac.update(stringToSign, 'utf8');
-    const sign = encodeURIComponent(hmac.digest('base64'));
-
-    const url = `${this.webhook}&timestamp=${timestamp}&sign=${sign}`;
-    
-    return { url, timestamp, sign };
-  }
 
   /**
    * Send a test message

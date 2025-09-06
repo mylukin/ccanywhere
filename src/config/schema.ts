@@ -39,14 +39,15 @@ export const TelegramConfigSchema = z.object({
   chatId: z.string().min(1, 'Telegram chat ID is required')
 });
 
-export const DingTalkConfigSchema = z.object({
-  webhook: z.string().url('DingTalk webhook must be a valid URL'),
-  secret: z.string().min(1).optional()
-});
+export const DingTalkConfigSchema = z
+  .string()
+  .url('DingTalk URL must be a valid URL')
+  .refine(url => url.includes('oapi.dingtalk.com/robot/send'), 'Invalid DingTalk webhook URL format');
 
-export const WeComConfigSchema = z.object({
-  webhook: z.string().url('WeCom webhook must be a valid URL')
-});
+export const WeComConfigSchema = z
+  .string()
+  .url('WeCom URL must be a valid URL')
+  .refine(url => url.includes('qyapi.weixin.qq.com/cgi-bin/webhook/send'), 'Invalid WeCom webhook URL format');
 
 export const SmtpConfigSchema = z.object({
   host: z.string().min(1, 'SMTP host is required'),

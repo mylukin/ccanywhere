@@ -133,10 +133,10 @@ export class JsonLogger implements Logger {
     if (this.closed) {
       return;
     }
-    
+
     const writePromise = this.doWriteLog(level, message, meta);
     this.pendingWrites.push(writePromise);
-    
+
     // Clean up completed writes
     writePromise.finally(() => {
       const index = this.pendingWrites.indexOf(writePromise);
@@ -145,7 +145,7 @@ export class JsonLogger implements Logger {
       }
     });
   }
-  
+
   private async doWriteLog(level: LogLevel, message: string, meta?: any): Promise<void> {
     try {
       // Ensure log directory exists
@@ -370,12 +370,12 @@ export class JsonLogger implements Logger {
    */
   async close(): Promise<void> {
     this.closed = true;
-    
+
     // Wait for all pending writes to complete
     if (this.pendingWrites.length > 0) {
       await Promise.allSettled(this.pendingWrites);
     }
-    
+
     if (this.writeStream) {
       this.writeStream.end();
       this.writeStream = undefined;
