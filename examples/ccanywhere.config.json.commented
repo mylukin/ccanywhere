@@ -12,12 +12,9 @@
   // Deployment configuration (Optional)
   // Can be a simple webhook URL string or an object with more options
   "deployment": "https://deploy.example.com/api/webhook/deploy",
-  // Or use object format for more control:
+  // Or use object format:
   // "deployment": {
-  //   "webhook": "https://deploy.example.com/api/webhook/deploy",
-  //   "statusUrl": "https://deploy.example.com/api/status",
-  //   "maxWait": 300,      // Max wait time for deployment status (seconds)
-  //   "pollInterval": 5    // Status check interval (seconds)
+  //   "webhook": "https://deploy.example.com/api/webhook/deploy"
   // },
   
   // Notification configuration (Optional)
@@ -37,11 +34,8 @@
       "smtp": {                      // Optional: uses local mail if not specified
         "host": "smtp.gmail.com",
         "port": 587,
-        "secure": false,              // true for 465, false for other ports
-        "auth": {
-          "user": "your-email@gmail.com",
-          "pass": "your-app-password"    // Use app-specific password for Gmail
-        }
+        "user": "your-email@gmail.com",
+        "pass": "your-app-password"    // Use app-specific password for Gmail
       }
     },
     

@@ -171,7 +171,6 @@ ccanywhere lock force-release # Force release locks
 ccanywhere config show        # Show current configuration
 ccanywhere config validate    # Validate configuration file
 ccanywhere config edit        # Edit configuration file
-ccanywhere config init-env    # Generate .env from config
 
 # Run tests (including Playwright tests)
 ccanywhere test
@@ -270,7 +269,7 @@ REPO_KIND=github                                # Optional, auto-detected
 REPO_BRANCH=main                                # Optional, auto-detected
 
 # URLs
-ARTIFACTS_URL=https://artifacts.example.com
+ARTIFACTS_BASE_URL=https://artifacts.example.com
 
 # Deployment
 DEPLOYMENT_WEBHOOK_URL=https://deploy.example.com/webhook

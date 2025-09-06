@@ -162,7 +162,6 @@ ccanywhere lock force-release # 强制释放锁
 ccanywhere config show        # 显示当前配置
 ccanywhere config validate    # 验证配置文件
 ccanywhere config edit        # 编辑配置文件
-ccanywhere config init-env    # 从配置生成 .env
 
 # Claude Code 集成
 ccanywhere claude-register --status      # 检查钩子状态
@@ -230,7 +229,7 @@ REPO_KIND=github                                # 可选，自动检测
 REPO_BRANCH=main                                # 可选，自动检测
 
 # URLs
-ARTIFACTS_URL=https://artifacts.example.com
+ARTIFACTS_BASE_URL=https://artifacts.example.com
 
 # 部署
 DEPLOYMENT_WEBHOOK_URL=https://deploy.example.com/webhook

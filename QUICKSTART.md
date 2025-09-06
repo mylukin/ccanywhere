@@ -186,7 +186,7 @@ npm install -g ccanywhere
 {
   "scripts": {
     "deploy": "ccanywhere run",
-    "deploy:production": "ccanywhere run --env production --confirm",
+    "deploy:production": "ccanywhere run --config ./config/production.json",
     "test:config": "ccanywhere test",
     "cleanup": "ccanywhere cleanup --days 7"
   }
@@ -203,10 +203,10 @@ LOG_LEVEL=debug ccanywhere run
 ccanywhere test --all
 
 # 测试单个通知渠道
-ccanywhere test notify --channels telegram
+ccanywhere notify --channels telegram --title "测试通知"
 
 # 清理构建锁
-ccanywhere cleanup --locks
+ccanywhere lock clean
 ```
 
 ## 🔐 环境变量
