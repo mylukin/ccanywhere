@@ -53,6 +53,7 @@ program
   .option('-b, --base <ref>', 'Base git reference for diff', 'origin/main')
   .option('-h, --head <ref>', 'Head git reference for diff', 'HEAD')
   .option('-w, --work-dir <path>', 'Working directory', process.cwd())
+  .option('--hook-mode', 'Run in hook mode (skip if no config)', false)
   .action(runCommand);
 
 // Test configuration

@@ -7,18 +7,82 @@ import chalkModule from 'chalk';
 const chalk = chalkModule;
 import oraModule from 'ora';
 const ora = oraModule;
+import fsExtra from 'fs-extra';
+const { pathExists } = fsExtra;
+import inquirerModule from 'inquirer';
+const inquirer = inquirerModule;
 import { ConfigLoader } from '../../config/index.js';
 import { createLogger } from '../../core/logger.js';
 import { BuildPipeline } from '../../core/pipeline.js';
+import { initCommand } from './init.js';
 import type { CliOptions } from '../../types/index.js';
 
 interface RunOptions extends CliOptions {
   base?: string;
   head?: string;
   workDir?: string;
+  hookMode?: boolean;
 }
 
 export async function runCommand(options: RunOptions): Promise<void> {
+  // Check if running in hook mode (from Claude Code hooks or CI/CD)
+  const isHookMode = options.hookMode || process.env.CCANYWHERE_HOOK_MODE === 'true';
+  
+  // Check if configuration exists
+  const configPaths = [
+    'ccanywhere.config.json',
+    'ccanywhere.config.js',
+    '.ccanywhere.json',
+    '.ccanywhere.js'
+  ];
+  
+  let configExists = false;
+  if (options.config) {
+    configExists = await pathExists(options.config);
+  } else {
+    for (const path of configPaths) {
+      if (await pathExists(path)) {
+        configExists = true;
+        break;
+      }
+    }
+  }
+  
+  // Handle missing configuration
+  if (!configExists) {
+    if (isHookMode) {
+      // In hook mode, silently exit if no config
+      if (process.env.CCANYWHERE_DEBUG === 'true') {
+        console.log(chalk.gray('[CCanywhere] No configuration found, skipping (hook mode)'));
+      }
+      process.exit(0);
+    } else {
+      // In manual mode, prompt to initialize
+      console.log(chalk.yellow('⚠️  No CCanywhere configuration found in this project'));
+      console.log();
+      
+      const { shouldInit } = await inquirer.prompt([
+        {
+          type: 'confirm',
+          name: 'shouldInit',
+          message: 'Would you like to initialize CCanywhere now?',
+          default: true
+        }
+      ]);
+      
+      if (shouldInit) {
+        console.log();
+        await initCommand({});
+        console.log();
+        console.log(chalk.blue('ℹ️  Please configure your .env file and run again'));
+        process.exit(0);
+      } else {
+        console.log(chalk.gray('Run "ccanywhere init" to set up configuration'));
+        process.exit(0);
+      }
+    }
+  }
+  
   const spinner = ora('Initializing CCanywhere...').start();
   
   try {

@@ -74,12 +74,43 @@ export class HookInjector {
       }
 
       // Generate CCanywhere hook configuration
-      const ccanywhereHooks = ClaudeHooks.generateHookConfig({
-        enablePreCommit: options.enablePreCommit,
-        enablePostRun: options.enablePostRun,
-        enablePreTest: options.enablePreTest,
-        enablePostTest: options.enablePostTest
-      });
+      // Use shell commands instead of module-based hooks for Claude Code compatibility
+      const ccanywhereHooks: Record<string, any> = {};
+      
+      // The command with environment variable to indicate hook mode
+      const hookCommand = 'CCANYWHERE_HOOK_MODE=true ccanywhere run 2>&1 >> /tmp/ccanywhere-hook.log || true';
+      
+      if (options.enablePreCommit) {
+        ccanywhereHooks.preCommit = {
+          name: 'CCanywhere Pre-commit Analysis',
+          type: 'command',
+          command: hookCommand
+        };
+      }
+      
+      if (options.enablePostRun) {
+        ccanywhereHooks.postRun = {
+          name: 'CCanywhere Pipeline',
+          type: 'command',
+          command: hookCommand
+        };
+      }
+      
+      if (options.enablePreTest) {
+        ccanywhereHooks.preTest = {
+          name: 'CCanywhere Pre-test Setup',
+          type: 'command',
+          command: hookCommand
+        };
+      }
+      
+      if (options.enablePostTest) {
+        ccanywhereHooks.postTest = {
+          name: 'CCanywhere Post-test Processing',
+          type: 'command',
+          command: hookCommand
+        };
+      }
 
       // Merge configurations
       const mergedConfig = await this.mergeHookConfigs(existingConfig, ccanywhereHooks, options.force);
@@ -141,7 +172,11 @@ export class HookInjector {
       let removedCount = 0;
 
       for (const hookName of ccanywhereHookNames) {
-        if (cleanedConfig.content[hookName]?.handler === 'ccanywhere/hooks') {
+        const hook = cleanedConfig.content[hookName];
+        if (hook && (
+          hook.handler === 'ccanywhere/hooks' || 
+          (hook.command && typeof hook.command === 'string' && hook.command.includes('ccanywhere'))
+        )) {
           delete cleanedConfig.content[hookName];
           result.hooksAdded.push(hookName); // Using hooksAdded to track removed hooks
           removedCount++;
@@ -410,7 +445,10 @@ export class HookInjector {
       const ccanywhereHookNames = ['preCommit', 'postRun', 'preTest', 'postTest'];
       return ccanywhereHookNames.some(hookName => {
         const hook = existingConfig.content[hookName];
-        return hook && hook.handler === 'ccanywhere/hooks';
+        return hook && (
+          hook.handler === 'ccanywhere/hooks' ||
+          (hook.command && typeof hook.command === 'string' && hook.command.includes('ccanywhere'))
+        );
       });
     } catch (error) {
       this.logger.debug('Error checking hook injection status:', error);
