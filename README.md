@@ -161,10 +161,10 @@ ccanywhere notify --channels telegram --title "Hello World"
 # Cleanup old artifacts
 ccanywhere cleanup --days 7
 
-# Claude Code integration
+# Claude Code integration (Stop hook only)
 ccanywhere claude-register --status      # Check hook status
-ccanywhere claude-register              # Interactive hook setup
-ccanywhere claude-register --post-run   # Enable specific hooks
+ccanywhere claude-register              # Register Stop hook
+ccanywhere claude-register --force      # Force overwrite existing hooks
 ccanywhere claude-register --remove     # Remove all hooks
 
 # Show project information
@@ -198,30 +198,25 @@ npm install -g ccanywhere
 **⚙️ Manual Hook Management**:
 ```bash
 ccanywhere claude-register --status       # Check current status
-ccanywhere claude-register               # Register with Stop event (session end)
-ccanywhere claude-register --post-tool   # Register with PostToolUse (after each edit)
+ccanywhere claude-register               # Register Stop hook (runs at session end)
+ccanywhere claude-register --force       # Force overwrite existing hooks
 ccanywhere claude-register --remove      # Remove hooks
 ```
 
-**🎯 Hook Event Options**:
-- **Stop Event** (Default): Runs when you end a Claude Code session
-  - ✅ One notification per session with complete summary
-  - ✅ Better user experience, less intrusive
-  - ✅ Comprehensive diff of all changes made
-- **PostToolUse Event**: Runs after each file operation
-  - ⚠️ More frequent notifications (after each edit)
-  - ⚠️ May be overwhelming for active development
+**Note**: CCanywhere only uses the Stop event hook, which runs when you end your Claude Code session. It generates a complete diff summary for the entire session.
 
-**Available Hooks:**
-- **Pre-commit**: Analyzes staged changes before commits
-- **Post-run**: Runs full CCanywhere pipeline after Claude Code operations  
-- **Pre-test**: Sets up environment before test execution
-- **Post-test**: Processes results and sends notifications
+**🎯 How It Works**:
+CCanywhere uses the **Stop Event** hook which runs when you end a Claude Code session:
+- ✅ One notification per session with complete summary
+- ✅ Better user experience, less intrusive
+- ✅ Comprehensive diff of all changes made
+- ✅ Automatically skips in projects without CCanywhere configuration (--hook-mode)
 
 **Benefits:**
-- ✅ Automatic diff generation after Claude Code operations
+- ✅ Automatic diff generation after Claude Code sessions
 - ✅ Zero-configuration for global installs
 - ✅ Non-invasive integration with existing workflows
+- ✅ Silent operation in non-configured projects
 - ✅ Automatic backup creation for safety
 - ✅ Platform-specific path detection (Windows, macOS, Linux)
 

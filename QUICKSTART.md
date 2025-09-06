@@ -99,20 +99,24 @@ ccanywhere run --config ./config/production.json
 # 测试所有配置
 ccanywhere test --all
 
-# Claude Code钩子管理
-ccanywhere claude-register              # 交互式设置
-ccanywhere claude-register --post-run   # 启用特定钩子
-ccanywhere claude-register --remove     # 移除所有钩子
+# Claude Code钩子管理（仅支持Stop事件）
+ccanywhere claude-register              # 注册Stop钩子
+ccanywhere claude-register --status     # 查看钩子状态
+ccanywhere claude-register --remove     # 移除钩子
+ccanywhere claude-register --force      # 强制覆盖已存在的钩子
 ```
 
 ## 🔌 Claude Code 集成
 
-全局安装时会自动配置 Claude Code 钩子：
+全局安装时会自动配置 Claude Code Stop钩子：
 
 ```bash
 npm install -g ccanywhere
-# 自动检测并配置 Claude Code 钩子 ✨
+# 自动检测并配置 Claude Code Stop钩子 ✨
+# Stop钩子在Claude Code会话结束时运行，生成整个会话的diff摘要
 ```
+
+**注意**：CCanywhere仅使用Stop事件钩子，在没有配置的项目中会静默跳过（使用--hook-mode参数）。
 
 ## 📱 在手机查看结果
 

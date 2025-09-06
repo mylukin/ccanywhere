@@ -24,7 +24,7 @@ CCanywhere 通过集成 Claude Code 的钩子系统，实现了：
 ## ✨ 核心功能
 
 - **📱 移动优先的差异查看**：为手机和平板优化的 HTML 差异页面
-- **🔗 Claude Code 钩子**：代码操作时自动触发
+- **🔗 Claude Code 钩子**：会话结束时自动触发（Stop事件）
 - **☁️ 云存储集成**：支持 R2、S3 和阿里云 OSS
 - **📬 即时通知**：多渠道推送带差异链接的通知
 - **🧪 Playwright 测试**：响应式开发的自动化测试与截图
@@ -176,9 +176,9 @@ ccanywhere config edit        # 编辑配置文件
 
 # Claude Code 集成
 ccanywhere claude-register --status      # 检查钩子状态
-ccanywhere claude-register              # 交互式设置
-ccanywhere claude-register --post-run   # 启用特定钩子
+ccanywhere claude-register              # 注册Stop钩子
 ccanywhere claude-register --remove     # 移除所有钩子
+ccanywhere claude-register --force      # 强制覆盖已存在的钩子
 ```
 
 ### 编程式使用
