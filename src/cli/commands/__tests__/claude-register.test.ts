@@ -17,14 +17,6 @@ jest.unstable_mockModule('chalk', () => ({
   default: mockChalk
 }));
 
-// Mock inquirer
-const mockPrompt = jest.fn() as any;
-jest.unstable_mockModule('inquirer', () => ({
-  default: {
-    prompt: mockPrompt
-  }
-}));
-
 // Mock Logger
 const mockLogger = {
   info: jest.fn() as any,
@@ -132,31 +124,12 @@ describe('claudeRegisterCommand', () => {
     });
   });
 
-  describe('restore option', () => {
-    it('should restore from backup', async () => {
-      mockHookInjector.restoreFromBackup.mockResolvedValue(true);
-
-      await claudeRegisterCommand({ restore: '/backup/path' });
-
-      expect(mockHookInjector.restoreFromBackup).toHaveBeenCalledWith('/backup/path');
-      expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Successfully restored'));
-    });
-
-    it('should handle restore errors', async () => {
-      mockHookInjector.restoreFromBackup.mockRejectedValue(new Error('Restore failed'));
-
-      await claudeRegisterCommand({ restore: '/backup/path' });
-
-      expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Restore failed'));
-    });
-  });
-
   describe('remove option', () => {
     it('should remove hooks', async () => {
       mockHookInjector.removeHooks.mockResolvedValue({ 
         success: true, 
         message: 'Removed 2 hooks',
-        hooksAdded: ['preCommit', 'postRun'], 
+        hooksAdded: ['Stop'], 
         hooksSkipped: [] 
       });
 
@@ -193,11 +166,11 @@ describe('claudeRegisterCommand', () => {
       mockHookInjector.injectHooks.mockResolvedValue({
         success: true,
         message: 'Success',
-        hooksAdded: ['preCommit'],
+        hooksAdded: ['Stop'],
         hooksSkipped: []
       });
 
-      await claudeRegisterCommand({ preCommit: true });
+      await claudeRegisterCommand({});
 
       expect(mockClaudeCodeDetector.detectEnvironment).toHaveBeenCalled();
       expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Claude Code detected'));
@@ -208,7 +181,7 @@ describe('claudeRegisterCommand', () => {
         isClaudeCode: false
       });
 
-      await claudeRegisterCommand({ preCommit: true });
+      await claudeRegisterCommand({});
 
       expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Claude Code environment not detected'));
       expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Please ensure Claude Code is installed'));
@@ -225,11 +198,11 @@ describe('claudeRegisterCommand', () => {
       mockHookInjector.injectHooks.mockResolvedValue({
         success: true,
         message: 'Success',
-        hooksAdded: ['preCommit'],
+        hooksAdded: ['Stop'],
         hooksSkipped: []
       });
 
-      await claudeRegisterCommand({ preCommit: true });
+      await claudeRegisterCommand({});
 
       expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Version: 2.0.0'));
       expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Config: /mock/config'));
@@ -237,23 +210,20 @@ describe('claudeRegisterCommand', () => {
   });
 
   describe('hook installation', () => {
-    it('should install specific hooks', async () => {
+    it('should install Stop hook', async () => {
       mockHookInjector.injectHooks.mockResolvedValue({ 
         success: true,
         message: 'Success',
-        hooksAdded: ['preCommit'], 
+        hooksAdded: ['Stop'], 
         hooksSkipped: [],
         backupPath: '/backup/path'
       });
 
-      await claudeRegisterCommand({ 
-        preCommit: true,
-        backup: true
-      });
+      await claudeRegisterCommand({});
 
       expect(mockHookInjector.injectHooks).toHaveBeenCalledWith(
         expect.objectContaining({
-          enablePreCommit: true,
+          enableStop: true,
           createBackup: true,
           force: undefined
         })
@@ -261,39 +231,15 @@ describe('claudeRegisterCommand', () => {
       expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Successfully registered'));
     });
 
-    it('should install multiple hooks', async () => {
-      mockHookInjector.injectHooks.mockResolvedValue({ 
-        success: true,
-        message: 'Success',
-        hooksAdded: ['preCommit', 'postRun', 'preTest'], 
-        hooksSkipped: []
-      });
-
-      await claudeRegisterCommand({ 
-        preCommit: true,
-        postRun: true,
-        preTest: true
-      });
-
-      expect(mockHookInjector.injectHooks).toHaveBeenCalledWith(
-        expect.objectContaining({
-          enablePreCommit: true,
-          enablePostRun: true,
-          enablePreTest: true
-        })
-      );
-    });
-
     it('should handle installation with force flag', async () => {
       mockHookInjector.injectHooks.mockResolvedValue({ 
         success: true,
         message: 'Success',
-        hooksAdded: ['preCommit'], 
+        hooksAdded: ['Stop'], 
         hooksSkipped: []
       });
 
       await claudeRegisterCommand({ 
-        preCommit: true,
         force: true
       });
 
@@ -312,7 +258,7 @@ describe('claudeRegisterCommand', () => {
         hooksSkipped: []
       });
 
-      await claudeRegisterCommand({ preCommit: true });
+      await claudeRegisterCommand({});
 
       expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Failed to register hooks'));
       expect(process.exit).toHaveBeenCalledWith(1);
@@ -320,72 +266,6 @@ describe('claudeRegisterCommand', () => {
 
     it('should handle injection exceptions', async () => {
       mockHookInjector.injectHooks.mockRejectedValue(new Error('Injection failed'));
-
-      await claudeRegisterCommand({ preCommit: true });
-
-      expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Registration failed'));
-      expect(process.exit).toHaveBeenCalledWith(1);
-    });
-  });
-
-  describe('interactive mode', () => {
-    it('should prompt for hook selection', async () => {
-      mockPrompt.mockResolvedValue({ 
-        hooks: ['preCommit', 'postRun'],
-        backup: true,
-        force: false
-      });
-      mockHookInjector.injectHooks.mockResolvedValue({ 
-        success: true,
-        message: 'Success',
-        hooksAdded: ['preCommit', 'postRun'], 
-        hooksSkipped: []
-      });
-
-      await claudeRegisterCommand({});
-
-      expect(mockPrompt).toHaveBeenCalledWith([
-        expect.objectContaining({
-          type: 'checkbox',
-          name: 'hooks',
-          message: expect.stringContaining('Which hooks would you like to enable')
-        }),
-        expect.objectContaining({
-          type: 'confirm',
-          name: 'backup',
-          message: expect.stringContaining('Create backup')
-        }),
-        expect.objectContaining({
-          type: 'confirm',
-          name: 'force',
-          message: expect.stringContaining('Overwrite existing hooks')
-        })
-      ]);
-    });
-
-    it('should handle empty hook selection', async () => {
-      mockPrompt.mockResolvedValue({ hooks: [], backup: true, force: false });
-      mockHookInjector.injectHooks.mockResolvedValue({ 
-        success: true,
-        message: 'Success',
-        hooksAdded: [], 
-        hooksSkipped: []
-      });
-
-      await claudeRegisterCommand({});
-
-      expect(mockHookInjector.injectHooks).toHaveBeenCalledWith(
-        expect.objectContaining({
-          enablePreCommit: false,
-          enablePostRun: false,
-          enablePreTest: false,
-          enablePostTest: false
-        })
-      );
-    });
-
-    it('should handle prompt errors', async () => {
-      mockPrompt.mockRejectedValue(new Error('Prompt failed'));
 
       await claudeRegisterCommand({});
 
@@ -395,19 +275,16 @@ describe('claudeRegisterCommand', () => {
   });
 
   describe('backup functionality', () => {
-    it('should create backup when requested', async () => {
+    it('should create backup when hooks are injected', async () => {
       mockHookInjector.injectHooks.mockResolvedValue({ 
         success: true,
         message: 'Success',
-        hooksAdded: ['preCommit'], 
+        hooksAdded: ['Stop'], 
         hooksSkipped: [],
         backupPath: '/backup/path/hooks.backup'
       });
 
-      await claudeRegisterCommand({ 
-        preCommit: true,
-        backup: true
-      });
+      await claudeRegisterCommand({});
 
       expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Backup created'));
     });
@@ -415,9 +292,7 @@ describe('claudeRegisterCommand', () => {
     it('should handle hooks already registered', async () => {
       mockHookInjector.areHooksInjected.mockResolvedValue(true);
 
-      await claudeRegisterCommand({ 
-        preCommit: true
-      });
+      await claudeRegisterCommand({});
 
       expect(console.log).toHaveBeenCalledWith(expect.stringContaining('hooks are already registered'));
       expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Use --force to overwrite'));
@@ -428,7 +303,7 @@ describe('claudeRegisterCommand', () => {
     it('should handle non-Error objects', async () => {
       mockHookInjector.injectHooks.mockRejectedValue('String error');
 
-      await claudeRegisterCommand({ preCommit: true });
+      await claudeRegisterCommand({});
 
       expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Registration failed'));
       expect(process.exit).toHaveBeenCalledWith(1);
