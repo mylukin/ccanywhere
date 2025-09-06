@@ -53,7 +53,7 @@
     "postinstall": "node scripts/postinstall-wrapper.cjs"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.882.0",
+    "@aws-sdk/client-s3": "^3.883.0",
     "@types/ali-oss": "^6.16.11",
     "ali-oss": "^6.23.0",
     "axios": "^1.6.2",
@@ -67,7 +67,7 @@
     "glob": "^10.3.10",
     "inquirer": "^9.2.12",
     "mime-types": "^2.1.35",
-    "node-telegram-bot-api": "^0.64.0",
+    "node-telegram-bot-api": "^0.66.0",
     "nodemailer": "^6.9.7",
     "ora": "^7.0.1",
     "winston": "^3.11.0",
