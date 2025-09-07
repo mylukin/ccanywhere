@@ -63,16 +63,19 @@ if (!fs.existsSync(distScriptPath)) {
   process.exit(0);
 }
 
-// For global installs, we'll rely on first-run detection instead
-// This is because npm has issues with postinstall scripts in global packages
+// For global installs, check if dist exists and run postinstall
 if (isGlobalInstall) {
-  if (process.env.CCANYWHERE_DEBUG) {
-    console.log('🌍 Global installation detected - initialization will happen on first run');
-  }
-  // Pass global install flag to the actual postinstall script
+  // Set flag for postinstall script to know it's a global install
   process.env.CCANYWHERE_IS_GLOBAL = 'true';
-  // Don't run postinstall for global installs due to npm limitations
-  process.exit(0);
+  
+  // If dist doesn't exist in global install, something is wrong
+  if (!fs.existsSync(distScriptPath)) {
+    console.log('⚠️  Installation may be incomplete - dist folder not found');
+    process.exit(0);
+  }
+  
+  // Run postinstall for global installs to show welcome message
+  // Fall through to execute the script below
 }
 
 // Run the actual postinstall script for local installs

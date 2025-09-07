@@ -64,47 +64,7 @@ async function hasFirstRunMarker(): Promise<boolean> {
   return fs.pathExists(markerPath);
 }
 
-/**
- * Initialize user configuration
- */
-async function initializeUserConfig(): Promise<void> {
-  const configPath = path.join(os.homedir(), '.claude', 'ccanywhere.config.json');
-  const configDir = path.dirname(configPath);
-
-  // Ensure directory exists
-  await fs.ensureDir(configDir);
-
-  // Create sample configuration
-  const sampleConfig: Partial<CcanywhereConfig> = {
-    notifications: {
-      channels: ['telegram'],
-      telegram: {
-        botToken: 'YOUR_BOT_TOKEN_HERE',
-        chatId: 'YOUR_CHAT_ID_HERE'
-      }
-    },
-    artifacts: {
-      baseUrl: 'https://artifacts.example.com',
-      retentionDays: 7,
-      storage: {
-        provider: 'r2',
-        folder: 'diffs',
-        r2: {
-          accountId: 'YOUR_CLOUDFLARE_ACCOUNT_ID',
-          accessKeyId: 'YOUR_R2_ACCESS_KEY_ID',
-          secretAccessKey: 'YOUR_R2_SECRET_ACCESS_KEY',
-          bucket: 'my-artifacts-bucket'
-        }
-      }
-    }
-  };
-
-  // Write configuration
-  await fs.writeFile(configPath, JSON.stringify(sampleConfig, null, 2), 'utf8');
-
-  console.log(chalk.green('✅ User configuration initialized successfully!'));
-  console.log(chalk.gray(`   Location: ${configPath}`));
-}
+// Remove the initializeUserConfig function as we'll use init command instead
 
 /**
  * Register Claude Code hooks
@@ -119,15 +79,15 @@ async function registerClaudeHooks(): Promise<void> {
       return;
     }
 
-    console.log(chalk.blue('   Registering Claude Code hooks...'));
-
     // Check if hooks are already registered
     const alreadyInjected = await HookInjector.areHooksInjected();
     if (alreadyInjected) {
-      console.log(chalk.gray('   Hooks already registered'));
+      console.log(chalk.green('   ✅ Claude Code hooks already registered'));
       return;
     }
 
+    console.log(chalk.gray('   Registering Stop-hook for Claude Code...'));
+    
     // Register hooks
     const result = await HookInjector.injectHooks({
       enableStop: true,
@@ -141,9 +101,10 @@ async function registerClaudeHooks(): Promise<void> {
       console.log(chalk.yellow(`   ⚠️  Could not register hooks: ${result.message}`));
     }
   } catch (error) {
-    // Silently fail - don't break the CLI
-    if (process.env.DEBUG) {
-      console.error('Error registering hooks:', error);
+    // Log error but don't break the flow
+    console.log(chalk.yellow('   ⚠️  Could not register hooks (optional)'));
+    if (process.env.CCANYWHERE_DEBUG) {
+      console.error('Hook registration error:', error);
     }
   }
 }
@@ -173,17 +134,14 @@ export async function checkFirstRun(skipPrompt = false): Promise<void> {
   console.log();
   console.log(chalk.blue('🚀 Welcome to CCanywhere!'));
   console.log(chalk.gray('='.repeat(50)));
-  console.log(chalk.yellow('This appears to be your first time using CCanywhere.'));
-  console.log(chalk.gray('CCanywhere requires initial setup to configure:'));
-  console.log(chalk.gray('  • User configuration in ~/.claude/'));
-  console.log(chalk.gray('  • Claude Code hook integration (if available)'));
+  console.log(chalk.yellow('First-time setup required'));
   console.log();
 
   // Check if we should skip prompt (for certain commands or non-interactive)
   const command = process.argv[2];
-  const isInitCommand = command === 'init-user';
+  const isInitCommand = command === 'init' || command === 'init-user';
 
-  // If running init-user command, don't prompt (avoid recursion)
+  // If running init command, don't prompt (avoid recursion)
   if (isInitCommand) {
     return;
   }
@@ -191,69 +149,73 @@ export async function checkFirstRun(skipPrompt = false): Promise<void> {
   // If skip prompt or non-interactive, show instructions
   if (skipPrompt || !process.stdin.isTTY) {
     console.log(chalk.yellow('📝 To complete setup, run:'));
-    console.log(chalk.cyan('   ccanywhere init-user'));
+    console.log(chalk.cyan('   ccanywhere init'));
     console.log();
-    console.log(chalk.gray('Or to skip this message, create an empty config:'));
+    console.log(chalk.gray('Or to skip this message:'));
     console.log(chalk.cyan('   mkdir -p ~/.claude && touch ~/.claude/.ccanywhere-initialized'));
     console.log();
     return;
   }
 
-  // Interactive mode - prompt user
+  // Interactive mode - Step 1: Register Claude Code hooks first
+  console.log(chalk.blue('🔗 Step 1: Registering Claude Code hooks...'));
+  console.log();
+  
+  try {
+    await registerClaudeHooks();
+  } catch (error) {
+    // Log error but continue - hooks are optional
+    if (process.env.CCANYWHERE_DEBUG) {
+      console.error('Hook registration error:', error);
+    }
+  }
+
+  // Step 2: Prompt for configuration setup
+  console.log();
+  console.log(chalk.blue('📝 Step 2: Configuration Setup'));
+  console.log();
+  
   const { shouldInitialize } = await inquirer.prompt([
     {
       type: 'confirm',
       name: 'shouldInitialize',
-      message: 'Would you like to initialize CCanywhere now?',
+      message: 'Would you like to configure CCanywhere now?',
       default: true
     }
   ]);
 
   if (!shouldInitialize) {
     console.log();
-    console.log(chalk.gray('You can initialize later by running:'));
-    console.log(chalk.cyan('   ccanywhere init-user'));
+    console.log(chalk.gray('You can configure later by running:'));
+    console.log(chalk.cyan('   ccanywhere init'));
     console.log();
     // Create marker to prevent repeated prompts
     await createFirstRunMarker();
     return;
   }
 
-  // Perform initialization
+  // Run the init command directly
   console.log();
-  console.log(chalk.blue('Initializing CCanywhere...'));
+  console.log(chalk.blue('Starting interactive configuration...'));
   console.log();
 
   try {
-    // Initialize user configuration
-    await initializeUserConfig();
-
-    // Register Claude Code hooks
-    await registerClaudeHooks();
-
-    // Create marker
+    // Dynamic import to avoid circular dependency
+    const { initCommand } = await import('../cli/commands/init.js');
+    
+    // Run init command with first-run flag
+    await initCommand({ firstRun: true });
+    
+    // Create marker after successful init
     await createFirstRunMarker();
-
-    // Show next steps
-    console.log();
-    console.log(chalk.green('✨ Setup complete!'));
-    console.log();
-    console.log(chalk.yellow('📝 Next steps:'));
-    console.log(chalk.gray('   1. Edit your user configuration:'));
-    console.log(chalk.cyan('      ccanywhere config-user --edit'));
-    console.log(chalk.gray('   2. Or set specific values:'));
-    console.log(chalk.cyan('      ccanywhere config-user set notifications.telegram.botToken --value "YOUR_TOKEN"'));
-    console.log(chalk.gray('   3. Initialize a project:'));
-    console.log(chalk.cyan('      cd your-project && ccanywhere init'));
-    console.log();
-    console.log(chalk.gray('📚 Documentation: https://github.com/mylukin/ccanywhere'));
-    console.log();
   } catch (error) {
-    console.error(chalk.red('Error during initialization:'));
+    console.error(chalk.red('Error during configuration:'));
     console.error(error instanceof Error ? error.message : String(error));
     console.log();
     console.log(chalk.gray('You can try again by running:'));
-    console.log(chalk.cyan('   ccanywhere init-user'));
+    console.log(chalk.cyan('   ccanywhere init'));
     console.log();
+    // Still create marker to avoid repeated prompts
+    await createFirstRunMarker();
   }
 }

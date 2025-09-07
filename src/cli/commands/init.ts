@@ -19,14 +19,18 @@ import { PackageManager } from '../../utils/package-manager.js';
 
 interface InitOptions extends CliOptions {
   force?: boolean;
+  firstRun?: boolean;  // Flag to indicate this is called from first-run check
 }
 
 export async function initCommand(options: InitOptions): Promise<void> {
-  console.log();
-  console.log(chalk.blue('╔════════════════════════════════════════╗'));
-  console.log(chalk.blue('║     🚀 CCanywhere Initialization      ║'));
-  console.log(chalk.blue('╚════════════════════════════════════════╝'));
-  console.log();
+  // Only show header if not called from first-run
+  if (!options.firstRun) {
+    console.log();
+    console.log(chalk.blue('╔════════════════════════════════════════╗'));
+    console.log(chalk.blue('║     🚀 CCanywhere Initialization      ║'));
+    console.log(chalk.blue('╚════════════════════════════════════════╝'));
+    console.log();
+  }
 
   try {
     const workDir = process.cwd();
@@ -36,8 +40,9 @@ export async function initCommand(options: InitOptions): Promise<void> {
     const envPath = join(workDir, '.env');
 
     // Detect if we're in a git project
+    // In first-run mode, we focus on user config regardless of git status
     const gitInfo = await detectGitInfo(workDir);
-    const isInGitProject = !!gitInfo.repoUrl;
+    const isInGitProject = options.firstRun ? false : !!gitInfo.repoUrl;
 
     // Ensure user config directory exists
     await fsExtra.ensureDir(userConfigDir);
@@ -56,8 +61,8 @@ export async function initCommand(options: InitOptions): Promise<void> {
       }
     }
     
-    // Only check for project config overwrite if we're in a git project
-    if (isInGitProject && projectConfigExists && !options.force) {
+    // Only check for project config overwrite if we're in a git project and not first-run
+    if (!options.firstRun && isInGitProject && projectConfigExists && !options.force) {
       const { overwrite } = await inquirer.prompt([{
         type: 'confirm',
         name: 'overwrite',
@@ -72,8 +77,9 @@ export async function initCommand(options: InitOptions): Promise<void> {
     }
 
     // Collect configuration based on context
+    // In first-run mode, always collect user config
     const { userConfig, projectConfig } = await collectConfiguration(
-      !userConfigExists || options.force,
+      options.firstRun || !userConfigExists || options.force,
       isInGitProject,
       gitInfo,
       existingUserConfig
@@ -127,7 +133,18 @@ export async function initCommand(options: InitOptions): Promise<void> {
     console.log(chalk.green('✅ CCanywhere initialized successfully!'));
     console.log();
     
-    if (isInGitProject) {
+    if (options.firstRun) {
+      // First-run mode - focus on what was configured
+      console.log(chalk.blue('Configuration saved:'));
+      console.log('  User config: ' + chalk.cyan(userConfigPath));
+      console.log();
+      console.log(chalk.blue('Next steps:'));
+      console.log('1. Navigate to your project: ' + chalk.cyan('cd your-project'));
+      console.log('2. Initialize project config: ' + chalk.cyan('ccanywhere init'));
+      console.log('3. Test your configuration: ' + chalk.cyan('ccanywhere test'));
+      console.log();
+      console.log(chalk.gray('📚 Documentation: https://github.com/mylukin/ccanywhere'));
+    } else if (isInGitProject) {
       // Full initialization (user + project)
       console.log(chalk.blue('Configuration saved:'));
       if ((!userConfigExists || options.force) && Object.keys(userConfig).length > 0) {
