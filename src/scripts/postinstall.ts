@@ -6,45 +6,21 @@
  * when installed globally
  */
 
-import chalkModule from 'chalk';
-const chalk = chalkModule;
-import fs from 'fs-extra';
 import path from 'path';
 import os from 'os';
-import { ClaudeCodeDetector } from '../utils/claude-detector.js';
-import { HookInjector } from '../utils/hook-injector.js';
 import type { CcanywhereConfig } from '../types/index.js';
-
-// Disable verbose logging during postinstall
-process.env.LOG_LEVEL = 'error';
 
 /**
  * Check if CCanywhere is installed globally
+ * Uses the flag set by postinstall-wrapper.cjs for consistency
  */
 function isGlobalInstall(): boolean {
-  // Check if running from npm global directory
-  const npmPrefix = process.env.npm_config_prefix || '';
-  const nodeModulesPath = process.cwd();
-
-  // Various ways to detect global install
-  return (
-    // npm global install patterns
-    nodeModulesPath.includes('/node_modules/ccanywhere') ||
-    nodeModulesPath.includes('\\node_modules\\ccanywhere') ||
-    // nvm global install
-    nodeModulesPath.includes('.nvm/') ||
-    nodeModulesPath.includes('.nvm\\') ||
-    // yarn global install
-    nodeModulesPath.includes('yarn/global/node_modules/ccanywhere') ||
-    // pnpm global install
-    nodeModulesPath.includes('pnpm-global') ||
-    // Check npm prefix
-    (npmPrefix && nodeModulesPath.startsWith(npmPrefix)) ||
-    // Check if npm_config_global is set
-    process.env.npm_config_global === 'true' ||
-    // Check if we're NOT in a project's node_modules (simple heuristic)
-    (!nodeModulesPath.includes('/node_modules/@') && nodeModulesPath.endsWith('/node_modules/ccanywhere'))
-  );
+  // Prefer the flag set by wrapper script
+  if (process.env.CCANYWHERE_IS_GLOBAL !== undefined) {
+    return process.env.CCANYWHERE_IS_GLOBAL === 'true';
+  }
+  // Fallback to simple check
+  return process.env.npm_config_global === 'true';
 }
 
 /**
@@ -55,53 +31,14 @@ function getUserConfigPath(): string {
 }
 
 /**
- * Initialize user configuration if it doesn't exist
+ * Check if user configuration exists
  */
-async function initializeUserConfig(): Promise<boolean> {
+async function checkUserConfig(): Promise<boolean> {
+  // Lazy load fs-extra only when needed
+  const fs = await import('fs-extra');
+  
   const configPath = getUserConfigPath();
-  const configDir = path.dirname(configPath);
-
-  // Check if config already exists
-  if (await fs.pathExists(configPath)) {
-    console.log(chalk.blue('ℹ️  User configuration already exists'));
-    return false;
-  }
-
-  // Ensure directory exists
-  await fs.ensureDir(configDir);
-
-  // Create sample configuration
-  const sampleConfig: Partial<CcanywhereConfig> = {
-    notifications: {
-      channels: ['telegram'],
-      telegram: {
-        botToken: 'YOUR_BOT_TOKEN_HERE',
-        chatId: 'YOUR_CHAT_ID_HERE'
-      }
-    },
-    artifacts: {
-      baseUrl: 'https://artifacts.example.com',
-      retentionDays: 7,
-      storage: {
-        provider: 'r2',
-        folder: 'diffs',
-        r2: {
-          accountId: 'YOUR_CLOUDFLARE_ACCOUNT_ID',
-          accessKeyId: 'YOUR_R2_ACCESS_KEY_ID',
-          secretAccessKey: 'YOUR_R2_SECRET_ACCESS_KEY',
-          bucket: 'my-artifacts-bucket'
-        }
-      }
-    }
-  };
-
-  // Write configuration
-  await fs.writeFile(configPath, JSON.stringify(sampleConfig, null, 2), 'utf8');
-
-  console.log(chalk.green('✅ User configuration initialized successfully!'));
-  console.log(chalk.gray(`   Location: ${configPath}`));
-
-  return true;
+  return await fs.pathExists(configPath);
 }
 
 /**
@@ -109,6 +46,11 @@ async function initializeUserConfig(): Promise<boolean> {
  */
 async function registerClaudeHooks(): Promise<void> {
   try {
+    // Lazy load Claude-related modules
+    const { ClaudeCodeDetector } = await import('../utils/claude-detector.js');
+    const { HookInjector } = await import('../utils/hook-injector.js');
+    const chalk = (await import('chalk')).default;
+    
     // Detect Claude Code environment
     const environment = await ClaudeCodeDetector.detectEnvironment();
 
@@ -139,8 +81,8 @@ async function registerClaudeHooks(): Promise<void> {
       console.log(chalk.yellow(`⚠️  Could not register hooks: ${result.message}`));
     }
   } catch (error) {
-    // Silently fail - don't break installation
-    if (process.env.DEBUG) {
+    // Only log in debug mode
+    if (process.env.CCANYWHERE_DEBUG) {
       console.error('Error registering hooks:', error);
     }
   }
@@ -157,12 +99,15 @@ async function main() {
       return;
     }
 
+    // Lazy load chalk for console output
+    const chalk = (await import('chalk')).default;
+    
     console.log();
     console.log(chalk.blue('🚀 CCanywhere Global Installation'));
     console.log(chalk.gray('='.repeat(50)));
 
-    // Initialize user configuration
-    const configCreated = await initializeUserConfig();
+    // Check if user configuration exists
+    const userConfigExists = await checkUserConfig();
 
     // Register Claude Code hooks
     await registerClaudeHooks();
@@ -172,28 +117,34 @@ async function main() {
     console.log(chalk.green('✨ Installation complete!'));
     console.log();
 
-    if (configCreated) {
-      console.log(chalk.yellow('📝 Next steps:'));
-      console.log(chalk.gray('   1. Edit your user configuration:'));
-      console.log(chalk.cyan('      ccanywhere config-user --edit'));
-      console.log(chalk.gray('   2. Or set specific values:'));
-      console.log(chalk.cyan('      ccanywhere config-user set notifications.telegram.botToken --value "YOUR_TOKEN"'));
-      console.log(chalk.gray('   3. Initialize a project:'));
-      console.log(chalk.cyan('      cd your-project && ccanywhere init'));
+    if (!userConfigExists) {
+      console.log(chalk.yellow('📝 Get started:'));
+      console.log();
+      console.log(chalk.gray('   Run the following command to configure CCanywhere:'));
+      console.log();
+      console.log(chalk.cyan.bold('      ccanywhere init'));
+      console.log();
+      console.log(chalk.gray('   This will guide you through:'));
+      console.log(chalk.gray('   • Setting up cloud storage (S3, R2, or OSS)'));
+      console.log(chalk.gray('   • Configuring notifications (Telegram, DingTalk, etc.)'));
+      console.log(chalk.gray('   • Registering Claude Code hooks'));
     } else {
-      console.log(chalk.gray('💡 Tip: Manage your configuration with:'));
-      console.log(chalk.cyan('   ccanywhere config-user --show'));
-      console.log(chalk.cyan('   ccanywhere config-user --edit'));
+      console.log(chalk.gray('💡 Quick tips:'));
+      console.log();
+      console.log(chalk.gray('   • Initialize a project:') + chalk.cyan(' cd your-project && ccanywhere init'));
+      console.log(chalk.gray('   • Run pipeline:') + chalk.cyan(' ccanywhere run'));
+      console.log(chalk.gray('   • Test configuration:') + chalk.cyan(' ccanywhere test'));
     }
 
     console.log();
     console.log(chalk.gray('📚 Documentation: https://github.com/mylukin/ccanywhere'));
     console.log();
   } catch (error) {
-    // Don't break npm install on errors
-    if (process.env.DEBUG) {
+    // Only show errors in debug mode
+    if (process.env.CCANYWHERE_DEBUG) {
       console.error('Postinstall error:', error);
     }
+    // Always exit gracefully
     process.exit(0);
   }
 }
@@ -201,11 +152,12 @@ async function main() {
 // Run if this is the main module
 if (import.meta.url === `file://${process.argv[1]}`) {
   main().catch(error => {
-    if (process.env.DEBUG) {
+    if (process.env.CCANYWHERE_DEBUG) {
       console.error('Fatal error:', error);
     }
+    // Always exit gracefully to not break npm install
     process.exit(0);
   });
 }
 
-export { main, isGlobalInstall, initializeUserConfig, registerClaudeHooks };
+export { main, isGlobalInstall, checkUserConfig, registerClaudeHooks };

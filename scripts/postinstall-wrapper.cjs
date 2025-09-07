@@ -18,15 +18,8 @@ if (process.env.CCANYWHERE_DEBUG) {
   console.log('   npm_lifecycle_event:', process.env.npm_lifecycle_event);
 }
 
-// Environment detection
-const isCI = process.env.CI === 'true' || 
-              process.env.CONTINUOUS_INTEGRATION === 'true' ||
-              process.env.GITHUB_ACTIONS === 'true' ||
-              process.env.GITLAB_CI === 'true' ||
-              process.env.CIRCLECI === 'true' ||
-              process.env.TRAVIS === 'true' ||
-              process.env.JENKINS_URL !== undefined;
-
+// Environment detection - simplified
+const isCI = process.env.CI === 'true';
 const isDevelopment = process.env.NODE_ENV === 'development' || 
                       (!process.env.NODE_ENV && !isCI);
 
@@ -42,11 +35,17 @@ if (isCI) {
 const npmCommand = process.env.npm_command;
 const isNpmInstall = npmCommand === 'install' || npmCommand === 'i';
 
-// Check if this is a global install by looking at the install path
-const isGlobalInstall = process.env.npm_config_global === 'true' ||
-                       process.cwd().includes('.npm-global') ||
-                       process.cwd().includes('npm/lib/node_modules') ||
-                       process.cwd().includes('.nvm/versions');
+// Check if this is a global install
+function detectGlobalInstall() {
+  return process.env.npm_config_global === 'true' ||
+         process.cwd().includes('.npm-global') ||
+         process.cwd().includes('npm/lib/node_modules') ||
+         process.cwd().includes('.nvm/versions') ||
+         process.cwd().includes('yarn/global') ||
+         process.cwd().includes('pnpm-global');
+}
+
+const isGlobalInstall = detectGlobalInstall();
 
 // Path to compiled postinstall script
 const distScriptPath = path.join(__dirname, '..', 'dist', 'scripts', 'postinstall.js');
@@ -70,32 +69,33 @@ if (isGlobalInstall) {
   if (process.env.CCANYWHERE_DEBUG) {
     console.log('🌍 Global installation detected - initialization will happen on first run');
   }
+  // Pass global install flag to the actual postinstall script
+  process.env.CCANYWHERE_IS_GLOBAL = 'true';
   // Don't run postinstall for global installs due to npm limitations
   process.exit(0);
 }
 
 // Run the actual postinstall script for local installs
 try {
+  // Set environment flag for local install
+  process.env.CCANYWHERE_IS_GLOBAL = 'false';
   require(distScriptPath);
 } catch (error) {
-  // Distinguish between different error types
-  if (error.code === 'MODULE_NOT_FOUND') {
-    console.error('❌ Postinstall script not found at expected location');
-    console.error('   Path:', distScriptPath);
-  } else {
-    console.error('❌ Error running postinstall script:', error.message);
-    if (error.stack && process.env.DEBUG) {
-      console.error(error.stack);
+  // Only show errors in debug mode or production
+  if (process.env.CCANYWHERE_DEBUG || !isDevelopment) {
+    if (error.code === 'MODULE_NOT_FOUND') {
+      console.error('❌ Postinstall script not found');
+      if (process.env.CCANYWHERE_DEBUG) {
+        console.error('   Path:', distScriptPath);
+      }
+    } else {
+      console.error('❌ Postinstall error:', error.message);
+      if (process.env.CCANYWHERE_DEBUG && error.stack) {
+        console.error(error.stack);
+      }
     }
   }
   
-  // In development, continue despite errors
-  if (isDevelopment) {
-    console.log('   Continuing installation (development mode)');
-    process.exit(0);
-  }
-  
-  // In production, we should fail to alert the user
-  console.error('   Installation may be incomplete');
-  process.exit(1);
+  // Always exit gracefully to not break npm install
+  process.exit(0);
 }
