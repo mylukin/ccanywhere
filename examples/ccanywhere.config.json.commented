@@ -104,8 +104,4 @@
       }
     }
   }
-  
-  // Legacy configuration formats (still supported for backward compatibility):
-  // "urls": { "artifacts": "https://artifacts.example.com" }  → migrated to artifacts.baseUrl
-  // "storage": { ... }                                        → migrated to artifacts.storage
 }
