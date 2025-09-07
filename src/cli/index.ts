@@ -14,6 +14,7 @@ import { runCommand } from './commands/run.js';
 import { testCommand } from './commands/test-runner.js';
 import { configCommand } from './commands/config.js';
 import { createConfigUserCommand } from './commands/config-user.js';
+import { createInitUserCommand } from './commands/init-user.js';
 import { cleanupCommand } from './commands/cleanup.js';
 import { lockCommand } from './commands/lock.js';
 import { notifyCommand } from './commands/notify.js';
@@ -72,6 +73,9 @@ program.addCommand(configCommand);
 
 // User configuration management
 program.addCommand(createConfigUserCommand());
+
+// Initialize user configuration (for npm link and manual setup)
+program.addCommand(createInitUserCommand());
 
 // Cleanup operations
 program

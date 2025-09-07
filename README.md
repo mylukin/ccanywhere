@@ -40,6 +40,10 @@ CCanywhere integrates with Claude Code's hook system to:
 # Install globally (recommended - auto-configures user settings)
 npm install -g ccanywhere
 
+# For development with npm link
+npm link
+ccanywhere init-user  # Manually initialize user config
+
 # Or install as dev dependency
 npm install -D ccanywhere
 
@@ -181,6 +185,7 @@ ccanywhere config validate    # Validate configuration file
 ccanywhere config edit        # Edit configuration file
 
 # User-level configuration management (NEW!)
+ccanywhere init-user              # Initialize user config and Claude hooks (for npm link)
 ccanywhere config-user --init     # Initialize user config in ~/.claude/
 ccanywhere config-user --show     # Show user configuration
 ccanywhere config-user --edit     # Edit user configuration
