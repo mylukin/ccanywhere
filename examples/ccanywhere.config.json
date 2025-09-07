@@ -1,38 +1,22 @@
 {
   "repo": {
     "kind": "github",
-    "url": "https://github.com/mylukin/my-project",
+    "url": "https://github.com/owner/repo",
     "branch": "main"
   },
   "deployment": "https://deploy.example.com/api/webhook/deploy",
   "notifications": {
-    "channels": [
-      "telegram"
-    ],
+    "channels": ["telegram"],
     "telegram": {
-      "botToken": "YOUR_BOT_TOKEN",
-      "chatId": "YOUR_CHAT_ID"
-    },
-    "email": {
-      "to": "admin@example.com",
-      "from": "noreply@example.com",
-      "smtp": {
-        "host": "smtp.gmail.com",
-        "port": 587,
-        "user": "your-email@gmail.com",
-        "pass": "your-app-password"
-      }
-    },
-    "dingtalk": "https://oapi.dingtalk.com/robot/send?access_token=YOUR_TOKEN",
-    "wecom": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_KEY"
+      "botToken": "123456789:ABC-DEF1234ghIkl-zyx57W2v1u123ew11",
+      "chatId": "-1001234567890"
+    }
   },
   "build": {
     "base": "origin/main",
     "lockTimeout": 300,
     "cleanupDays": 7,
-    "excludePaths": [
-      ".artifacts"
-    ]
+    "excludePaths": [".artifacts", "node_modules", "dist"]
   },
   "test": {
     "enabled": false,
@@ -45,23 +29,11 @@
     "storage": {
       "provider": "r2",
       "folder": "diffs",
-      "s3": {
-        "accessKeyId": "YOUR_AWS_ACCESS_KEY_ID",
-        "secretAccessKey": "YOUR_AWS_SECRET_ACCESS_KEY",
-        "region": "us-east-1",
-        "bucket": "my-artifacts-bucket"
-      },
       "r2": {
-        "accountId": "YOUR_CLOUDFLARE_ACCOUNT_ID",
-        "accessKeyId": "YOUR_R2_ACCESS_KEY_ID",
-        "secretAccessKey": "YOUR_R2_SECRET_ACCESS_KEY",
-        "bucket": "my-r2-bucket"
-      },
-      "oss": {
-        "accessKeyId": "YOUR_ALIYUN_ACCESS_KEY_ID",
-        "accessKeySecret": "YOUR_ALIYUN_ACCESS_KEY_SECRET",
-        "region": "oss-cn-hangzhou",
-        "bucket": "my-oss-bucket"
+        "accountId": "abcd1234567890abcdef1234567890ab",
+        "accessKeyId": "abcd1234567890abcdef1234567890ab",
+        "secretAccessKey": "abc123def456ghi789jkl012mno345pqr678stu901vwx234yz567",
+        "bucket": "my-artifacts-bucket"
       }
     }
   }
