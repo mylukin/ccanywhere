@@ -38,7 +38,7 @@ npm run format       # Prettier
 src/
 ├── cli/              # CLI commands
 │   ├── index.ts      # Entry point
-│   └── commands/     # init, run, test-runner, register, cleanup, info, lock
+│   └── commands/     # init, run, test-runner, register, cleanup, info
 ├── core/             # Core logic
 │   ├── pipeline.ts   # Build pipeline
 │   ├── diff-generator.ts

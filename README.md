@@ -82,7 +82,6 @@ ccanywhere test          # Test configuration
 ccanywhere register      # Manage Claude Code hooks
 ccanywhere cleanup       # Clean old artifacts
 ccanywhere info          # Show configuration info
-ccanywhere lock status   # Check lock status
 ```
 
 ### Test Options

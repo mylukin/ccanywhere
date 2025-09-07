@@ -82,7 +82,6 @@ ccanywhere test          # 测试配置
 ccanywhere register      # 管理 Claude Code 钩子
 ccanywhere cleanup       # 清理旧产物
 ccanywhere info          # 显示配置信息
-ccanywhere lock status   # 检查锁状态
 ```
 
 ### 测试选项

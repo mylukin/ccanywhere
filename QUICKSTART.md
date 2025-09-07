@@ -174,8 +174,8 @@ LOG_LEVEL=debug ccanywhere run
 # 测试配置
 ccanywhere test --all
 
-# 清理构建锁
-ccanywhere lock clean
+# 清理旧产物和锁
+ccanywhere cleanup --days 7
 ```
 
 ## 🔐 环境变量
