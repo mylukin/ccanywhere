@@ -364,7 +364,7 @@ export class ConfigLoader {
    */
   private deepMerge(target: any, source: any): any {
     const result = { ...target };
-    
+
     for (const key in source) {
       if (source[key] !== undefined && source[key] !== null) {
         if (typeof source[key] === 'object' && !Array.isArray(source[key]) && key in target) {
@@ -374,7 +374,7 @@ export class ConfigLoader {
         }
       }
     }
-    
+
     return result;
   }
 

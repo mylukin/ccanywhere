@@ -3,8 +3,6 @@
  * Provides hook handlers that can be injected into Claude Code's hook system
  */
 
-import path from 'path';
-import fs from 'fs-extra';
 import { Logger } from '../utils/logger.js';
 import { ConfigLoader } from '../config/index.js';
 import { HtmlDiffGenerator } from './diff-generator.js';
@@ -15,12 +13,14 @@ export interface ClaudeHookContext {
   command?: string;
   args?: string[];
   env?: Record<string, string>;
+  data?: any;
 }
 
 export interface ClaudeHookResult {
   success: boolean;
   message?: string;
   data?: any;
+  block?: boolean; // For PreToolUse hook to block tool execution
 }
 
 /**
@@ -30,198 +30,252 @@ export class ClaudeHooks {
   private static logger = Logger.getInstance();
 
   /**
-   * Pre-commit hook - runs before git commits
-   * Generates diff and runs analysis
+   * Stop hook - runs when Claude Code finishes responding
+   * This is the primary hook used by CCanywhere
    */
-  static async preCommit(context: ClaudeHookContext): Promise<ClaudeHookResult> {
+  static async Stop(context: ClaudeHookContext): Promise<ClaudeHookResult> {
     try {
-      this.logger.info('🔍 Running CCanywhere pre-commit hook');
+      this.logger.info('🔍 Running CCanywhere Stop hook');
 
       const configLoader = ConfigLoader.getInstance();
       const config = await configLoader.loadConfig(context.workingDir);
 
-      if (!(config as any).hooks?.preCommit) {
-        this.logger.debug('Pre-commit hook disabled in configuration');
-        return { success: true, message: 'Pre-commit hook disabled' };
+      if (!(config as any).hooks?.Stop) {
+        this.logger.debug('Stop hook disabled in configuration');
+        return { success: true, message: 'Stop hook disabled' };
       }
 
-      // Generate diff for staged changes
+      // Generate diff for session changes
       const diffGenerator = new HtmlDiffGenerator();
       const runtimeContext = {
-        config: config,
-        revision: 'staged',
-        branch: 'current',
-        timestamp: Date.now(),
         workDir: context.workingDir,
-        artifactsDir: '/tmp/ccanywhere-artifacts',
-        logDir: '/tmp/ccanywhere-logs',
-        lockFile: '/tmp/ccanywhere-locks/build.lock'
+        artifactsDir: '.artifacts',
+        timestamp: Date.now(),
+        config: config,
+        revision: 'HEAD',
+        branch: config.repo?.branch || 'main',
+        logDir: 'logs',
+        lockFile: '.ccanywhere.lock'
       };
-      const diffResult = await diffGenerator.generate('HEAD', '--staged', runtimeContext);
 
-      if (!diffResult.path) {
-        this.logger.info('No staged changes to analyze');
-        return { success: true, message: 'No staged changes' };
-      }
+      const base = config.build?.base || 'origin/main';
+      const head = 'HEAD';
 
-      this.logger.info('📊 Analyzed staged changes');
+      const artifact = await diffGenerator.generate(base, head, runtimeContext);
+      const diffPath = artifact?.url;
 
-      // Optional: Send notification about commit
-      if ((config.notifications as any)?.onCommit && config.notifications) {
+      // Send notification if configured
+      if (config.notifications?.channels && config.notifications.channels.length > 0) {
         const notificationManager = new NotificationManager(config.notifications);
         await notificationManager.send({
-          title: '📝 Pre-commit Analysis',
-          extra: 'Analyzed staged changes before commit',
+          title: '🛑 Claude Code Session Ended',
+          diffUrl: diffPath ? `file://${diffPath}` : undefined,
+          extra: 'Session summary generated',
+          timestamp: Date.now()
+        });
+      }
+
+      this.logger.info('✅ Stop hook completed successfully');
+
+      return {
+        success: true,
+        message: 'Stop hook completed',
+        data: { diffPath }
+      };
+    } catch (error) {
+      this.logger.error('Stop hook failed:', error);
+
+      // Hook failures shouldn't block Claude Code operations
+      return {
+        success: true,
+        message: 'Stop hook failed but Claude Code operation succeeded'
+      };
+    }
+  }
+
+  /**
+   * PostToolUse hook - runs after tool calls complete
+   */
+  static async PostToolUse(context: ClaudeHookContext): Promise<ClaudeHookResult> {
+    try {
+      this.logger.info('🔧 Running CCanywhere PostToolUse hook');
+
+      const configLoader = ConfigLoader.getInstance();
+      const config = await configLoader.loadConfig(context.workingDir);
+
+      if (!(config as any).hooks?.PostToolUse) {
+        this.logger.debug('PostToolUse hook disabled in configuration');
+        return { success: true, message: 'PostToolUse hook disabled' };
+      }
+
+      // Log tool usage for audit purposes
+      if (context.data?.tool) {
+        this.logger.info(`Tool used: ${context.data.tool}`, {
+          tool: context.data.tool,
+          args: context.data.args,
           timestamp: Date.now()
         });
       }
 
       return {
         success: true,
-        message: 'Analyzed staged changes',
-        data: { diffResult }
+        message: 'PostToolUse hook completed'
       };
     } catch (error) {
-      this.logger.error('Pre-commit hook failed:', error);
+      this.logger.error('PostToolUse hook failed:', error);
+      return {
+        success: true,
+        message: 'PostToolUse hook failed but operation continues'
+      };
+    }
+  }
 
-      // Don't block commits on CCanywhere failures unless configured to do so
-      if (process.env.CCANYWHERE_STRICT_HOOKS === 'true') {
+  /**
+   * PreToolUse hook - runs before tool calls (can block them)
+   */
+  static async PreToolUse(context: ClaudeHookContext): Promise<ClaudeHookResult> {
+    try {
+      this.logger.info('🔍 Running CCanywhere PreToolUse hook');
+
+      const configLoader = ConfigLoader.getInstance();
+      const config = await configLoader.loadConfig(context.workingDir);
+
+      if (!(config as any).hooks?.PreToolUse) {
+        this.logger.debug('PreToolUse hook disabled in configuration');
+        return { success: true, message: 'PreToolUse hook disabled' };
+      }
+
+      // Example: Block dangerous operations if configured
+      if ((config as any).security?.blockDangerousOps && context.data?.tool === 'rm') {
+        this.logger.warn('Blocking dangerous operation: rm');
         return {
-          success: false,
-          message: error instanceof Error ? error.message : 'Pre-commit hook failed'
+          success: true,
+          message: 'Dangerous operation blocked',
+          block: true
         };
       }
 
       return {
         success: true,
-        message: 'Pre-commit hook failed but allowing commit to proceed'
-      };
-    }
-  }
-
-  /**
-   * Post-run hook - runs after Claude Code operations
-   * Triggers full CCanywhere pipeline
-   */
-  static async postRun(context: ClaudeHookContext): Promise<ClaudeHookResult> {
-    try {
-      this.logger.info('🚀 Running CCanywhere post-run hook');
-
-      const configLoader = ConfigLoader.getInstance();
-      const config = await configLoader.loadConfig(context.workingDir);
-
-      if (!(config as any).hooks?.postRun) {
-        this.logger.debug('Post-run hook disabled in configuration');
-        return { success: true, message: 'Post-run hook disabled' };
-      }
-
-      // Run full CCanywhere pipeline
-      const { BuildPipeline } = await import('./pipeline.js');
-      const { Logger } = await import('../utils/logger.js');
-      const logger = Logger.getInstance();
-
-      const pipeline = new BuildPipeline({
-        workDir: context.workingDir,
-        config: config,
-        logger: logger
-      });
-
-      const result = await pipeline.run(config.repo?.branch || 'main', 'HEAD');
-
-      this.logger.info('✅ CCanywhere pipeline completed successfully');
-
-      return {
-        success: true,
-        message: 'CCanywhere pipeline completed',
-        data: result
+        message: 'PreToolUse hook completed'
       };
     } catch (error) {
-      this.logger.error('Post-run hook failed:', error);
-
-      // Post-run failures shouldn't block Claude Code operations
+      this.logger.error('PreToolUse hook failed:', error);
       return {
         success: true,
-        message: 'Post-run hook failed but Claude Code operation succeeded'
+        message: 'PreToolUse hook failed but allowing operation'
       };
     }
   }
 
   /**
-   * Pre-test hook - runs before test execution
+   * UserPromptSubmit hook - runs when the user submits a prompt
    */
-  static async preTest(context: ClaudeHookContext): Promise<ClaudeHookResult> {
+  static async UserPromptSubmit(context: ClaudeHookContext): Promise<ClaudeHookResult> {
     try {
-      this.logger.info('🧪 Running CCanywhere pre-test hook');
+      this.logger.info('💬 Running CCanywhere UserPromptSubmit hook');
 
       const configLoader = ConfigLoader.getInstance();
       const config = await configLoader.loadConfig(context.workingDir);
 
-      if (!(config as any).hooks?.preTest) {
-        this.logger.debug('Pre-test hook disabled in configuration');
-        return { success: true, message: 'Pre-test hook disabled' };
+      if (!(config as any).hooks?.UserPromptSubmit) {
+        this.logger.debug('UserPromptSubmit hook disabled in configuration');
+        return { success: true, message: 'UserPromptSubmit hook disabled' };
       }
 
-      // Ensure test environment is ready
-      if ((config as any).testing?.playwright) {
-        const { execSync } = await import('child_process');
-        try {
-          execSync('npx playwright install --with-deps', {
-            cwd: context.workingDir,
-            stdio: 'pipe'
-          });
-          this.logger.info('📦 Playwright dependencies ensured');
-        } catch (error) {
-          this.logger.warn('Failed to install Playwright dependencies:', error);
-        }
-      }
-
-      return {
-        success: true,
-        message: 'Pre-test setup completed'
-      };
-    } catch (error) {
-      this.logger.error('Pre-test hook failed:', error);
-      return {
-        success: true,
-        message: 'Pre-test hook failed but allowing tests to proceed'
-      };
-    }
-  }
-
-  /**
-   * Post-test hook - runs after test execution
-   */
-  static async postTest(context: ClaudeHookContext): Promise<ClaudeHookResult> {
-    try {
-      this.logger.info('📊 Running CCanywhere post-test hook');
-
-      const configLoader = ConfigLoader.getInstance();
-      const config = await configLoader.loadConfig(context.workingDir);
-
-      if (!(config as any).hooks?.postTest) {
-        this.logger.debug('Post-test hook disabled in configuration');
-        return { success: true, message: 'Post-test hook disabled' };
-      }
-
-      // Send test completion notification
-      if ((config.notifications as any)?.onTestComplete && config.notifications) {
-        const notificationManager = new NotificationManager(config.notifications);
-        await notificationManager.send({
-          title: '🧪 Tests Completed',
-          extra: 'Test execution finished via Claude Code',
+      // Log user prompt for audit purposes
+      if (context.data?.prompt) {
+        this.logger.info('User prompt submitted', {
+          promptLength: context.data.prompt.length,
           timestamp: Date.now()
         });
       }
 
       return {
         success: true,
-        message: 'Post-test processing completed'
+        message: 'UserPromptSubmit hook completed'
       };
     } catch (error) {
-      this.logger.error('Post-test hook failed:', error);
+      this.logger.error('UserPromptSubmit hook failed:', error);
       return {
         success: true,
-        message: 'Post-test hook failed but test results are unaffected'
+        message: 'UserPromptSubmit hook failed but operation continues'
+      };
+    }
+  }
+
+  /**
+   * SessionStart hook - runs when Claude Code starts/resumes a session
+   */
+  static async SessionStart(context: ClaudeHookContext): Promise<ClaudeHookResult> {
+    try {
+      this.logger.info('🚀 Running CCanywhere SessionStart hook');
+
+      const configLoader = ConfigLoader.getInstance();
+      const config = await configLoader.loadConfig(context.workingDir);
+
+      if (!(config as any).hooks?.SessionStart) {
+        this.logger.debug('SessionStart hook disabled in configuration');
+        return { success: true, message: 'SessionStart hook disabled' };
+      }
+
+      // Send session start notification if configured
+      if ((config.notifications as any)?.onSessionStart && config.notifications) {
+        const notificationManager = new NotificationManager(config.notifications);
+        await notificationManager.send({
+          title: '🚀 Claude Code Session Started',
+          extra: 'New session initiated',
+          timestamp: Date.now()
+        });
+      }
+
+      return {
+        success: true,
+        message: 'SessionStart hook completed'
+      };
+    } catch (error) {
+      this.logger.error('SessionStart hook failed:', error);
+      return {
+        success: true,
+        message: 'SessionStart hook failed but session continues'
+      };
+    }
+  }
+
+  /**
+   * SessionEnd hook - runs when Claude Code session ends
+   */
+  static async SessionEnd(context: ClaudeHookContext): Promise<ClaudeHookResult> {
+    try {
+      this.logger.info('🏁 Running CCanywhere SessionEnd hook');
+
+      const configLoader = ConfigLoader.getInstance();
+      const config = await configLoader.loadConfig(context.workingDir);
+
+      if (!(config as any).hooks?.SessionEnd) {
+        this.logger.debug('SessionEnd hook disabled in configuration');
+        return { success: true, message: 'SessionEnd hook disabled' };
+      }
+
+      // Send session end notification if configured
+      if ((config.notifications as any)?.onSessionEnd && config.notifications) {
+        const notificationManager = new NotificationManager(config.notifications);
+        await notificationManager.send({
+          title: '🏁 Claude Code Session Ended',
+          extra: 'Session concluded',
+          timestamp: Date.now()
+        });
+      }
+
+      return {
+        success: true,
+        message: 'SessionEnd hook completed'
+      };
+    } catch (error) {
+      this.logger.error('SessionEnd hook failed:', error);
+      return {
+        success: true,
+        message: 'SessionEnd hook failed'
       };
     }
   }
@@ -231,10 +285,12 @@ export class ClaudeHooks {
    */
   static getHookHandlers() {
     return {
-      preCommit: this.preCommit.bind(this),
-      postRun: this.postRun.bind(this),
-      preTest: this.preTest.bind(this),
-      postTest: this.postTest.bind(this)
+      Stop: this.Stop.bind(this),
+      PostToolUse: this.PostToolUse.bind(this),
+      PreToolUse: this.PreToolUse.bind(this),
+      UserPromptSubmit: this.UserPromptSubmit.bind(this),
+      SessionStart: this.SessionStart.bind(this),
+      SessionEnd: this.SessionEnd.bind(this)
     };
   }
 
@@ -243,53 +299,76 @@ export class ClaudeHooks {
    */
   static generateHookConfig(
     options: {
-      enablePreCommit?: boolean;
-      enablePostRun?: boolean;
-      enablePreTest?: boolean;
-      enablePostTest?: boolean;
+      enableStop?: boolean;
+      enablePostToolUse?: boolean;
+      enablePreToolUse?: boolean;
+      enableUserPromptSubmit?: boolean;
+      enableSessionStart?: boolean;
+      enableSessionEnd?: boolean;
     } = {}
   ) {
-    const { enablePreCommit = true, enablePostRun = true, enablePreTest = false, enablePostTest = false } = options;
+    const {
+      enableStop = true,
+      enablePostToolUse = false,
+      enablePreToolUse = false,
+      enableUserPromptSubmit = false,
+      enableSessionStart = false,
+      enableSessionEnd = false
+    } = options;
 
     const hooks: Record<string, any> = {};
 
-    if (enablePreCommit) {
-      hooks.preCommit = {
-        name: 'CCanywhere Pre-commit Analysis',
+    if (enableStop) {
+      hooks.Stop = {
         handler: 'ccanywhere/hooks',
-        method: 'preCommit',
-        async: true,
-        failOnError: false
+        name: 'CCanywhere Session Summary',
+        method: 'Stop',
+        description: 'Generate diff and send notification when session ends'
       };
     }
 
-    if (enablePostRun) {
-      hooks.postRun = {
-        name: 'CCanywhere Pipeline',
+    if (enablePostToolUse) {
+      hooks.PostToolUse = {
         handler: 'ccanywhere/hooks',
-        method: 'postRun',
-        async: true,
-        failOnError: false
+        name: 'CCanywhere Tool Logger',
+        method: 'PostToolUse',
+        description: 'Log tool usage for audit purposes'
       };
     }
 
-    if (enablePreTest) {
-      hooks.preTest = {
-        name: 'CCanywhere Pre-test Setup',
+    if (enablePreToolUse) {
+      hooks.PreToolUse = {
         handler: 'ccanywhere/hooks',
-        method: 'preTest',
-        async: true,
-        failOnError: false
+        name: 'CCanywhere Tool Guard',
+        method: 'PreToolUse',
+        description: 'Guard against dangerous operations'
       };
     }
 
-    if (enablePostTest) {
-      hooks.postTest = {
-        name: 'CCanywhere Post-test Processing',
+    if (enableUserPromptSubmit) {
+      hooks.UserPromptSubmit = {
         handler: 'ccanywhere/hooks',
-        method: 'postTest',
-        async: true,
-        failOnError: false
+        name: 'CCanywhere Prompt Logger',
+        method: 'UserPromptSubmit',
+        description: 'Log user prompts for audit purposes'
+      };
+    }
+
+    if (enableSessionStart) {
+      hooks.SessionStart = {
+        handler: 'ccanywhere/hooks',
+        name: 'CCanywhere Session Starter',
+        method: 'SessionStart',
+        description: 'Initialize session and send notification'
+      };
+    }
+
+    if (enableSessionEnd) {
+      hooks.SessionEnd = {
+        handler: 'ccanywhere/hooks',
+        name: 'CCanywhere Session Ender',
+        method: 'SessionEnd',
+        description: 'Clean up and send notification when session ends'
       };
     }
 

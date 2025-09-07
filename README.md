@@ -37,7 +37,7 @@ CCanywhere integrates with Claude Code's hook system to:
 ### Installation
 
 ```bash
-# Install globally (recommended for Claude Code integration)
+# Install globally (recommended - auto-configures user settings)
 npm install -g ccanywhere
 
 # Or install as dev dependency
@@ -47,13 +47,13 @@ npm install -D ccanywhere
 npm install -D @playwright/test
 ```
 
-**🎉 Automatic Claude Code Integration**: When installed globally, CCanywhere automatically detects and integrates with Claude Code! The installation process will:
-- Detect your Claude Code installation
-- Register hooks to trigger CCanywhere at session end (Stop event)
-- Create backups of your Claude settings
-- Provide setup confirmation and usage instructions
+**🎉 Automatic Setup on Global Install**: When installed globally, CCanywhere automatically:
+- **Initializes user configuration** in `~/.claude/ccanywhere.config.json` with sample values
+- **Detects Claude Code** installation and registers Stop event hooks
+- **Creates backups** of your Claude settings for safety
+- **Provides setup guidance** with next steps and configuration tips
 
-No manual configuration needed! Just install and start using Claude Code.
+No manual configuration needed! Your default settings are created automatically and shared across all projects.
 
 ### Initialize Your Project
 
@@ -263,6 +263,8 @@ async function runBuild() {
 ### User-Level Configuration (NEW!)
 
 CCanywhere now supports user-level configuration stored in `~/.claude/ccanywhere.config.json`. This allows you to set default values once and use them across all your projects.
+
+**🎉 Automatic Initialization**: When you install CCanywhere globally (`npm install -g ccanywhere`), the user configuration file is automatically created with sample values. You just need to update it with your actual credentials.
 
 **Configuration Priority (highest to lowest):**
 1. Environment variables

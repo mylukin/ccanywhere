@@ -72,11 +72,12 @@ export class HookInjector {
 
       // Generate CCanywhere hook configuration for Stop event only
       const ccanywhereHooks: Record<string, any> = {};
-      
+
       // Simple Stop hook - runs when Claude Code session ends
       // Uses --hook-mode to skip prompts in projects without config
       // Uses npx to ensure ccanywhere is available even without global install
-      if (options.enableStop !== false) {  // Default to true
+      if (options.enableStop !== false) {
+        // Default to true
         ccanywhereHooks.Stop = {
           name: 'CCanywhere Session Summary',
           type: 'command',
@@ -140,15 +141,29 @@ export class HookInjector {
 
       // Remove CCanywhere-related hooks
       const cleanedConfig = { ...existingConfig };
-      const ccanywhereHookNames = ['Stop', 'PostToolUse', 'UserPromptSubmit', 'preCommit', 'postRun', 'preTest', 'postTest'];
+      // Only include supported Claude Code hooks
+      const ccanywhereHookNames = [
+        'Stop',
+        'PostToolUse',
+        'UserPromptSubmit',
+        'PreToolUse',
+        'Notification',
+        'SubagentStop',
+        'PreCompact',
+        'SessionStart',
+        'SessionEnd'
+      ];
       let removedCount = 0;
 
       for (const hookName of ccanywhereHookNames) {
         const hook = cleanedConfig.content[hookName];
-        if (hook && (
-          hook.handler === 'ccanywhere/hooks' || 
-          (hook.command && typeof hook.command === 'string' && (hook.command.includes('ccanywhere') || hook.command.includes('npx ccanywhere')))
-        )) {
+        if (
+          hook &&
+          (hook.handler === 'ccanywhere/hooks' ||
+            (hook.command &&
+              typeof hook.command === 'string' &&
+              (hook.command.includes('ccanywhere') || hook.command.includes('npx ccanywhere'))))
+        ) {
           delete cleanedConfig.content[hookName];
           result.hooksAdded.push(hookName); // Using hooksAdded to track removed hooks
           removedCount++;
@@ -414,12 +429,26 @@ export class HookInjector {
       }
 
       // Check if any CCanywhere hooks are present
-      const ccanywhereHookNames = ['Stop', 'PostToolUse', 'UserPromptSubmit', 'preCommit', 'postRun', 'preTest', 'postTest'];
+      // Only include supported Claude Code hooks
+      const ccanywhereHookNames = [
+        'Stop',
+        'PostToolUse',
+        'UserPromptSubmit',
+        'PreToolUse',
+        'Notification',
+        'SubagentStop',
+        'PreCompact',
+        'SessionStart',
+        'SessionEnd'
+      ];
       return ccanywhereHookNames.some(hookName => {
         const hook = existingConfig.content[hookName];
-        return hook && (
-          hook.handler === 'ccanywhere/hooks' ||
-          (hook.command && typeof hook.command === 'string' && (hook.command.includes('ccanywhere') || hook.command.includes('npx ccanywhere')))
+        return (
+          hook &&
+          (hook.handler === 'ccanywhere/hooks' ||
+            (hook.command &&
+              typeof hook.command === 'string' &&
+              (hook.command.includes('ccanywhere') || hook.command.includes('npx ccanywhere'))))
         );
       });
     } catch (error) {
