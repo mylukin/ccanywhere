@@ -48,7 +48,7 @@ The project follows a modular architecture with clear separation of concerns:
 1. **CLI Layer** (`src/cli/`)
    - Entry point: `src/cli/index.ts`
    - Commands: `src/cli/commands/` - Each command is a separate module
-   - Key commands: init, run, test-runner, notify, claude-register, cleanup, config, lock
+   - Key commands: init, run, test-runner, notify, register, cleanup, config, lock
 
 2. **Core Pipeline** (`src/core/`)
    - `pipeline.ts`: Main BuildPipeline class orchestrating the CI/CD workflow
@@ -244,4 +244,4 @@ NODE_OPTIONS='--experimental-vm-modules' jest path/to/test.ts --no-coverage
 The project includes utilities for managing Claude Code integration:
 - `src/utils/claude-detector.ts`: Platform-specific path detection for Claude settings
 - `src/utils/hook-injector.ts`: Safe hook injection with backup/restore capabilities
-- `src/cli/commands/claude-register.ts`: CLI interface for hook management
+- `src/cli/commands/register.ts`: CLI interface for hook management

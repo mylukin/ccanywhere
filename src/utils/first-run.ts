@@ -182,7 +182,7 @@ export async function checkFirstRun(skipPrompt = false): Promise<void> {
   // Check if we should skip prompt (for certain commands or non-interactive)
   const command = process.argv[2];
   const isInitCommand = command === 'init-user';
-  
+
   // If running init-user command, don't prompt (avoid recursion)
   if (isInitCommand) {
     return;

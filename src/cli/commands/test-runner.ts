@@ -17,6 +17,10 @@ interface TestOptions extends CliOptions {
   notifications?: boolean;
   deployment?: boolean;
   tests?: boolean;
+  send?: boolean;
+  title?: string;
+  message?: string;
+  channels?: string;
 }
 
 export async function testCommand(options: TestOptions): Promise<void> {
@@ -32,7 +36,7 @@ export async function testCommand(options: TestOptions): Promise<void> {
 
     // Test notifications
     if (options.all || options.notifications || (!options.deployment && !options.tests)) {
-      hasErrors = (await testNotifications(config)) || hasErrors;
+      hasErrors = (await testNotifications(config, options)) || hasErrors;
     }
 
     // Test deployment
@@ -60,29 +64,59 @@ export async function testCommand(options: TestOptions): Promise<void> {
   }
 }
 
-async function testNotifications(config: any): Promise<boolean> {
-  console.log(chalk.blue('📬 Testing notification channels...'));
+async function testNotifications(config: any, options: TestOptions): Promise<boolean> {
+  const action = options.send ? 'Testing and sending notifications' : 'Testing notification channels';
+  console.log(chalk.blue(`📬 ${action}...`));
   
   let hasErrors = false;
 
   try {
     const notificationManager = new NotificationManager(config.notifications);
-    const results = await notificationManager.testAllChannels();
+    
+    if (options.send) {
+      // Parse channels if specified
+      let channels: any[] | undefined;
+      if (options.channels) {
+        channels = options.channels.split(',').map(c => c.trim());
+      }
+      
+      // Create test message
+      const message = {
+        title: options.title || '🔔 Test from CCanywhere',
+        extra: options.message || `Test notification sent at ${new Date().toISOString()}`,
+        timestamp: Date.now(),
+        isError: false
+      };
+      
+      if (channels) {
+        console.log(chalk.gray(`  Channels: ${channels.join(', ')}`));
+      } else {
+        console.log(chalk.gray(`  Channels: ${config.notifications?.channels?.join(', ') || 'none'}`));
+      }
+      
+      // Send notification
+      await notificationManager.send(message, channels);
+      console.log('  ✅ Test notification sent successfully!');
+      
+    } else {
+      // Just test configuration without sending
+      const results = await notificationManager.testAllChannels();
 
-    for (const result of results) {
-      const emoji = result.success ? '✅' : '❌';
-      const status = result.success ? chalk.green('OK') : chalk.red('FAILED');
-      
-      console.log(`  ${emoji} ${result.channel}: ${status}`);
-      
-      if (!result.success) {
-        console.log(chalk.gray(`    Error: ${result.error}`));
-        hasErrors = true;
+      for (const result of results) {
+        const emoji = result.success ? '✅' : '❌';
+        const status = result.success ? chalk.green('OK') : chalk.red('FAILED');
+        
+        console.log(`  ${emoji} ${result.channel}: ${status}`);
+        
+        if (!result.success) {
+          console.log(chalk.gray(`    Error: ${result.error}`));
+          hasErrors = true;
+        }
       }
     }
 
   } catch (error) {
-    console.log(chalk.red('  ❌ Failed to initialize notification system'));
+    console.log(chalk.red('  ❌ Failed to test notification system'));
     console.log(chalk.gray(`  Error: ${error instanceof Error ? error.message : String(error)}`));
     hasErrors = true;
   }

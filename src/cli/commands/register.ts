@@ -1,5 +1,5 @@
 /**
- * Claude Code registration command
+ * Registration command
  * Handles registration of CCanywhere hooks with Claude Code
  */
 
@@ -10,7 +10,7 @@ import { ClaudeCodeDetector } from '../../utils/claude-detector.js';
 import { HookInjector } from '../../utils/hook-injector.js';
 import { Logger } from '../../utils/logger.js';
 
-interface ClaudeRegisterOptions {
+interface RegisterOptions {
   force?: boolean;
   remove?: boolean;
   status?: boolean;
@@ -18,9 +18,9 @@ interface ClaudeRegisterOptions {
 }
 
 /**
- * Claude Code registration command handler
+ * Registration command handler
  */
-export async function claudeRegisterCommand(options: ClaudeRegisterOptions): Promise<void> {
+export async function registerCommand(options: RegisterOptions): Promise<void> {
   const logger = Logger.getInstance();
 
   try {
@@ -200,16 +200,16 @@ function showManualInstructions(): void {
 }
 
 /**
- * Create the claude-register command
+ * Create the register command
  */
-export function createClaudeRegisterCommand(): Command {
-  return new Command('claude-register')
+export function createRegisterCommand(): Command {
+  return new Command('register')
     .description('Configure CCanywhere hooks for Claude Code')
     .option('-f, --force', 'Overwrite existing hooks')
     .option('--remove', 'Remove CCanywhere hooks from Claude Code')
     .option('--status', 'Show current hook registration status')
     .option('--manual', 'Show manual configuration instructions')
-    .action(claudeRegisterCommand);
+    .action(registerCommand);
 }
 
-export default createClaudeRegisterCommand;
+export default createRegisterCommand;

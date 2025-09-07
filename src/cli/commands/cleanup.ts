@@ -10,6 +10,7 @@ const inquirer = inquirerModule;
 import fsExtraModule from 'fs-extra';
 const fs = fsExtraModule;
 import { createLogger } from '../../core/logger.js';
+import { FileLockManager } from '../../core/lock-manager.js';
 import type { CliOptions } from '../../types/index.js';
 
 interface CleanupOptions extends CliOptions {
@@ -24,7 +25,7 @@ export async function cleanupCommand(options: CleanupOptions): Promise<void> {
     const artifactsDir = resolve(workDir, '.artifacts');
     const logDir = resolve(workDir, '../logs');
 
-    console.log(chalk.blue('🧹 Cleanup old artifacts and logs'));
+    console.log(chalk.blue('🧹 Cleanup old artifacts, logs, and locks'));
     console.log(chalk.gray(`Keeping files newer than ${days} days`));
     console.log();
 
@@ -50,6 +51,9 @@ export async function cleanupCommand(options: CleanupOptions): Promise<void> {
 
     // Cleanup artifacts
     await cleanupArtifacts(artifactsDir, days);
+
+    // Cleanup stale locks
+    await cleanupLocks();
 
     console.log(chalk.green('✅ Cleanup completed!'));
 
@@ -86,4 +90,26 @@ async function cleanupArtifacts(artifactsDir: string, daysToKeep: number): Promi
   }
 
   console.log(`Removed ${removedCount} old artifact(s)`);
+}
+
+async function cleanupLocks(): Promise<void> {
+  try {
+    const lockManager = new FileLockManager();
+    const lockDir = '/tmp/ccanywhere-locks';
+    
+    // Check if lock directory exists
+    if (!(await fs.pathExists(lockDir))) {
+      console.log(chalk.gray('No locks directory found'));
+      return;
+    }
+    
+    // Clean stale locks
+    const cleaned = await lockManager.clean(lockDir);
+    console.log(chalk.gray(`Cleaned stale locks`));
+    
+  } catch (error) {
+    // Lock cleanup is not critical, so just log a warning
+    console.log(chalk.yellow('Warning: Could not clean locks'));
+    console.log(chalk.gray(`  ${error instanceof Error ? error.message : String(error)}`));
+  }
 }

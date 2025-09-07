@@ -84,7 +84,7 @@ ccanywhere notify --channels telegram --title "部署完成"
 ccanywhere cleanup --days 7
 
 # Claude Code集成管理
-ccanywhere claude-register --status
+ccanywhere register --status
 
 # 从配置生成环境变量文件
 ccanywhere config init-env
@@ -100,10 +100,10 @@ ccanywhere run --config ./config/production.json
 ccanywhere test --all
 
 # Claude Code钩子管理（仅支持Stop事件）
-ccanywhere claude-register              # 注册Stop钩子
-ccanywhere claude-register --status     # 查看钩子状态
-ccanywhere claude-register --remove     # 移除钩子
-ccanywhere claude-register --force      # 强制覆盖已存在的钩子
+ccanywhere register              # 注册Stop钩子
+ccanywhere register --status     # 查看钩子状态
+ccanywhere register --remove     # 移除钩子
+ccanywhere register --force      # 强制覆盖已存在的钩子
 ```
 
 ## 🔌 Claude Code 集成
@@ -293,7 +293,7 @@ ccanywhere --help
 ccanywhere run --help
 
 # Claude Code集成状态
-ccanywhere claude-register --status
+ccanywhere register --status
 
 # 查看版本
 ccanywhere --version

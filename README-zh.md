@@ -175,10 +175,10 @@ ccanywhere config validate    # 验证配置文件
 ccanywhere config edit        # 编辑配置文件
 
 # Claude Code 集成
-ccanywhere claude-register --status      # 检查钩子状态
-ccanywhere claude-register              # 注册Stop钩子
-ccanywhere claude-register --remove     # 移除所有钩子
-ccanywhere claude-register --force      # 强制覆盖已存在的钩子
+ccanywhere register --status      # 检查钩子状态
+ccanywhere register              # 注册Stop钩子
+ccanywhere register --remove     # 移除所有钩子
+ccanywhere register --force      # 强制覆盖已存在的钩子
 ```
 
 ### 编程式使用

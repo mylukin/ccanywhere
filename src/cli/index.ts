@@ -7,16 +7,13 @@
 import { Command } from 'commander';
 import chalkModule from 'chalk';
 const chalk = chalkModule;
-import { ConfigLoader } from '../config/index.js';
 import { getVersion } from '../utils/version.js';
 import { initCommand } from './commands/init.js';
 import { runCommand } from './commands/run.js';
 import { testCommand } from './commands/test-runner.js';
-import { configCommand } from './commands/config.js';
+import { infoCommand } from './commands/info.js';
 import { cleanupCommand } from './commands/cleanup.js';
-import { lockCommand } from './commands/lock.js';
-import { notifyCommand } from './commands/notify.js';
-import { createClaudeRegisterCommand } from './commands/claude-register.js';
+import { createRegisterCommand } from './commands/register.js';
 import { checkFirstRun } from '../utils/first-run.js';
 
 const program = new Command();
@@ -65,69 +62,25 @@ program
   .option('-n, --notifications', 'Test notification channels only')
   .option('-d, --deployment', 'Test deployment webhook only')
   .option('-t, --tests', 'Test Playwright setup only')
+  .option('--send', 'Send test notifications (use with --notifications)')
+  .option('--title <title>', 'Custom notification title', '🔔 Test from CCanywhere')
+  .option('--message <message>', 'Custom notification message')
+  .option('--channels <channels>', 'Comma-separated list of channels to test')
   .action(testCommand);
-
-// Configuration management
-program.addCommand(configCommand);
 
 // Cleanup operations
 program
   .command('cleanup')
-  .description('Clean up old artifacts and logs')
+  .description('Clean up old artifacts, logs, and locks')
   .option('-d, --days <number>', 'Days to keep (default: 7)', '7')
   .option('-f, --force', 'Force cleanup without confirmation')
   .action(cleanupCommand);
 
-// Lock management
-program.addCommand(lockCommand);
-
-// Send test notification
-program
-  .command('notify')
-  .description('Send test notification')
-  .option('-c, --channels <channels>', 'Comma-separated list of channels')
-  .option('-t, --title <title>', 'Notification title', '🔔 Test from CCanywhere')
-  .option('-m, --message <message>', 'Additional message')
-  .action(notifyCommand);
-
 // Claude Code integration
-program.addCommand(createClaudeRegisterCommand());
+program.addCommand(createRegisterCommand());
 
 // Build info command
-program
-  .command('info')
-  .description('Show build and system information')
-  .action(async () => {
-    try {
-      const configLoader = ConfigLoader.getInstance();
-      const config = await configLoader.loadConfig();
-
-      console.log(chalk.blue('CCanywhere Information'));
-      console.log(chalk.gray('='.repeat(50)));
-      console.log(`Version: ${chalk.green(getVersion())}`);
-      console.log(`Node.js: ${chalk.green(process.version)}`);
-      console.log(`Platform: ${chalk.green(process.platform)}`);
-      console.log(`Working Directory: ${chalk.green(process.cwd())}`);
-      console.log();
-
-      console.log(chalk.blue('Configuration'));
-      console.log(chalk.gray('-'.repeat(20)));
-      console.log(`Repository: ${chalk.green(config.repo?.url || 'Not configured')}`);
-      console.log(`Branch: ${chalk.green(config.repo?.branch || 'Not configured')}`);
-      console.log(`Artifacts URL: ${chalk.green(config.urls?.artifacts || 'Not configured')}`);
-      console.log(`Notification Channels: ${chalk.green(config.notifications?.channels?.join(', ') || 'None')}`);
-
-      if (config.deployment) {
-        console.log(`Deployment: ${chalk.green('Configured')}`);
-      } else {
-        console.log(`Deployment: ${chalk.yellow('Not configured')}`);
-      }
-    } catch (error) {
-      console.error(chalk.red('Error loading configuration:'));
-      console.error(error instanceof Error ? error.message : String(error));
-      process.exit(1);
-    }
-  });
+program.addCommand(infoCommand);
 
 // Handle errors
 program.exitOverride();

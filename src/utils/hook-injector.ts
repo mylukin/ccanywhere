@@ -25,10 +25,18 @@ export interface HookInjectionResult {
   configPath?: string;
 }
 
-export interface HookConfigFormat {
-  type: 'js' | 'json';
-  content: any;
-  raw?: string;
+export interface SettingsConfig {
+  hooks?: {
+    [key: string]: Array<{
+      matcher: string;
+      hooks: Array<{
+        type: string;
+        command?: string;
+        handler?: string;
+      }>;
+    }>;
+  };
+  [key: string]: any;
 }
 
 /**
@@ -56,57 +64,83 @@ export class HookInjector {
         return result;
       }
 
-      result.configPath = claudePaths.hooksConfig;
+      // Path to settings.json
+      const settingsPath = path.join(claudePaths.configDir, 'settings.json');
+      result.configPath = settingsPath;
 
-      // Read existing hooks configuration
-      const existingConfig = await this.readHooksConfig(claudePaths.hooksConfig);
+      // Read existing settings.json
+      let settings: SettingsConfig = {};
+      if (await fs.pathExists(settingsPath)) {
+        const content = await fs.readFile(settingsPath, 'utf8');
+        settings = JSON.parse(content);
 
-      // Create backup if requested
-      if (options.createBackup !== false && existingConfig) {
-        const backupPath = await this.createBackup(claudePaths.hooksConfig, claudePaths.backup);
-        if (backupPath) {
-          result.backupPath = backupPath;
-          this.logger.info(`Created backup: ${backupPath}`);
+        // Create backup if requested
+        if (options.createBackup !== false) {
+          const backupPath = await this.createBackup(settingsPath, claudePaths.backup);
+          if (backupPath) {
+            result.backupPath = backupPath;
+            this.logger.info(`Created backup: ${backupPath}`);
+          }
         }
       }
 
-      // Generate CCanywhere hook configuration for Stop event only
-      const ccanywhereHooks: Record<string, any> = {};
+      // Initialize hooks object if it doesn't exist
+      if (!settings.hooks) {
+        settings.hooks = {};
+      }
 
-      // Simple Stop hook - runs when Claude Code session ends
-      // Uses --hook-mode to skip prompts in projects without config
-      // Uses npx to ensure ccanywhere is available even without global install
+      // Add Stop hook for CCanywhere
       if (options.enableStop !== false) {
-        // Default to true
-        ccanywhereHooks.Stop = {
-          name: 'CCanywhere Session Summary',
-          type: 'command',
-          command: 'cd "$CLAUDE_PROJECT_DIR" && npx ccanywhere run --hook-mode 2>&1 >> /tmp/ccanywhere-hook.log || true'
+        const ccanywhereHook = {
+          matcher: '.*',
+          hooks: [
+            {
+              type: 'command',
+              command:
+                'cd "$CLAUDE_PROJECT_DIR" && npx ccanywhere run --hook-mode 2>&1 >> /tmp/ccanywhere-hook.log || true'
+            }
+          ]
         };
-      }
 
-      // Merge configurations
-      const mergedConfig = await this.mergeHookConfigs(existingConfig, ccanywhereHooks, options.force);
+        // Check if Stop hook already exists
+        if (!settings.hooks.Stop) {
+          settings.hooks.Stop = [];
+        }
 
-      // Track what was added/skipped
-      for (const [hookName, hookConfig] of Object.entries(ccanywhereHooks)) {
-        if (existingConfig?.content[hookName] && !options.force) {
-          result.hooksSkipped.push(hookName);
+        // Check if our hook is already registered
+        const isAlreadyRegistered = settings.hooks.Stop.some(hookEntry =>
+          hookEntry.hooks.some(h => h.command && h.command.includes('ccanywhere run'))
+        );
+
+        if (isAlreadyRegistered && !options.force) {
+          result.hooksSkipped.push('Stop');
         } else {
-          result.hooksAdded.push(hookName);
+          // Remove old ccanywhere hooks if force is true
+          if (options.force) {
+            settings.hooks.Stop = settings.hooks.Stop.filter(
+              hookEntry => !hookEntry.hooks.some(h => h.command && h.command.includes('ccanywhere run'))
+            );
+          }
+
+          // Add our hook
+          settings.hooks.Stop.push(ccanywhereHook);
+          result.hooksAdded.push('Stop');
         }
       }
 
-      // Write the merged configuration
-      await this.writeHooksConfig(claudePaths.hooksConfig, mergedConfig);
+      // Write the updated settings.json
+      await fs.writeFile(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
 
       result.success = true;
-      result.message = `Successfully injected CCanywhere hooks`;
+      result.message = `Successfully injected CCanywhere hooks into settings.json`;
 
       this.logger.info(`Hooks injected: ${result.hooksAdded.join(', ')}`);
       if (result.hooksSkipped.length > 0) {
         this.logger.info(`Hooks skipped (already exist): ${result.hooksSkipped.join(', ')}`);
       }
+
+      // Clean up old files
+      await this.cleanupOldFiles(claudePaths.configDir);
     } catch (error) {
       result.message = `Failed to inject hooks: ${error instanceof Error ? error.message : String(error)}`;
       this.logger.error('Hook injection failed:', error);
@@ -133,40 +167,39 @@ export class HookInjector {
         return result;
       }
 
-      const existingConfig = await this.readHooksConfig(claudePaths.hooksConfig);
-      if (!existingConfig) {
-        result.message = 'No hooks configuration found';
+      const settingsPath = path.join(claudePaths.configDir, 'settings.json');
+
+      if (!(await fs.pathExists(settingsPath))) {
+        result.message = 'No settings.json found';
         return result;
       }
 
-      // Remove CCanywhere-related hooks
-      const cleanedConfig = { ...existingConfig };
-      // Only include supported Claude Code hooks
-      const ccanywhereHookNames = [
-        'Stop',
-        'PostToolUse',
-        'UserPromptSubmit',
-        'PreToolUse',
-        'Notification',
-        'SubagentStop',
-        'PreCompact',
-        'SessionStart',
-        'SessionEnd'
-      ];
+      const content = await fs.readFile(settingsPath, 'utf8');
+      const settings: SettingsConfig = JSON.parse(content);
+
+      if (!settings.hooks) {
+        result.message = 'No hooks found in settings';
+        result.success = true;
+        return result;
+      }
+
       let removedCount = 0;
 
-      for (const hookName of ccanywhereHookNames) {
-        const hook = cleanedConfig.content[hookName];
-        if (
-          hook &&
-          (hook.handler === 'ccanywhere/hooks' ||
-            (hook.command &&
-              typeof hook.command === 'string' &&
-              (hook.command.includes('ccanywhere') || hook.command.includes('npx ccanywhere'))))
-        ) {
-          delete cleanedConfig.content[hookName];
-          result.hooksAdded.push(hookName); // Using hooksAdded to track removed hooks
+      // Remove CCanywhere hooks from Stop event
+      if (settings.hooks.Stop) {
+        const originalLength = settings.hooks.Stop.length;
+        settings.hooks.Stop = settings.hooks.Stop.filter(
+          hookEntry => !hookEntry.hooks.some(h => h.command && h.command.includes('ccanywhere run'))
+        );
+
+        if (settings.hooks.Stop.length < originalLength) {
           removedCount++;
+          result.hooksAdded.push('Stop'); // Using hooksAdded to track removed hooks
+        }
+
+        // Clean up empty arrays
+        if (settings.hooks.Stop.length === 0) {
+          delete settings.hooks.Stop;
         }
       }
 
@@ -176,8 +209,11 @@ export class HookInjector {
         return result;
       }
 
-      // Write cleaned configuration
-      await this.writeHooksConfig(claudePaths.hooksConfig, cleanedConfig);
+      // Write cleaned settings
+      await fs.writeFile(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
+
+      // Clean up old files
+      await this.cleanupOldFiles(claudePaths.configDir);
 
       result.success = true;
       result.message = `Removed ${removedCount} CCanywhere hooks`;
@@ -192,155 +228,26 @@ export class HookInjector {
   }
 
   /**
-   * Read existing hooks configuration
+   * Clean up old hook-related files
    */
-  private static async readHooksConfig(configPath: string): Promise<HookConfigFormat | null> {
-    try {
-      if (!(await fs.pathExists(configPath))) {
-        return null;
-      }
+  private static async cleanupOldFiles(configDir: string): Promise<void> {
+    const filesToClean = ['hooks.js', 'ccanywhere.hooks.js'];
 
-      const ext = path.extname(configPath).toLowerCase();
-      const raw = await fs.readFile(configPath, 'utf8');
-
-      if (ext === '.json') {
-        return {
-          type: 'json',
-          content: JSON.parse(raw),
-          raw
-        };
-      } else {
-        // Assume .js format
-        // For .js files, we'll need to evaluate the module
-        // This is a simplified approach - in production, you might want more sophisticated parsing
+    for (const fileName of filesToClean) {
+      const filePath = path.join(configDir, fileName);
+      if (await fs.pathExists(filePath)) {
         try {
-          // Try to extract the exported configuration
-          const config = await this.parseJsHooksConfig(raw);
-          return {
-            type: 'js',
-            content: config || {},
-            raw
-          };
-        } catch {
-          // If parsing fails, assume empty config
-          return {
-            type: 'js',
-            content: {},
-            raw
-          };
+          const content = await fs.readFile(filePath, 'utf8');
+          // Only remove if it's a CCanywhere-related file
+          if (content.includes('CCanywhere') || content.includes('ccanywhere')) {
+            await fs.remove(filePath);
+            this.logger.info(`Removed old file: ${fileName}`);
+          }
+        } catch (error) {
+          this.logger.debug(`Error cleaning up ${fileName}:`, error);
         }
       }
-    } catch (error) {
-      this.logger.debug(`Error reading hooks config ${configPath}:`, error);
-      return null;
     }
-  }
-
-  /**
-   * Parse JavaScript hooks configuration file
-   */
-  private static async parseJsHooksConfig(jsContent: string): Promise<any> {
-    // This is a simplified parser - in production you might want to use a proper JS parser
-    // For now, we'll look for common patterns
-
-    try {
-      // Remove comments first
-      const cleanContent = jsContent
-        .replace(/\/\*[\s\S]*?\*\//g, '') // Remove block comments
-        .replace(/\/\/.*$/gm, ''); // Remove line comments
-
-      // Look for module.exports or export default patterns
-      const moduleExportsMatch = cleanContent.match(/module\.exports\s*=\s*({[\s\S]*})\s*;?\s*$/);
-      if (moduleExportsMatch && moduleExportsMatch[1]) {
-        // Try to evaluate the object literal
-        const objStr = moduleExportsMatch[1].trim();
-        return eval(`(${objStr})`);
-      }
-
-      const exportDefaultMatch = cleanContent.match(/export\s+default\s+({[\s\S]*?})(?:\s*;?\s*)?$/m);
-      if (exportDefaultMatch && exportDefaultMatch[1]) {
-        const objStr = exportDefaultMatch[1].trim();
-        return eval(`(${objStr})`);
-      }
-
-      // Try to parse as simple object if it looks like one
-      if (cleanContent.trim().startsWith('{') && cleanContent.trim().endsWith('}')) {
-        return eval(`(${cleanContent.trim()})`);
-      }
-
-      // If no clear pattern, return empty object
-      return {};
-    } catch (error) {
-      this.logger.debug('Error parsing JS hooks config:', error);
-      return {};
-    }
-  }
-
-  /**
-   * Merge hook configurations
-   */
-  private static async mergeHookConfigs(
-    existingConfig: HookConfigFormat | null,
-    newHooks: Record<string, any>,
-    force = false
-  ): Promise<HookConfigFormat> {
-    const baseConfig = existingConfig || {
-      type: 'js' as const,
-      content: {},
-      raw: ''
-    };
-
-    const mergedContent = { ...baseConfig.content };
-
-    // Add new hooks, respecting existing ones unless force is true
-    for (const [hookName, hookConfig] of Object.entries(newHooks)) {
-      if (!mergedContent[hookName] || force) {
-        mergedContent[hookName] = hookConfig;
-      }
-    }
-
-    return {
-      ...baseConfig,
-      content: mergedContent
-    };
-  }
-
-  /**
-   * Write hooks configuration to file
-   */
-  private static async writeHooksConfig(configPath: string, config: HookConfigFormat): Promise<void> {
-    // Ensure directory exists
-    await fs.ensureDir(path.dirname(configPath));
-
-    let content: string;
-
-    if (config.type === 'json') {
-      content = JSON.stringify(config.content, null, 2);
-    } else {
-      // Generate JavaScript module
-      content = this.generateJsHooksConfig(config.content);
-    }
-
-    await fs.writeFile(configPath, content, 'utf8');
-  }
-
-  /**
-   * Generate JavaScript hooks configuration content
-   */
-  private static generateJsHooksConfig(hooks: Record<string, any>): string {
-    const header = `/**
- * Claude Code Hooks Configuration
- * Auto-generated by CCanywhere
- */
-
-`;
-
-    const hooksStr = JSON.stringify(hooks, null, 2);
-
-    const jsContent = `${header}module.exports = ${hooksStr};
-`;
-
-    return jsContent;
   }
 
   /**
@@ -423,34 +330,23 @@ export class HookInjector {
         return false;
       }
 
-      const existingConfig = await this.readHooksConfig(claudePaths.hooksConfig);
-      if (!existingConfig) {
+      const settingsPath = path.join(claudePaths.configDir, 'settings.json');
+
+      if (!(await fs.pathExists(settingsPath))) {
         return false;
       }
 
-      // Check if any CCanywhere hooks are present
-      // Only include supported Claude Code hooks
-      const ccanywhereHookNames = [
-        'Stop',
-        'PostToolUse',
-        'UserPromptSubmit',
-        'PreToolUse',
-        'Notification',
-        'SubagentStop',
-        'PreCompact',
-        'SessionStart',
-        'SessionEnd'
-      ];
-      return ccanywhereHookNames.some(hookName => {
-        const hook = existingConfig.content[hookName];
-        return (
-          hook &&
-          (hook.handler === 'ccanywhere/hooks' ||
-            (hook.command &&
-              typeof hook.command === 'string' &&
-              (hook.command.includes('ccanywhere') || hook.command.includes('npx ccanywhere'))))
-        );
-      });
+      const content = await fs.readFile(settingsPath, 'utf8');
+      const settings: SettingsConfig = JSON.parse(content);
+
+      if (!settings.hooks || !settings.hooks.Stop) {
+        return false;
+      }
+
+      // Check if CCanywhere hook is present in Stop hooks
+      return settings.hooks.Stop.some(hookEntry =>
+        hookEntry.hooks.some(h => h.command && h.command.includes('ccanywhere run'))
+      );
     } catch (error) {
       this.logger.debug('Error checking hook injection status:', error);
       return false;

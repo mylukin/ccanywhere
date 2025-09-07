@@ -202,10 +202,10 @@ ccanywhere notify --channels telegram --title "Hello World"
 ccanywhere cleanup --days 7
 
 # Claude Code integration (Stop hook only)
-ccanywhere claude-register --status      # Check hook status
-ccanywhere claude-register              # Register Stop hook
-ccanywhere claude-register --force      # Force overwrite existing hooks
-ccanywhere claude-register --remove     # Remove all hooks
+ccanywhere register --status      # Check hook status
+ccanywhere register              # Register Stop hook
+ccanywhere register --force      # Force overwrite existing hooks
+ccanywhere register --remove     # Remove all hooks
 
 # Show project information
 ccanywhere info
@@ -245,10 +245,10 @@ npm install -g ccanywhere
 
 **⚙️ Manual Hook Management**:
 ```bash
-ccanywhere claude-register --status       # Check current status
-ccanywhere claude-register               # Register Stop hook (runs at session end)
-ccanywhere claude-register --force       # Force overwrite existing hooks
-ccanywhere claude-register --remove      # Remove hooks
+ccanywhere register --status       # Check current status
+ccanywhere register               # Register Stop hook (runs at session end)
+ccanywhere register --force       # Force overwrite existing hooks
+ccanywhere register --remove      # Remove hooks
 ```
 
 **Note**: CCanywhere only uses the Stop event hook, which runs when you end your Claude Code session. It generates a complete diff summary for the entire session.

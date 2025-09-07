@@ -1,5 +1,5 @@
 /**
- * Tests for claude-register command
+ * Tests for register command
  */
 
 import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
@@ -58,9 +58,9 @@ jest.unstable_mockModule('@/utils/hook-injector', () => ({
 }));
 
 // Import the module after mocking
-const { claudeRegisterCommand } = await import('../claude-register.js');
+const { registerCommand } = await import('../register.js');
 
-describe('claudeRegisterCommand', () => {
+describe('registerCommand', () => {
   let originalConsole: any;
   let originalExit: any;
 
@@ -108,7 +108,7 @@ describe('claudeRegisterCommand', () => {
       mockHookInjector.areHooksInjected.mockResolvedValue(true);
       mockHookInjector.listBackups.mockResolvedValue(['/backup1.backup', '/backup2.backup']);
 
-      await claudeRegisterCommand({ status: true });
+      await registerCommand({ status: true });
 
       expect(mockClaudeCodeDetector.detectEnvironment).toHaveBeenCalled();
       expect(mockHookInjector.areHooksInjected).toHaveBeenCalled();
@@ -118,7 +118,7 @@ describe('claudeRegisterCommand', () => {
     it('should handle status check errors', async () => {
       mockClaudeCodeDetector.detectEnvironment.mockRejectedValue(new Error('Status check failed'));
 
-      await claudeRegisterCommand({ status: true });
+      await registerCommand({ status: true });
 
       expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Error checking status'));
     });
@@ -133,7 +133,7 @@ describe('claudeRegisterCommand', () => {
         hooksSkipped: [] 
       });
 
-      await claudeRegisterCommand({ remove: true });
+      await registerCommand({ remove: true });
 
       expect(mockHookInjector.removeHooks).toHaveBeenCalled();
       expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Successfully removed'));
@@ -147,7 +147,7 @@ describe('claudeRegisterCommand', () => {
         hooksSkipped: [] 
       });
 
-      await claudeRegisterCommand({ remove: true });
+      await registerCommand({ remove: true });
 
       expect(console.log).toHaveBeenCalledWith(expect.stringContaining('No hooks found'));
     });
@@ -155,7 +155,7 @@ describe('claudeRegisterCommand', () => {
     it('should handle remove errors', async () => {
       mockHookInjector.removeHooks.mockRejectedValue(new Error('Remove failed'));
 
-      await claudeRegisterCommand({ remove: true });
+      await registerCommand({ remove: true });
 
       expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Failed to remove hooks'));
     });
@@ -170,7 +170,7 @@ describe('claudeRegisterCommand', () => {
         hooksSkipped: []
       });
 
-      await claudeRegisterCommand({});
+      await registerCommand({});
 
       expect(mockClaudeCodeDetector.detectEnvironment).toHaveBeenCalled();
       expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Claude Code detected'));
@@ -181,7 +181,7 @@ describe('claudeRegisterCommand', () => {
         isClaudeCode: false
       });
 
-      await claudeRegisterCommand({});
+      await registerCommand({});
 
       expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Claude Code environment not detected'));
       expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Please ensure Claude Code is installed'));
@@ -202,7 +202,7 @@ describe('claudeRegisterCommand', () => {
         hooksSkipped: []
       });
 
-      await claudeRegisterCommand({});
+      await registerCommand({});
 
       expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Version: 2.0.0'));
       expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Config: /mock/config'));
@@ -219,7 +219,7 @@ describe('claudeRegisterCommand', () => {
         backupPath: '/backup/path'
       });
 
-      await claudeRegisterCommand({});
+      await registerCommand({});
 
       expect(mockHookInjector.injectHooks).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -239,7 +239,7 @@ describe('claudeRegisterCommand', () => {
         hooksSkipped: []
       });
 
-      await claudeRegisterCommand({ 
+      await registerCommand({ 
         force: true
       });
 
@@ -258,7 +258,7 @@ describe('claudeRegisterCommand', () => {
         hooksSkipped: []
       });
 
-      await claudeRegisterCommand({});
+      await registerCommand({});
 
       expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Failed to register hooks'));
       expect(process.exit).toHaveBeenCalledWith(1);
@@ -267,7 +267,7 @@ describe('claudeRegisterCommand', () => {
     it('should handle injection exceptions', async () => {
       mockHookInjector.injectHooks.mockRejectedValue(new Error('Injection failed'));
 
-      await claudeRegisterCommand({});
+      await registerCommand({});
 
       expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Registration failed'));
       expect(process.exit).toHaveBeenCalledWith(1);
@@ -284,7 +284,7 @@ describe('claudeRegisterCommand', () => {
         backupPath: '/backup/path/hooks.backup'
       });
 
-      await claudeRegisterCommand({});
+      await registerCommand({});
 
       expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Backup created'));
     });
@@ -292,7 +292,7 @@ describe('claudeRegisterCommand', () => {
     it('should handle hooks already registered', async () => {
       mockHookInjector.areHooksInjected.mockResolvedValue(true);
 
-      await claudeRegisterCommand({});
+      await registerCommand({});
 
       expect(console.log).toHaveBeenCalledWith(expect.stringContaining('hooks are already registered'));
       expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Use --force to overwrite'));
@@ -303,7 +303,7 @@ describe('claudeRegisterCommand', () => {
     it('should handle non-Error objects', async () => {
       mockHookInjector.injectHooks.mockRejectedValue('String error');
 
-      await claudeRegisterCommand({});
+      await registerCommand({});
 
       expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Registration failed'));
       expect(process.exit).toHaveBeenCalledWith(1);
