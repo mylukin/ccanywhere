@@ -101,7 +101,7 @@ describe('cleanupCommand', () => {
     it('should run cleanup with default settings', async () => {
       await cleanupCommand({});
 
-      expect(console.log).toHaveBeenCalledWith('🧹 Cleanup old artifacts and logs');
+      expect(console.log).toHaveBeenCalledWith('🧹 Cleanup old artifacts, logs, and locks');
       expect(console.log).toHaveBeenCalledWith('Keeping files newer than 7 days');
       expect(mockPrompt).toHaveBeenCalledWith([
         expect.objectContaining({

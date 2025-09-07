@@ -216,7 +216,7 @@ describe('testCommand', () => {
 
       await testCommand({ notifications: true });
 
-      expect(console.log).toHaveBeenCalledWith('  ❌ Failed to initialize notification system');
+      expect(console.log).toHaveBeenCalledWith('  ❌ Failed to test notification system');
       expect(console.log).toHaveBeenCalledWith('  Error: Invalid notification config');
       expect(process.exit).toHaveBeenCalledWith(1);
     });
@@ -228,7 +228,7 @@ describe('testCommand', () => {
 
       await testCommand({ notifications: true });
 
-      expect(console.log).toHaveBeenCalledWith('  ❌ Failed to initialize notification system');
+      expect(console.log).toHaveBeenCalledWith('  ❌ Failed to test notification system');
       expect(console.log).toHaveBeenCalledWith('  Error: Test failed');
       expect(process.exit).toHaveBeenCalledWith(1);
     });
