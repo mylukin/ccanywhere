@@ -4,16 +4,19 @@
 
 import fsExtra from 'fs-extra';
 const { readFile, pathExists } = fsExtra;
-import { resolve } from 'path';
+import { resolve, join } from 'path';
+import { homedir } from 'os';
 import { config as loadEnv } from 'dotenv';
 import { validateConfig, getDefaultConfig } from './schema.js';
 import type { CcanywhereConfig, NotificationChannel, RepoKind } from '../types/index.js';
 import { ConfigurationError } from '../types/index.js';
 import { detectGitInfo } from '../utils/git.js';
+import { Logger } from '../utils/logger.js';
 
 export class ConfigLoader {
   private static instance: ConfigLoader;
   private cachedConfig?: CcanywhereConfig;
+  private static logger = Logger.getInstance();
 
   private constructor() {}
 
@@ -39,21 +42,36 @@ export class ConfigLoader {
       return this.cachedConfig;
     }
 
+    // Start with default config
     let config: Partial<CcanywhereConfig> = getDefaultConfig();
 
-    // Load from config file if specified
+    // Load user-level configuration from ~/.claude/
+    const userConfig = await this.loadFromUserConfig();
+    if (userConfig && Object.keys(userConfig).length > 0) {
+      config = this.mergeConfigs(config, userConfig);
+      ConfigLoader.logger.debug('Loaded user-level configuration from ~/.claude/');
+    }
+
+    // Load project-level configuration
+    let projectConfig: Partial<CcanywhereConfig> = {};
     if (configPath) {
-      config = await this.loadFromFile(configPath);
+      projectConfig = await this.loadFromFile(configPath);
     } else {
       // Try to find config file in standard locations
       const standardPaths = ['ccanywhere.config.json', 'ccanywhere.config.js', '.ccanywhere.json', '.ccanywhere.js'];
 
       for (const path of standardPaths) {
         if (await pathExists(path)) {
-          config = await this.loadFromFile(path);
+          projectConfig = await this.loadFromFile(path);
+          ConfigLoader.logger.debug(`Loaded project configuration from ${path}`);
           break;
         }
       }
+    }
+
+    // Merge project config over user config
+    if (Object.keys(projectConfig).length > 0) {
+      config = this.mergeConfigs(config, projectConfig);
     }
 
     // Auto-detect Git repository information
@@ -67,10 +85,10 @@ export class ConfigLoader {
       };
     }
 
-    // Load environment variables
+    // Load environment variables (highest priority)
     const envConfig = await this.loadFromEnv();
 
-    // Merge configurations (env overrides file, then git auto-detect)
+    // Merge configurations (env overrides everything)
     const mergedConfig = this.mergeConfigs(config, envConfig);
 
     // Apply backward compatibility transformations
@@ -109,6 +127,33 @@ export class ConfigLoader {
       throw new ConfigurationError(
         `Failed to load config file: ${error instanceof Error ? error.message : String(error)}`
       );
+    }
+  }
+
+  /**
+   * Load configuration from user-level config directory (~/.claude/)
+   */
+  private async loadFromUserConfig(): Promise<Partial<CcanywhereConfig>> {
+    try {
+      const userConfigDir = join(homedir(), '.claude');
+      const userConfigPaths = [
+        join(userConfigDir, 'ccanywhere.config.json'),
+        join(userConfigDir, 'ccanywhere.config.js'),
+        join(userConfigDir, '.ccanywhere.json'),
+        join(userConfigDir, '.ccanywhere.js')
+      ];
+
+      for (const path of userConfigPaths) {
+        if (await pathExists(path)) {
+          ConfigLoader.logger.debug(`Found user config at: ${path}`);
+          return await this.loadFromFile(path);
+        }
+      }
+
+      return {};
+    } catch (error) {
+      ConfigLoader.logger.debug('Error loading user config:', error);
+      return {};
     }
   }
 
@@ -286,7 +331,7 @@ export class ConfigLoader {
   }
 
   /**
-   * Merge two configuration objects
+   * Merge two configuration objects with deep merging support
    */
   private mergeConfigs(
     base: Partial<CcanywhereConfig>,
@@ -297,8 +342,13 @@ export class ConfigLoader {
     for (const [key, value] of Object.entries(override)) {
       if (value !== undefined && value !== null) {
         if (typeof value === 'object' && !Array.isArray(value) && key in result) {
-          // Deep merge objects
-          (result as any)[key] = { ...(result as any)[key], ...value };
+          // Deep merge objects recursively
+          const baseValue = (result as any)[key];
+          if (typeof baseValue === 'object' && !Array.isArray(baseValue)) {
+            (result as any)[key] = this.deepMerge(baseValue, value);
+          } else {
+            (result as any)[key] = value;
+          }
         } else {
           // Replace primitive values and arrays
           (result as any)[key] = value;
@@ -306,6 +356,25 @@ export class ConfigLoader {
       }
     }
 
+    return result;
+  }
+
+  /**
+   * Deep merge helper for nested objects
+   */
+  private deepMerge(target: any, source: any): any {
+    const result = { ...target };
+    
+    for (const key in source) {
+      if (source[key] !== undefined && source[key] !== null) {
+        if (typeof source[key] === 'object' && !Array.isArray(source[key]) && key in target) {
+          result[key] = this.deepMerge(target[key], source[key]);
+        } else {
+          result[key] = source[key];
+        }
+      }
+    }
+    
     return result;
   }
 

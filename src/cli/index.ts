@@ -13,6 +13,7 @@ import { initCommand } from './commands/init.js';
 import { runCommand } from './commands/run.js';
 import { testCommand } from './commands/test-runner.js';
 import { configCommand } from './commands/config.js';
+import { createConfigUserCommand } from './commands/config-user.js';
 import { cleanupCommand } from './commands/cleanup.js';
 import { lockCommand } from './commands/lock.js';
 import { notifyCommand } from './commands/notify.js';
@@ -68,6 +69,9 @@ program
 
 // Configuration management
 program.addCommand(configCommand);
+
+// User configuration management
+program.addCommand(createConfigUserCommand());
 
 // Cleanup operations
 program

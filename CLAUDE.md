@@ -195,6 +195,19 @@ When working on this codebase, prioritize using specialized agents to handle com
 
 ## Common Development Tasks
 
+### User Configuration Management
+The project supports user-level configuration in `~/.claude/ccanywhere.config.json`:
+```bash
+# Initialize user config
+ccanywhere config-user --init
+
+# Edit user config
+ccanywhere config-user --edit
+
+# Set specific values
+ccanywhere config-user set notifications.telegram.botToken --value "TOKEN"
+```
+
 ### Adding a New CLI Command
 1. Create file in `src/cli/commands/{command-name}.ts`
 2. Export async function handling the command

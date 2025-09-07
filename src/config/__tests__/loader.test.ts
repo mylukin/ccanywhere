@@ -15,7 +15,13 @@ jest.unstable_mockModule('fs-extra', () => ({
 
 // Mock path
 jest.unstable_mockModule('path', () => ({
-  resolve: jest.fn((p: string) => `/resolved/${p}`) as any
+  resolve: jest.fn((p: string) => `/resolved/${p}`) as any,
+  join: jest.fn((...paths: string[]) => paths.join('/')) as any
+}));
+
+// Mock os
+jest.unstable_mockModule('os', () => ({
+  homedir: jest.fn(() => '/home/user') as any
 }));
 
 // Mock dotenv
@@ -35,6 +41,18 @@ jest.unstable_mockModule('@/config/schema', () => ({
 const mockDetectGitInfo = jest.fn() as any;
 jest.unstable_mockModule('@/utils/git', () => ({
   detectGitInfo: mockDetectGitInfo
+}));
+
+// Mock logger
+const mockLogger = {
+  debug: jest.fn() as any,
+  info: jest.fn() as any,
+  error: jest.fn() as any
+};
+jest.unstable_mockModule('@/utils/logger', () => ({
+  Logger: {
+    getInstance: jest.fn(() => mockLogger) as any
+  }
 }));
 
 // Import the actual ConfigLoader after mocking

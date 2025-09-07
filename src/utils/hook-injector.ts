@@ -75,11 +75,12 @@ export class HookInjector {
       
       // Simple Stop hook - runs when Claude Code session ends
       // Uses --hook-mode to skip prompts in projects without config
+      // Uses npx to ensure ccanywhere is available even without global install
       if (options.enableStop !== false) {  // Default to true
         ccanywhereHooks.Stop = {
           name: 'CCanywhere Session Summary',
           type: 'command',
-          command: 'cd "$CLAUDE_PROJECT_DIR" && ccanywhere run --hook-mode 2>&1 >> /tmp/ccanywhere-hook.log || true'
+          command: 'cd "$CLAUDE_PROJECT_DIR" && npx ccanywhere run --hook-mode 2>&1 >> /tmp/ccanywhere-hook.log || true'
         };
       }
 
@@ -146,7 +147,7 @@ export class HookInjector {
         const hook = cleanedConfig.content[hookName];
         if (hook && (
           hook.handler === 'ccanywhere/hooks' || 
-          (hook.command && typeof hook.command === 'string' && hook.command.includes('ccanywhere'))
+          (hook.command && typeof hook.command === 'string' && (hook.command.includes('ccanywhere') || hook.command.includes('npx ccanywhere')))
         )) {
           delete cleanedConfig.content[hookName];
           result.hooksAdded.push(hookName); // Using hooksAdded to track removed hooks
@@ -418,7 +419,7 @@ export class HookInjector {
         const hook = existingConfig.content[hookName];
         return hook && (
           hook.handler === 'ccanywhere/hooks' ||
-          (hook.command && typeof hook.command === 'string' && hook.command.includes('ccanywhere'))
+          (hook.command && typeof hook.command === 'string' && (hook.command.includes('ccanywhere') || hook.command.includes('npx ccanywhere')))
         );
       });
     } catch (error) {

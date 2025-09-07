@@ -181,7 +181,7 @@ function showManualInstructions(): void {
                 hooks: [
                   {
                     type: 'command',
-                    command: 'cd "$CLAUDE_PROJECT_DIR" && ccanywhere run --hook-mode'
+                    command: 'cd "$CLAUDE_PROJECT_DIR" && npx ccanywhere run --hook-mode'
                   }
                 ]
               }
@@ -194,9 +194,10 @@ function showManualInstructions(): void {
     )
   );
   console.log();
-  console.log(chalk.yellow('⚠️  Important: Use --hook-mode to skip prompts in projects without config'));
+  console.log(chalk.yellow('⚠️  Important:'));
+  console.log(chalk.gray('   • Use --hook-mode to skip prompts in projects without config'));
+  console.log(chalk.gray('   • Using npx ensures ccanywhere is available even without global install'));
 }
-
 
 /**
  * Create the claude-register command

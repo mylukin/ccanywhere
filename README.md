@@ -180,6 +180,13 @@ ccanywhere config show        # Show current configuration
 ccanywhere config validate    # Validate configuration file
 ccanywhere config edit        # Edit configuration file
 
+# User-level configuration management (NEW!)
+ccanywhere config-user --init     # Initialize user config in ~/.claude/
+ccanywhere config-user --show     # Show user configuration
+ccanywhere config-user --edit     # Edit user configuration
+ccanywhere config-user get <key>  # Get specific config value
+ccanywhere config-user set <key> --value <value>  # Set config value
+
 # Run tests (including Playwright tests)
 ccanywhere test
 ```
@@ -252,6 +259,58 @@ async function runBuild() {
 ```
 
 ## ⚙️ Configuration
+
+### User-Level Configuration (NEW!)
+
+CCanywhere now supports user-level configuration stored in `~/.claude/ccanywhere.config.json`. This allows you to set default values once and use them across all your projects.
+
+**Configuration Priority (highest to lowest):**
+1. Environment variables
+2. Project configuration (`ccanywhere.config.json` in project root)
+3. User configuration (`~/.claude/ccanywhere.config.json`)
+4. Default configuration
+
+**Setting up user configuration:**
+
+```bash
+# Initialize user configuration with sample values
+ccanywhere config-user --init
+
+# Edit configuration in your default editor
+ccanywhere config-user --edit
+
+# Or set specific values
+ccanywhere config-user set notifications.telegram.botToken --value "YOUR_BOT_TOKEN"
+ccanywhere config-user set notifications.telegram.chatId --value "YOUR_CHAT_ID"
+```
+
+**Example user configuration:**
+
+```json
+{
+  "notifications": {
+    "channels": ["telegram"],
+    "telegram": {
+      "botToken": "YOUR_BOT_TOKEN",
+      "chatId": "YOUR_CHAT_ID"
+    }
+  },
+  "artifacts": {
+    "baseUrl": "https://artifacts.example.com",
+    "storage": {
+      "provider": "r2",
+      "r2": {
+        "accountId": "YOUR_ACCOUNT_ID",
+        "accessKeyId": "YOUR_ACCESS_KEY",
+        "secretAccessKey": "YOUR_SECRET_KEY",
+        "bucket": "my-bucket"
+      }
+    }
+  }
+}
+```
+
+With user-level configuration, you only need to configure your credentials once, and all projects will inherit these settings automatically. Project-specific configurations can still override any user settings.
 
 ### Auto Configuration Detection
 
