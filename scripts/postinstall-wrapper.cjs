@@ -10,6 +10,14 @@
 const fs = require('fs');
 const path = require('path');
 
+// Debug output (only in debug mode)
+if (process.env.CCANYWHERE_DEBUG) {
+  console.log('🔍 CCanywhere postinstall starting...');
+  console.log('   Current directory:', process.cwd());
+  console.log('   npm_config_global:', process.env.npm_config_global);
+  console.log('   npm_lifecycle_event:', process.env.npm_lifecycle_event);
+}
+
 // Environment detection
 const isCI = process.env.CI === 'true' || 
               process.env.CONTINUOUS_INTEGRATION === 'true' ||
@@ -24,7 +32,9 @@ const isDevelopment = process.env.NODE_ENV === 'development' ||
 
 // Skip in CI environments
 if (isCI) {
-  console.log('📦 CI environment detected - skipping postinstall hooks');
+  if (process.env.CCANYWHERE_DEBUG) {
+    console.log('📦 CI environment detected - skipping postinstall hooks');
+  }
   process.exit(0);
 }
 
@@ -32,12 +42,20 @@ if (isCI) {
 const npmCommand = process.env.npm_command;
 const isNpmInstall = npmCommand === 'install' || npmCommand === 'i';
 
+// Check if this is a global install by looking at the install path
+const isGlobalInstall = process.env.npm_config_global === 'true' ||
+                       process.cwd().includes('.npm-global') ||
+                       process.cwd().includes('npm/lib/node_modules') ||
+                       process.cwd().includes('.nvm/versions');
+
 // Path to compiled postinstall script
 const distScriptPath = path.join(__dirname, '..', 'dist', 'scripts', 'postinstall.js');
 
-// If dist doesn't exist yet, it's likely a fresh install
+// If dist doesn't exist yet, it's likely a fresh install or development
 if (!fs.existsSync(distScriptPath)) {
-  if (isNpmInstall || isDevelopment) {
+  // For global installs, this is expected since dist is included in the package
+  // For local development, show helpful message
+  if (!isGlobalInstall && (isNpmInstall || isDevelopment)) {
     console.log('⚠️  Build artifacts not found - this is expected for first-time setup');
     console.log('   Run "npm run build" to generate the dist directory');
     console.log('   Then run "npm run postinstall" to complete setup');
@@ -46,7 +64,17 @@ if (!fs.existsSync(distScriptPath)) {
   process.exit(0);
 }
 
-// Run the actual postinstall script
+// For global installs, we'll rely on first-run detection instead
+// This is because npm has issues with postinstall scripts in global packages
+if (isGlobalInstall) {
+  if (process.env.CCANYWHERE_DEBUG) {
+    console.log('🌍 Global installation detected - initialization will happen on first run');
+  }
+  // Don't run postinstall for global installs due to npm limitations
+  process.exit(0);
+}
+
+// Run the actual postinstall script for local installs
 try {
   require(distScriptPath);
 } catch (error) {

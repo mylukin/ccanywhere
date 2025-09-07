@@ -59,6 +59,9 @@ export async function runCommand(options: RunOptions): Promise<void> {
     } else {
       // In manual mode, prompt to initialize
       console.log(chalk.yellow('⚠️  No CCanywhere configuration found in this project'));
+      console.log(chalk.gray('    CCanywhere needs a project configuration to run.'));
+      console.log(chalk.gray('    User configuration: ~/.claude/ccanywhere.config.json (if exists)'));
+      console.log(chalk.gray('    Project configuration: ./ccanywhere.config.json (required)'));
       console.log();
       
       const { shouldInit } = await inquirer.prompt([

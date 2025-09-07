@@ -37,27 +37,30 @@ CCanywhere integrates with Claude Code's hook system to:
 ### Installation
 
 ```bash
-# Install globally (recommended - auto-configures user settings)
+# Install globally (recommended - shared configuration across projects)
 npm install -g ccanywhere
 
-# For development with npm link
-npm link
-ccanywhere init-user  # Manually initialize user config
+# Initialize user configuration (required after global install)
+ccanywhere init-user
 
-# Or install as dev dependency
+# Or install as dev dependency (project-specific)
 npm install -D ccanywhere
 
 # If you want to use Playwright testing (optional)
 npm install -D @playwright/test
 ```
 
-**🎉 Automatic Setup on Global Install**: When installed globally, CCanywhere automatically:
-- **Initializes user configuration** in `~/.claude/ccanywhere.config.json` with sample values
-- **Detects Claude Code** installation and registers Stop event hooks
-- **Creates backups** of your Claude settings for safety
-- **Provides setup guidance** with next steps and configuration tips
+**📝 Note on Global Installation**: Due to npm limitations with postinstall scripts in global packages, you need to manually run `ccanywhere init-user` after global installation. This command will:
+- **Initialize user configuration** in `~/.claude/ccanywhere.config.json` with sample values
+- **Detect Claude Code** installation and register Stop event hooks
+- **Create backups** of your Claude settings for safety
+- **Provide setup guidance** with next steps and configuration tips
 
-No manual configuration needed! Your default settings are created automatically and shared across all projects.
+**🔧 For development with npm link**:
+```bash
+npm link
+ccanywhere init-user  # Manually initialize user config
+```
 
 ### Initialize Your Project
 
@@ -69,6 +72,39 @@ ccanywhere init
 ```
 
 ### Configuration
+
+#### Configuration Hierarchy
+
+CCanywhere uses a 4-tier configuration system with the following precedence (highest to lowest):
+
+1. **Environment Variables** - Override all other settings
+2. **Project Configuration** - `ccanywhere.config.json` in your project root
+3. **User Configuration** - `~/.claude/ccanywhere.config.json` (shared across all projects)
+4. **Default Configuration** - Built-in defaults
+
+This means you can:
+- Set common settings (like Telegram credentials) in your user config once
+- Override specific settings per-project as needed
+- Use environment variables for sensitive data or CI/CD environments
+
+#### Managing User Configuration
+
+```bash
+# View current user configuration
+ccanywhere config-user --show
+
+# Edit user configuration in your default editor
+ccanywhere config-user --edit
+
+# Set specific values
+ccanywhere config-user set notifications.telegram.botToken --value "YOUR_TOKEN"
+ccanywhere config-user set notifications.telegram.chatId --value "YOUR_CHAT_ID"
+
+# Get specific values
+ccanywhere config-user get notifications.telegram.botToken
+```
+
+#### Project Configuration
 
 Edit the generated `ccanywhere.config.json`:
 

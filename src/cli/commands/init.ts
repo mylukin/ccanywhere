@@ -3,6 +3,7 @@
  */
 
 import { join } from 'path';
+import { homedir } from 'os';
 import fsExtra from 'fs-extra';
 const { writeFile, pathExists, readFile } = fsExtra;
 import inquirerModule from 'inquirer';
@@ -13,7 +14,7 @@ import oraModule from 'ora';
 const ora = oraModule;
 import { execSync } from 'child_process';
 import type { CcanywhereConfig, CliOptions } from '../../types/index.js';
-import { detectGitInfo } from '../../utils/git.js';
+import { detectGitInfo, type GitInfo } from '../../utils/git.js';
 import { PackageManager } from '../../utils/package-manager.js';
 
 interface InitOptions extends CliOptions {
@@ -29,15 +30,38 @@ export async function initCommand(options: InitOptions): Promise<void> {
 
   try {
     const workDir = process.cwd();
-    const configPath = join(workDir, 'ccanywhere.config.json');
+    const userConfigDir = join(homedir(), '.claude');
+    const userConfigPath = join(userConfigDir, 'ccanywhere.config.json');
+    const projectConfigPath = join(workDir, 'ccanywhere.config.json');
     const envPath = join(workDir, '.env');
 
-    // Check if config already exists
-    if (await pathExists(configPath) && !options.force) {
+    // Detect if we're in a git project
+    const gitInfo = await detectGitInfo(workDir);
+    const isInGitProject = !!gitInfo.repoUrl;
+
+    // Ensure user config directory exists
+    await fsExtra.ensureDir(userConfigDir);
+
+    // Check if configs exist
+    const userConfigExists = await pathExists(userConfigPath);
+    const projectConfigExists = await pathExists(projectConfigPath);
+    
+    // Load existing user config if available
+    let existingUserConfig: Partial<CcanywhereConfig> = {};
+    if (userConfigExists) {
+      try {
+        existingUserConfig = await fsExtra.readJson(userConfigPath);
+      } catch (error) {
+        console.log(chalk.yellow('⚠️  Failed to read user config, will create new one'));
+      }
+    }
+    
+    // Only check for project config overwrite if we're in a git project
+    if (isInGitProject && projectConfigExists && !options.force) {
       const { overwrite } = await inquirer.prompt([{
         type: 'confirm',
         name: 'overwrite',
-        message: 'Configuration already exists. Overwrite?',
+        message: 'Project configuration already exists. Overwrite?',
         default: false
       }]);
 
@@ -47,45 +71,104 @@ export async function initCommand(options: InitOptions): Promise<void> {
       }
     }
 
-    // Collect configuration
-    const config = await collectConfiguration();
+    // Collect configuration based on context
+    const { userConfig, projectConfig } = await collectConfiguration(
+      !userConfigExists || options.force,
+      isInGitProject,
+      gitInfo,
+      existingUserConfig
+    );
 
     // Generate files
     const spinner = ora('Generating configuration files...').start();
 
-    await writeFile(configPath, JSON.stringify(config, null, 2));
-    spinner.text = 'Generated ccanywhere.config.json';
-
-    // Generate .env template
-    if (!(await pathExists(envPath))) {
-      const envContent = generateEnvTemplate(config);
-      await writeFile(envPath, envContent);
-      spinner.text = 'Generated .env file';
+    // Write user-level configuration if needed
+    // Only write if: 1) doesn't exist, 2) force flag, or 3) user chose to reconfigure
+    if ((!userConfigExists || options.force) && Object.keys(userConfig).length > 0) {
+      await writeFile(userConfigPath, JSON.stringify(userConfig, null, 2));
+      spinner.text = 'Generated user configuration in ~/.claude/';
+    }
+    
+    // Write project-level configuration only if in git project
+    if (isInGitProject) {
+      await writeFile(projectConfigPath, JSON.stringify(projectConfig, null, 2));
+      spinner.text = 'Generated project configuration';
     }
 
-    // Generate example files if needed (when Playwright testing is enabled)
-    if (config.test?.enabled) {
-      await generateExampleFiles(workDir, config.test?.enabled);
-      spinner.text = 'Generated example files';
-    }
+    // Only generate project files if in git project
+    if (isInGitProject) {
+      // Generate .env template
+      if (!(await pathExists(envPath))) {
+        // Merge configs for env template generation
+        const mergedConfig = { ...userConfig, ...projectConfig };
+        const envContent = generateEnvTemplate(mergedConfig as CcanywhereConfig);
+        await writeFile(envPath, envContent);
+        spinner.text = 'Generated .env file';
+      }
 
-    // Update .gitignore
-    await updateGitignore(workDir);
-    spinner.text = 'Updated .gitignore';
+      // Generate example files if needed (when Playwright testing is enabled)
+      if (projectConfig.test?.enabled) {
+        await generateExampleFiles(workDir, projectConfig.test?.enabled);
+        spinner.text = 'Generated example files';
+      }
+
+      // Update .gitignore
+      await updateGitignore(workDir);
+      spinner.text = 'Updated .gitignore';
+    }
 
     spinner.succeed('Configuration files generated successfully!');
+
+    // Create initialization marker
+    const markerPath = join(userConfigDir, '.ccanywhere-initialized');
+    await writeFile(markerPath, new Date().toISOString(), 'utf8');
 
     console.log();
     console.log(chalk.green('✅ CCanywhere initialized successfully!'));
     console.log();
-    console.log(chalk.blue('Next steps:'));
-    console.log('1. Review the generated configuration in ' + chalk.cyan('ccanywhere.config.json'));
-    console.log('2. Test your configuration: ' + chalk.cyan('ccanywhere test'));
-    console.log('3. Run your first build: ' + chalk.cyan('ccanywhere run'));
-    console.log();
-    console.log(chalk.gray('Tips:'));
-    console.log(chalk.gray('• Notification channels are already configured and ready to use'));
-    console.log(chalk.gray('• Use .env file only if you need to override specific values'));
+    
+    if (isInGitProject) {
+      // Full initialization (user + project)
+      console.log(chalk.blue('Configuration saved:'));
+      if ((!userConfigExists || options.force) && Object.keys(userConfig).length > 0) {
+        console.log('  User config: ' + chalk.cyan(userConfigPath));
+      } else if (userConfigExists) {
+        console.log('  User config: ' + chalk.cyan(userConfigPath) + chalk.gray(' (existing)'));
+      }
+      console.log('  Project config: ' + chalk.cyan(projectConfigPath));
+      console.log();
+      console.log(chalk.blue('Next steps:'));
+      console.log('1. Test your configuration: ' + chalk.cyan('ccanywhere test'));
+      console.log('2. Run your first build: ' + chalk.cyan('ccanywhere run'));
+      console.log();
+      console.log(chalk.gray('Tips:'));
+      if (userConfigExists && existingUserConfig && Object.keys(existingUserConfig).length > 0) {
+        console.log(chalk.gray('• Using shared settings from ~/.claude/'));
+      } else {
+        console.log(chalk.gray('• Shared settings (notifications, storage) are in ~/.claude/'));
+      }
+      console.log(chalk.gray('• Project-specific settings (repo, test) are in this directory'));
+      console.log(chalk.gray('• Use .env file for sensitive values or temporary overrides'));
+    } else {
+      // User-only initialization
+      console.log(chalk.blue('User configuration saved:'));
+      console.log('  ' + chalk.cyan(userConfigPath));
+      console.log();
+      console.log(chalk.blue('What was configured:'));
+      console.log('✓ Storage settings (S3, R2, OSS)');
+      console.log('✓ Notification channels (Telegram, DingTalk, etc.)');
+      if (userConfig.deployment) {
+        console.log('✓ Deployment webhook');
+      }
+      console.log();
+      console.log(chalk.blue('Next steps:'));
+      console.log('1. Navigate to a git project: ' + chalk.cyan('cd your-project'));
+      console.log('2. Run init again to configure project: ' + chalk.cyan('ccanywhere init'));
+      console.log();
+      console.log(chalk.gray('Tips:'));
+      console.log(chalk.gray('• Your settings are now available for all projects'));
+      console.log(chalk.gray('• Each project will have its own repo and test configuration'));
+    }
     console.log(chalk.gray('• Documentation: https://github.com/mylukin/ccanywhere#readme'));
 
   } catch (error) {
@@ -470,24 +553,78 @@ async function collectChannelConfigurations(channels: string[]): Promise<any> {
   return configs;
 }
 
-async function collectConfiguration(): Promise<CcanywhereConfig> {
+async function collectConfiguration(
+  collectUserConfig: boolean = true,
+  isInGitProject: boolean = true,
+  gitInfo: GitInfo = {},
+  existingUserConfig: Partial<CcanywhereConfig> = {}
+): Promise<{ userConfig: Partial<CcanywhereConfig>, projectConfig: Partial<CcanywhereConfig> }> {
   console.log(chalk.blue('📝 Configuration setup'));
   console.log();
 
-  // Auto-detect git information if available
-  const gitInfo = await detectGitInfo(process.cwd());
-  
-  if (gitInfo.repoUrl) {
-    console.log(chalk.green('✓ Auto-detected git repository:'));
-    console.log(`  URL: ${chalk.cyan(gitInfo.repoUrl)}`);
-    console.log(`  Type: ${chalk.cyan(gitInfo.repoKind || 'unknown')}`);
-    console.log(`  Branch: ${chalk.cyan(gitInfo.repoBranch || 'unknown')}`);
+  // Initialize configs
+  let userConfig: Partial<CcanywhereConfig> = {};
+  const projectConfig: Partial<CcanywhereConfig> = {};
+
+  // Show context
+  if (!isInGitProject) {
+    console.log(chalk.yellow('📦 Not in a git project'));
+    console.log(chalk.gray('Configuring user-level settings only (shared across all projects)'));
     console.log();
+  } else {
+    if (gitInfo.repoUrl) {
+      console.log(chalk.green('✓ Auto-detected git repository:'));
+      console.log(`  URL: ${chalk.cyan(gitInfo.repoUrl)}`);
+      console.log(`  Type: ${chalk.cyan(gitInfo.repoKind || 'unknown')}`);
+      console.log(`  Branch: ${chalk.cyan(gitInfo.repoBranch || 'unknown')}`);
+      console.log();
+    }
+    
+    // Show existing user config if available and we're in a project
+    if (existingUserConfig && Object.keys(existingUserConfig).length > 0) {
+      console.log(chalk.green('✓ Found existing user configuration:'));
+      
+      // Display summary of existing config
+      if (existingUserConfig.artifacts?.baseUrl) {
+        console.log(`  Storage: ${chalk.cyan(existingUserConfig.artifacts.baseUrl)}`);
+        if (existingUserConfig.artifacts.storage?.provider) {
+          console.log(`  Provider: ${chalk.cyan(existingUserConfig.artifacts.storage.provider.toUpperCase())}`);
+        }
+      }
+      if (existingUserConfig.notifications?.channels) {
+        console.log(`  Notifications: ${chalk.cyan(existingUserConfig.notifications.channels.join(', '))}`);
+      }
+      if (existingUserConfig.deployment) {
+        console.log(`  Deployment: ${chalk.cyan('Configured')}`);
+      }
+      console.log();
+      
+      // Ask if user wants to use existing config
+      const { useExistingConfig } = await inquirer.prompt([{
+        type: 'confirm',
+        name: 'useExistingConfig',
+        message: 'Use existing user configuration for this project?',
+        default: true
+      }]);
+      
+      if (useExistingConfig) {
+        userConfig = existingUserConfig;
+        console.log(chalk.green('✓ Using existing user configuration'));
+        console.log();
+        // Skip user config collection
+        collectUserConfig = false;
+      } else {
+        console.log(chalk.yellow('Configuring new settings for this project'));
+        console.log();
+      }
+    }
   }
 
-  // Step 1: Basic repository configuration
-  console.log(chalk.cyan('Step 1: Repository Configuration'));
-  const repoAnswers = await inquirer.prompt([
+  // Only collect project config if in git project
+  if (isInGitProject) {
+    // Step 1: Basic repository configuration (PROJECT-LEVEL)
+    console.log(chalk.cyan('Step 1: Repository Configuration (Project-specific)'));
+    const repoAnswers = await inquirer.prompt([
     {
       type: 'input',
       name: 'repoUrl',
@@ -508,59 +645,109 @@ async function collectConfiguration(): Promise<CcanywhereConfig> {
       message: 'Main branch:',
       default: gitInfo.repoBranch || 'main'
     }
-  ]);
+    ]);
 
-  // Step 2: Storage configuration
-  console.log();
-  console.log(chalk.cyan('Step 2: Storage Configuration'));
-  const storageAnswers = await collectStorageConfiguration();
-
-  // Step 3: Notification configuration
-  console.log();
-  console.log(chalk.cyan('Step 3: Notification Configuration'));
-  
-  let notificationAnswers: any = {};
-  let channelConfigs: any = {};
-  
-  // Show channel selection
-  console.log(chalk.yellow('📌 Tip: Use SPACE to select/deselect, ENTER to confirm'));
-  console.log(chalk.gray('   You can select multiple channels'));
-  console.log(chalk.green('   ✓ Telegram is pre-selected (recommended)'));
-  console.log();
-  
-  notificationAnswers = await inquirer.prompt([{
-    type: 'checkbox',
-    name: 'notificationChannels',
-    message: 'Select notification channels:',
-    choices: [
-      { name: 'Telegram', value: 'telegram', checked: true },  // Default selected
-      { name: 'DingTalk', value: 'dingtalk' },
-      { name: 'WeCom (Enterprise WeChat)', value: 'wecom' },
-      { name: 'Email', value: 'email' }
-    ],
-    validate: (input: string[]) => {
-      if (input.length === 0) {
-        return chalk.red('⚠ Please select at least one channel (use SPACE key to select)');
-      }
-      return true;
-    }
-  }]);
-  
-  // Step 3.1: Configure selected notification channels immediately
-  if (notificationAnswers.notificationChannels && notificationAnswers.notificationChannels.length > 0) {
-    console.log();
-    console.log(chalk.blue('📬 Configuring notification channels...'));
-    console.log(chalk.gray(`   Selected: ${notificationAnswers.notificationChannels.join(', ')}`));
-    console.log();
-    
-    // Collect configuration for each selected channel
-    channelConfigs = await collectChannelConfigurations(notificationAnswers.notificationChannels);
+    // Store repo config in project config
+    projectConfig.repo = {
+      kind: repoAnswers.repoKind,
+      url: repoAnswers.repoUrl,
+      branch: repoAnswers.repoBranch
+    };
   }
 
-  // Step 4: Advanced options
+  // Only collect user-level configs if needed
+  if (collectUserConfig) {
+    // Adjust step numbering based on context
+    const stepNumber = isInGitProject ? 2 : 1;
+    
+    // Storage configuration (USER-LEVEL)
+    console.log();
+    console.log(chalk.cyan(`Step ${stepNumber}: Storage Configuration (Shared across projects)`));
+    const storageAnswers = await collectStorageConfiguration();
+
+    // Notification configuration (USER-LEVEL)
+    const notificationStepNumber = isInGitProject ? 3 : 2;
+    console.log();
+    console.log(chalk.cyan(`Step ${notificationStepNumber}: Notification Configuration (Shared across projects)`));
+    
+    let notificationAnswers: any = {};
+    let channelConfigs: any = {};
+    
+    // Show channel selection
+    console.log(chalk.yellow('📌 Tip: Use SPACE to select/deselect, ENTER to confirm'));
+    console.log(chalk.gray('   You can select multiple channels'));
+    console.log(chalk.green('   ✓ Telegram is pre-selected (recommended)'));
+    console.log();
+    
+    notificationAnswers = await inquirer.prompt([{
+      type: 'checkbox',
+      name: 'notificationChannels',
+      message: 'Select notification channels:',
+      choices: [
+        { name: 'Telegram', value: 'telegram', checked: true },  // Default selected
+        { name: 'DingTalk', value: 'dingtalk' },
+        { name: 'WeCom (Enterprise WeChat)', value: 'wecom' },
+        { name: 'Email', value: 'email' }
+      ],
+      validate: (input: string[]) => {
+        if (input.length === 0) {
+          return chalk.red('⚠ Please select at least one channel (use SPACE key to select)');
+        }
+        return true;
+      }
+    }]);
+    
+    // Step 3.1: Configure selected notification channels immediately
+    if (notificationAnswers.notificationChannels && notificationAnswers.notificationChannels.length > 0) {
+      console.log();
+      console.log(chalk.blue('📬 Configuring notification channels...'));
+      console.log(chalk.gray(`   Selected: ${notificationAnswers.notificationChannels.join(', ')}`));
+      console.log();
+      
+      // Collect configuration for each selected channel
+      channelConfigs = await collectChannelConfigurations(notificationAnswers.notificationChannels);
+    }
+
+    // Store storage and notification config in user config
+    if (storageAnswers.useCloudStorage) {
+      const storageConfig: any = {
+        provider: storageAnswers.storageProvider,
+        folder: storageAnswers.storageFolder || 'diffs'
+      };
+      
+      if (storageAnswers.storageProvider === 's3' && storageAnswers.s3Config) {
+        storageConfig.s3 = storageAnswers.s3Config;
+      } else if (storageAnswers.storageProvider === 'r2' && storageAnswers.r2Config) {
+        storageConfig.r2 = storageAnswers.r2Config;
+      } else if (storageAnswers.storageProvider === 'oss' && storageAnswers.ossConfig) {
+        storageConfig.oss = storageAnswers.ossConfig;
+      }
+
+      userConfig.artifacts = { 
+        baseUrl: storageAnswers.artifactsUrl,
+        storage: storageConfig
+      };
+    } else {
+      userConfig.artifacts = {
+        baseUrl: storageAnswers.artifactsUrl
+      };
+    }
+
+    userConfig.notifications = {
+      channels: notificationAnswers.notificationChannels,
+      ...channelConfigs
+    };
+  }
+
+  // Advanced options - only if in git project or configuring user for deployment
+  const advancedStepNumber = isInGitProject ? 4 : 3;
   console.log();
-  console.log(chalk.cyan('Step 4: Advanced Options'));
-  const advancedAnswers = await inquirer.prompt([
+  console.log(chalk.cyan(`Step ${advancedStepNumber}: Advanced Options`));
+  
+  const advancedQuestions: any[] = [];
+  
+  // Deployment is always available (can be user or project level)
+  advancedQuestions.push(
     {
       type: 'confirm',
       name: 'enableDeployment',
@@ -573,82 +760,50 @@ async function collectConfiguration(): Promise<CcanywhereConfig> {
       message: 'Deployment webhook URL:',
       when: (answers: any) => answers.enableDeployment,
       validate: (input: string) => input.trim() !== '' || 'Webhook URL is required'
-    },
-    {
+    }
+  );
+  
+  // Playwright testing only if in git project
+  if (isInGitProject) {
+    advancedQuestions.push({
       type: 'confirm',
       name: 'enablePlaywright',
       message: 'Configure Playwright testing?',
       default: false
-    }
-  ]);
+    });
+  }
+  
+  const advancedAnswers = await inquirer.prompt(advancedQuestions);
 
-  // Merge all answers
-  const answers = {
-    ...repoAnswers,
-    ...storageAnswers,
-    ...notificationAnswers,
-    ...advancedAnswers
-  };
+  // Only add project-level configs if in git project
+  if (isInGitProject) {
+    // Test configuration (PROJECT-LEVEL)
+    projectConfig.test = {
+      enabled: advancedAnswers.enablePlaywright || false,
+      configFile: './playwright.config.ts'
+    };
 
-  // Build configuration
-  const config: CcanywhereConfig = {
-    repo: {
-      kind: answers.repoKind,
-      url: answers.repoUrl,
-      branch: answers.repoBranch
-    },
-    notifications: {
-      channels: answers.notificationChannels,
-      ...channelConfigs  // Merge channel configurations that were collected earlier
-    },
-    build: {
+    // Build configuration (PROJECT-LEVEL)
+    projectConfig.build = {
       base: 'origin/main',
       lockTimeout: 300,
       cleanupDays: 7
-    }
-  };
-
-  // Add artifacts configuration
-  if (answers.useCloudStorage) {
-    // Build storage configuration
-    const storageConfig: any = {
-      provider: answers.storageProvider,
-      folder: answers.storageFolder || 'diffs'
-    };
-    
-    // Add provider-specific config
-    if (answers.storageProvider === 's3' && answers.s3Config) {
-      storageConfig.s3 = answers.s3Config;
-    } else if (answers.storageProvider === 'r2' && answers.r2Config) {
-      storageConfig.r2 = answers.r2Config;
-    } else if (answers.storageProvider === 'oss' && answers.ossConfig) {
-      storageConfig.oss = answers.ossConfig;
-    }
-
-    // Set artifacts configuration with storage
-    config.artifacts = { 
-      baseUrl: answers.artifactsUrl,
-      storage: storageConfig
-    };
-  } else {
-    // Simple artifacts URL (without cloud storage)
-    config.artifacts = {
-      baseUrl: answers.artifactsUrl
     };
   }
 
-  // Always include test configuration (disabled by default)
-  config.test = {
-    enabled: answers.enablePlaywright || false,
-    configFile: './playwright.config.ts'
-  };
-
-  // Add deployment if enabled
-  if (answers.enableDeployment && answers.deploymentWebhook) {
-    config.deployment = answers.deploymentWebhook;
+  // Deployment configuration
+  if (advancedAnswers.enableDeployment && advancedAnswers.deploymentWebhook) {
+    // If not in git project, always put in user config
+    // If in git project and collecting user config, put in user config
+    // Otherwise put in project config
+    if (!isInGitProject || collectUserConfig) {
+      userConfig.deployment = advancedAnswers.deploymentWebhook;
+    } else {
+      projectConfig.deployment = advancedAnswers.deploymentWebhook;
+    }
   }
 
-  return config;
+  return { userConfig, projectConfig };
 }
 
 function generateEnvTemplate(config: CcanywhereConfig): string {

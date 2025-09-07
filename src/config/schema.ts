@@ -212,8 +212,29 @@ export function validateConfig(config: unknown): CcanywhereConfig {
     return CcanywhereConfigSchema.parse(config);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const messages = error.errors.map(err => `${err.path.join('.')}: ${err.message}`);
-      throw new Error(`Configuration validation failed:\n${messages.join('\n')}`);
+      const messages = error.errors.map(err => {
+        const path = err.path.join('.');
+        const message = err.message;
+
+        // Add helpful suggestions for common issues
+        if (path.includes('telegram.botToken') || path.includes('telegram.chatId')) {
+          return `${path}: ${message}\n    💡 Tip: Set this in user config: ccanywhere config-user set ${path} --value "YOUR_VALUE"`;
+        } else if (path.includes('storage') || path.includes('artifacts')) {
+          return `${path}: ${message}\n    💡 Tip: Configure storage in user or project config`;
+        } else {
+          return `${path}: ${message}`;
+        }
+      });
+
+      throw new Error(
+        `Configuration validation failed:\n${messages.join('\n')}\n\n` +
+          `📝 Configuration hierarchy:\n` +
+          `   1. Environment variables (highest priority)\n` +
+          `   2. Project config: ./ccanywhere.config.json\n` +
+          `   3. User config: ~/.claude/ccanywhere.config.json\n` +
+          `   4. Default values\n\n` +
+          `Run 'ccanywhere config-user --show' to view your user configuration`
+      );
     }
     throw error;
   }

@@ -28,9 +28,12 @@ function isGlobalInstall(): boolean {
 
   // Various ways to detect global install
   return (
-    // npm global install
-    nodeModulesPath.includes('npm/node_modules/ccanywhere') ||
-    nodeModulesPath.includes('npm\\node_modules\\ccanywhere') ||
+    // npm global install patterns
+    nodeModulesPath.includes('/node_modules/ccanywhere') ||
+    nodeModulesPath.includes('\\node_modules\\ccanywhere') ||
+    // nvm global install
+    nodeModulesPath.includes('.nvm/') ||
+    nodeModulesPath.includes('.nvm\\') ||
     // yarn global install
     nodeModulesPath.includes('yarn/global/node_modules/ccanywhere') ||
     // pnpm global install
@@ -38,7 +41,9 @@ function isGlobalInstall(): boolean {
     // Check npm prefix
     (npmPrefix && nodeModulesPath.startsWith(npmPrefix)) ||
     // Check if npm_config_global is set
-    process.env.npm_config_global === 'true'
+    process.env.npm_config_global === 'true' ||
+    // Check if we're NOT in a project's node_modules (simple heuristic)
+    (!nodeModulesPath.includes('/node_modules/@') && nodeModulesPath.endsWith('/node_modules/ccanywhere'))
   );
 }
 

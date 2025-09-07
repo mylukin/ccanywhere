@@ -13,12 +13,11 @@ import { initCommand } from './commands/init.js';
 import { runCommand } from './commands/run.js';
 import { testCommand } from './commands/test-runner.js';
 import { configCommand } from './commands/config.js';
-import { createConfigUserCommand } from './commands/config-user.js';
-import { createInitUserCommand } from './commands/init-user.js';
 import { cleanupCommand } from './commands/cleanup.js';
 import { lockCommand } from './commands/lock.js';
 import { notifyCommand } from './commands/notify.js';
 import { createClaudeRegisterCommand } from './commands/claude-register.js';
+import { checkFirstRun } from '../utils/first-run.js';
 
 const program = new Command();
 
@@ -70,12 +69,6 @@ program
 
 // Configuration management
 program.addCommand(configCommand);
-
-// User configuration management
-program.addCommand(createConfigUserCommand());
-
-// Initialize user configuration (for npm link and manual setup)
-program.addCommand(createInitUserCommand());
 
 // Cleanup operations
 program
@@ -148,6 +141,15 @@ program.configureOutput({
 // Parse command line arguments
 async function main() {
   try {
+    // Check for first run (allow interactive for most commands)
+    const command = process.argv[2];
+    const skipFirstRunCheck = command === '--help' || command === '-h' || command === '--version' || command === '-V';
+
+    if (!skipFirstRunCheck) {
+      // Allow interactive prompt for first run
+      await checkFirstRun(false);
+    }
+
     await program.parseAsync(process.argv);
   } catch (error) {
     if (

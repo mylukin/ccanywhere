@@ -1,7 +1,7 @@
 /**
  * CCanywhere hooks entry point for Claude Code integration
  * This module provides the hook handlers that Claude Code can load and execute
- * 
+ *
  * Supported Claude Code hooks:
  * - Stop: Runs when Claude Code finishes responding
  * - PostToolUse: Runs after tool calls complete
