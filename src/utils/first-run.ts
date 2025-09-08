@@ -87,7 +87,7 @@ async function registerClaudeHooks(): Promise<void> {
     }
 
     console.log(chalk.gray('   Registering Stop-hook for Claude Code...'));
-    
+
     // Register hooks
     const result = await HookInjector.injectHooks({
       enableStop: true,
@@ -160,7 +160,7 @@ export async function checkFirstRun(skipPrompt = false): Promise<void> {
   // Interactive mode - Step 1: Register Claude Code hooks first
   console.log(chalk.blue('🔗 Step 1: Registering Claude Code hooks...'));
   console.log();
-  
+
   try {
     await registerClaudeHooks();
   } catch (error) {
@@ -174,7 +174,7 @@ export async function checkFirstRun(skipPrompt = false): Promise<void> {
   console.log();
   console.log(chalk.blue('📝 Step 2: Configuration Setup'));
   console.log();
-  
+
   const { shouldInitialize } = await inquirer.prompt([
     {
       type: 'confirm',
@@ -202,10 +202,10 @@ export async function checkFirstRun(skipPrompt = false): Promise<void> {
   try {
     // Dynamic import to avoid circular dependency
     const { initCommand } = await import('../cli/commands/init.js');
-    
+
     // Run init command with first-run flag
     await initCommand({ firstRun: true });
-    
+
     // Create marker after successful init
     await createFirstRunMarker();
   } catch (error) {

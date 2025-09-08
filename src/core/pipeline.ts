@@ -90,7 +90,7 @@ export class BuildPipeline {
         const duration = Date.now() - startTime;
         this.logger.step('diff', 'No changes detected between base and head');
         this.logger.buildComplete(true, duration, { message: 'No changes to report' });
-        
+
         return {
           success: true,
           revision: context.revision,

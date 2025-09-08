@@ -180,7 +180,7 @@ export interface BuildResult {
   testResults?: TestResult;
   commitInfo?: CommitInfo;
   error?: string;
-  message?: string;  // Optional message for special cases like no changes
+  message?: string; // Optional message for special cases like no changes
 }
 
 /**

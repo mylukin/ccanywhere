@@ -2,7 +2,7 @@
  * Run command - Execute the build pipeline
  */
 
-import { resolve } from 'path';
+import { resolve, join } from 'path';
 import chalkModule from 'chalk';
 const chalk = chalkModule;
 import oraModule from 'ora';
@@ -11,6 +11,7 @@ import fsExtra from 'fs-extra';
 const { pathExists } = fsExtra;
 import inquirerModule from 'inquirer';
 const inquirer = inquirerModule;
+import { execa } from 'execa';
 import { ConfigLoader } from '../../config/index.js';
 import { createLogger } from '../../core/logger.js';
 import { BuildPipeline } from '../../core/pipeline.js';
@@ -98,6 +99,85 @@ export async function runCommand(options: RunOptions): Promise<void> {
     // Setup logger
     const workDir = resolve(options.workDir || process.cwd());
     const logDir = resolve(workDir, '../logs');
+    
+    // Check if we're in a git repository
+    const gitPath = join(workDir, '.git');
+    const isGitRepo = await pathExists(gitPath);
+    
+    if (!isGitRepo) {
+      spinner.stop();
+      console.log();
+      console.log(chalk.yellow('⚠️  CCanywhere requires a Git repository to work properly'));
+      console.log(chalk.gray('    CCanywhere analyzes git diffs to generate change reports.'));
+      console.log(chalk.gray('    Without Git, it cannot detect or track code changes.'));
+      console.log();
+      
+      // Check if in hook mode
+      if (isHookMode) {
+        // In hook mode, silently exit
+        if (process.env.CCANYWHERE_DEBUG === 'true') {
+          console.log(chalk.gray('[CCanywhere] Not a git repository, skipping (hook mode)'));
+        }
+        process.exit(0);
+      }
+      
+      // Ask if user wants to initialize git
+      const { shouldInitGit } = await inquirer.prompt([
+        {
+          type: 'confirm',
+          name: 'shouldInitGit',
+          message: 'Would you like to initialize a Git repository now?',
+          default: true
+        }
+      ]);
+      
+      if (shouldInitGit) {
+        try {
+          console.log();
+          const gitSpinner = ora('Initializing Git repository...').start();
+          await execa('git', ['init'], { cwd: workDir });
+          gitSpinner.succeed('Git repository initialized');
+          
+          // Suggest next steps
+          console.log();
+          console.log(chalk.green('✅ Git repository created successfully!'));
+          console.log();
+          console.log(chalk.blue('Next steps:'));
+          console.log(chalk.gray('  1. Add files to git:') + chalk.cyan(' git add .'));
+          console.log(chalk.gray('  2. Create initial commit:') + chalk.cyan(' git commit -m "Initial commit"'));
+          console.log(chalk.gray('  3. Run CCanywhere again:') + chalk.cyan(' ccanywhere run'));
+          console.log();
+          console.log(chalk.yellow('ℹ️  Please make at least one commit before running CCanywhere'));
+        } catch (error) {
+          console.error(chalk.red('Failed to initialize Git repository:'), error);
+        }
+        process.exit(0);
+      } else {
+        console.log();
+        console.log(chalk.gray('To use CCanywhere, please initialize Git manually:'));
+        console.log(chalk.cyan('  git init'));
+        console.log(chalk.cyan('  git add .'));
+        console.log(chalk.cyan('  git commit -m "Initial commit"'));
+        console.log();
+        process.exit(0);
+      }
+    }
+    
+    // Check if there are any commits in the repository
+    try {
+      await execa('git', ['rev-parse', 'HEAD'], { cwd: workDir });
+    } catch (error) {
+      spinner.stop();
+      console.log();
+      console.log(chalk.yellow('⚠️  No commits found in the Git repository'));
+      console.log(chalk.gray('    CCanywhere needs at least one commit to generate diffs.'));
+      console.log();
+      console.log(chalk.blue('Please create an initial commit:'));
+      console.log(chalk.cyan('  git add .'));
+      console.log(chalk.cyan('  git commit -m "Initial commit"'));
+      console.log();
+      process.exit(0);
+    }
     
     const logger = createLogger({
       logDir,

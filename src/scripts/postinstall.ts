@@ -36,7 +36,7 @@ function getUserConfigPath(): string {
 async function checkUserConfig(): Promise<boolean> {
   // Lazy load fs-extra only when needed
   const fs = await import('fs-extra');
-  
+
   const configPath = getUserConfigPath();
   return await fs.pathExists(configPath);
 }
@@ -50,7 +50,7 @@ async function registerClaudeHooks(): Promise<void> {
     const { ClaudeCodeDetector } = await import('../utils/claude-detector.js');
     const { HookInjector } = await import('../utils/hook-injector.js');
     const chalk = (await import('chalk')).default;
-    
+
     // Detect Claude Code environment
     const environment = await ClaudeCodeDetector.detectEnvironment();
 
@@ -101,7 +101,7 @@ async function main() {
 
     // Lazy load chalk for console output
     const chalk = (await import('chalk')).default;
-    
+
     console.log();
     console.log(chalk.blue('🚀 CCanywhere Global Installation'));
     console.log(chalk.gray('='.repeat(50)));
