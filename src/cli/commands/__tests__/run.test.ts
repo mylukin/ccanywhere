@@ -78,6 +78,12 @@ jest.unstable_mockModule('fs-extra', () => ({
   pathExists: mockFsExtra.pathExists
 }));
 
+// Mock execa
+const mockExeca = jest.fn() as any;
+jest.unstable_mockModule('execa', () => ({
+  execa: mockExeca
+}));
+
 // Mock initCommand
 const mockInitCommand = jest.fn() as any;
 jest.unstable_mockModule('@/cli/commands/init', () => ({
@@ -129,6 +135,9 @@ describe('runCommand', () => {
     
     // Setup fs-extra mock to simulate config files exist by default
     mockFsExtra.pathExists.mockResolvedValue(true);
+    
+    // Setup execa mock to simulate git commands
+    mockExeca.mockResolvedValue({ stdout: 'abc123' });
     
     // Setup inquirer mock for initialization prompt
     mockInquirer.prompt.mockResolvedValue({ shouldInit: false });
