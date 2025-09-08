@@ -297,6 +297,36 @@ describe('BuildPipeline', () => {
       );
     });
 
+    it('should handle no-changes case gracefully', async () => {
+      // Mock diff generator to return empty URL (no changes)
+      mockDiffGenerator.generate.mockResolvedValue({
+        type: 'diff',
+        url: '', // Empty URL indicates no changes
+        path: '',
+        size: 0,
+        timestamp: expect.any(Number)
+      });
+
+      const result = await pipeline.run();
+
+      expect(result.success).toBe(true);
+      expect(result.message).toBe('No changes detected');
+      expect(result.artifacts).toEqual([]);
+      
+      // Should not send any notifications
+      expect(mockNotificationManager.send).not.toHaveBeenCalled();
+      
+      // Should not trigger deployment
+      expect(mockDeploymentTrigger.trigger).not.toHaveBeenCalled();
+      
+      // Should not run tests
+      expect(mockTestRunner.run).not.toHaveBeenCalled();
+      
+      // Should log appropriate message
+      expect(mockLogger.step).toHaveBeenCalledWith('diff', 'No changes detected between base and head');
+      expect(mockLogger.buildComplete).toHaveBeenCalledWith(true, expect.any(Number), { message: 'No changes to report' });
+    });
+
     it('should handle lock acquisition failure', async () => {
       mockLockManager.acquire.mockRejectedValue(new Error('Lock acquisition failed'));
 

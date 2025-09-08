@@ -36,7 +36,14 @@ export class HtmlDiffGenerator implements DiffGenerator {
       const hasChanges = await this.hasChanges(base, head, context.workDir, excludePaths);
 
       if (!hasChanges) {
-        throw new BuildError('No changes detected between base and head');
+        // Return a special artifact indicating no changes
+        return {
+          type: 'diff',
+          url: '', // Empty URL indicates no changes
+          path: '',
+          size: 0,
+          timestamp: context.timestamp
+        };
       }
 
       // Initialize storage provider if configured

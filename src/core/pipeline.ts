@@ -85,6 +85,23 @@ export class BuildPipeline {
       // Generate diff
       const diffArtifact = await this.generateDiff(context);
 
+      // Check if there are no changes (indicated by empty URL)
+      if (!diffArtifact.url) {
+        const duration = Date.now() - startTime;
+        this.logger.step('diff', 'No changes detected between base and head');
+        this.logger.buildComplete(true, duration, { message: 'No changes to report' });
+        
+        return {
+          success: true,
+          revision: context.revision,
+          branch: context.branch,
+          timestamp: context.timestamp,
+          duration,
+          artifacts: [],
+          message: 'No changes detected'
+        } as BuildResult;
+      }
+
       // Trigger deployment
       let deploymentUrl: string | undefined;
       if (hasDeploymentConfig(this.config) && !this.dryRun) {
