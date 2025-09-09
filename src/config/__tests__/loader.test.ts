@@ -24,11 +24,6 @@ jest.unstable_mockModule('os', () => ({
   homedir: jest.fn(() => '/home/user') as any
 }));
 
-// Mock dotenv
-jest.unstable_mockModule('dotenv', () => ({
-  config: jest.fn() as any
-}));
-
 // Mock schema
 const mockValidateConfig = jest.fn() as any;
 const mockGetDefaultConfig = jest.fn() as any;
@@ -131,7 +126,7 @@ describe('ConfigLoader', () => {
       mockFs.readFile.mockResolvedValue(JSON.stringify(jsonConfig));
 
       const loader = ConfigLoader.getInstance();
-      const config = await loader.loadConfig('/test/config.json');
+      await loader.loadConfig('/test/config.json');
 
       expect(mockFs.readFile).toHaveBeenCalledWith('/resolved//test/config.json', 'utf8');
       expect(mockValidateConfig).toHaveBeenCalled();

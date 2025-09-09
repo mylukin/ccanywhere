@@ -518,8 +518,8 @@ describe('initCommand', () => {
     });
   });
 
-  describe('.env file generation', () => {
-    it('should not overwrite existing .env file', async () => {
+  describe('configuration file generation', () => {
+    it('should generate configuration files without .env', async () => {
       // Set up pathExists mock for specific paths
       mockPathExists.mockImplementation(async (path: string) => {
         if (path.endsWith('.env')) return true; // .env exists
@@ -563,17 +563,17 @@ describe('initCommand', () => {
 
       await initCommand({});
 
-      // Should write config files but not .env (since it exists)
+      // Should write config files but never .env (we don't generate .env anymore)
       const writeCalls = mockWriteFile.mock.calls;
       const envWriteCall = writeCalls.find((call: any[]) => call[0].endsWith('.env'));
-      expect(envWriteCall).toBeUndefined(); // .env should not be written
+      expect(envWriteCall).toBeUndefined(); // .env should never be written
       
       // Should write at least the config file
       const configWriteCall = writeCalls.find((call: any[]) => call[0].includes('ccanywhere.config.json'));
       expect(configWriteCall).toBeDefined();
     });
 
-    it('should generate .env with telegram configuration', async () => {
+    it('should generate configuration with telegram settings', async () => {
       mockPathExists.mockResolvedValue(false);
 
       // Mock ALL the prompts in the correct order for unified flow
@@ -609,10 +609,19 @@ describe('initCommand', () => {
 
       await initCommand({});
 
-      expect(mockWriteFile).toHaveBeenCalledWith('/test/project/.env', expect.stringContaining('# BOT_TOKEN_TELEGRAM'));
+      // Should NOT write .env file
+      const writeCalls = mockWriteFile.mock.calls;
+      const envWriteCall = writeCalls.find((call: any[]) => call[0].endsWith('.env'));
+      expect(envWriteCall).toBeUndefined();
+
+      // Should write config file with telegram configuration
+      const configWriteCall = writeCalls.find((call: any[]) => call[0].includes('ccanywhere.config.json'));
+      expect(configWriteCall).toBeDefined();
+      const configContent = JSON.parse(configWriteCall[1]);
+      expect(configContent.notifications.channels).toContain('telegram');
     });
 
-    it('should generate .env with multiple notification channels', async () => {
+    it('should generate configuration with multiple notification channels', async () => {
       mockPathExists.mockResolvedValue(false);
 
       // Mock ALL the prompts in the correct order for unified flow with multiple channels
@@ -663,13 +672,18 @@ describe('initCommand', () => {
 
       await initCommand({});
 
-      const envContent = mockWriteFile.mock.calls.find((call: any) => call[0] === '/test/project/.env')?.[1] as string;
+      // Should NOT write .env file
+      const writeCalls = mockWriteFile.mock.calls;
+      const envWriteCall = writeCalls.find((call: any[]) => call[0].endsWith('.env'));
+      expect(envWriteCall).toBeUndefined();
 
-      expect(envContent).toContain('# BOT_TOKEN_TELEGRAM');
-      expect(envContent).toContain('# DINGTALK_WEBHOOK');
-      expect(envContent).toContain('# WECOM_WEBHOOK');
-      expect(envContent).toContain('# EMAIL_TO');
-      expect(envContent).toContain('DEPLOYMENT_WEBHOOK_URL');
+      // Should write config file with multiple notification channels
+      const configWriteCall = writeCalls.find((call: any[]) => call[0].includes('ccanywhere.config.json'));
+      expect(configWriteCall).toBeDefined();
+      const configContent = JSON.parse(configWriteCall[1]);
+      expect(configContent.notifications.channels).toContain('telegram');
+      expect(configContent.notifications.channels).toContain('dingtalk');
+      expect(configContent.notifications.channels).toContain('email');
     });
   });
 

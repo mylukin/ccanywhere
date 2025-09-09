@@ -128,20 +128,22 @@ Store common settings in `~/.claude/ccanywhere.config.json`:
 
 ### Environment Variables
 
+Set system environment variables to override configuration:
+
 ```bash
 # Storage
-STORAGE_PROVIDER=r2
-R2_ACCOUNT_ID=your-account-id
-R2_ACCESS_KEY_ID=your-key
-R2_SECRET_ACCESS_KEY=your-secret
-R2_BUCKET=my-bucket
+export STORAGE_PROVIDER=r2
+export R2_ACCOUNT_ID=your-account-id
+export R2_ACCESS_KEY_ID=your-key
+export R2_SECRET_ACCESS_KEY=your-secret
+export R2_BUCKET=my-bucket
 
 # Notifications
-BOT_TOKEN_TELEGRAM=your-token
-CHAT_ID_TELEGRAM=your-chat-id
+export BOT_TOKEN_TELEGRAM=your-token
+export CHAT_ID_TELEGRAM=your-chat-id
 
 # Optional
-DEPLOYMENT_WEBHOOK_URL=https://deploy.example.com/webhook
+export DEPLOYMENT_WEBHOOK_URL=https://deploy.example.com/webhook
 ```
 
 ## 📬 Notifications

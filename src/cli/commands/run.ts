@@ -78,7 +78,7 @@ export async function runCommand(options: RunOptions): Promise<void> {
         console.log();
         await initCommand({});
         console.log();
-        console.log(chalk.blue('ℹ️  Please configure your .env file and run again'));
+        console.log(chalk.blue('ℹ️  Please configure your environment variables and run again'));
         process.exit(0);
       } else {
         console.log(chalk.gray('Run "ccanywhere init" to set up configuration'));

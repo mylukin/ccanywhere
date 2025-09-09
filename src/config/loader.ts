@@ -6,7 +6,6 @@ import fsExtra from 'fs-extra';
 const { readFile, pathExists } = fsExtra;
 import { resolve, join } from 'path';
 import { homedir } from 'os';
-import { config as loadEnv } from 'dotenv';
 import { validateConfig, getDefaultConfig } from './schema.js';
 import type { CcanywhereConfig, NotificationChannel, RepoKind } from '../types/index.js';
 import { ConfigurationError } from '../types/index.js';
@@ -161,9 +160,6 @@ export class ConfigLoader {
    * Load configuration from environment variables
    */
   private async loadFromEnv(): Promise<Partial<CcanywhereConfig>> {
-    // Load .env file if it exists
-    loadEnv({ path: resolve('.env') });
-
     const env = process.env;
     const config: any = {};
 

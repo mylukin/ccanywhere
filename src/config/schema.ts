@@ -218,7 +218,7 @@ export function validateConfig(config: unknown): CcanywhereConfig {
 
         // Add helpful suggestions for common issues
         if (path.includes('telegram.botToken') || path.includes('telegram.chatId')) {
-          return `${path}: ${message}\n    💡 Tip: Set this in user config: ccanywhere config-user set ${path} --value "YOUR_VALUE"`;
+          return `${path}: ${message}\n    💡 Tip: Set this in user config or use environment variables`;
         } else if (path.includes('storage') || path.includes('artifacts')) {
           return `${path}: ${message}\n    💡 Tip: Configure storage in user or project config`;
         } else {
@@ -233,7 +233,7 @@ export function validateConfig(config: unknown): CcanywhereConfig {
           `   2. Project config: ./ccanywhere.config.json\n` +
           `   3. User config: ~/.claude/ccanywhere.config.json\n` +
           `   4. Default values\n\n` +
-          `Run 'ccanywhere config-user --show' to view your user configuration`
+          `Run 'ccanywhere info --user' to view your user configuration`
       );
     }
     throw error;

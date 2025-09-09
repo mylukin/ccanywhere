@@ -144,7 +144,7 @@ export class ErrorHandler {
       case 'CONFIG_INVALID':
         suggestions.push(
           'Run "ccanywhere init" to create a valid configuration',
-          'Check your .env file for missing or invalid values',
+          'Check your environment variables for missing or invalid values',
           'Validate your ccanywhere.config.json syntax'
         );
         break;

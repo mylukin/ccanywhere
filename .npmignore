@@ -38,8 +38,6 @@ node_modules/
 package-lock.json
 
 # Local config
-.env
-.env.local
 ccanywhere.config.js
 ccanywhere.config.json
 

@@ -484,7 +484,7 @@ describe('runCommand', () => {
 
       expect(mockInquirer.prompt).toHaveBeenCalled();
       expect(mockInitCommand).toHaveBeenCalledWith({});
-      expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Please configure your .env file and run again'));
+      expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Please configure your environment variables and run again'));
       expect(process.exit).toHaveBeenCalledWith(0);
     });
 
@@ -499,6 +499,7 @@ describe('runCommand', () => {
 
     it('should skip initialization prompt when CCANYWHERE_HOOK_MODE is set', async () => {
       mockFsExtra.pathExists.mockResolvedValue(false);
+      const originalValue = process.env.CCANYWHERE_HOOK_MODE;
       process.env.CCANYWHERE_HOOK_MODE = 'true';
 
       await runCommand({});
@@ -506,7 +507,11 @@ describe('runCommand', () => {
       expect(mockInquirer.prompt).not.toHaveBeenCalled();
       expect(process.exit).toHaveBeenCalledWith(0);
 
-      delete process.env.CCANYWHERE_HOOK_MODE;
+      if (originalValue === undefined) {
+        delete process.env.CCANYWHERE_HOOK_MODE;
+      } else {
+        process.env.CCANYWHERE_HOOK_MODE = originalValue;
+      }
     });
 
     it('should check custom config file when specified', async () => {

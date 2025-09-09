@@ -37,7 +37,6 @@ export async function initCommand(options: InitOptions): Promise<void> {
     const userConfigDir = join(homedir(), '.claude');
     const userConfigPath = join(userConfigDir, 'ccanywhere.config.json');
     const projectConfigPath = join(workDir, 'ccanywhere.config.json');
-    const envPath = join(workDir, '.env');
 
     // Detect if we're in a git project
     // In first-run mode, we focus on user config regardless of git status
@@ -103,15 +102,6 @@ export async function initCommand(options: InitOptions): Promise<void> {
 
     // Only generate project files if in git project
     if (isInGitProject) {
-      // Generate .env template
-      if (!(await pathExists(envPath))) {
-        // Merge configs for env template generation
-        const mergedConfig = { ...userConfig, ...projectConfig };
-        const envContent = generateEnvTemplate(mergedConfig as CcanywhereConfig);
-        await writeFile(envPath, envContent);
-        spinner.text = 'Generated .env file';
-      }
-
       // Generate example files if needed (when Playwright testing is enabled)
       if (projectConfig.test?.enabled) {
         await generateExampleFiles(workDir, projectConfig.test?.enabled);
@@ -165,7 +155,7 @@ export async function initCommand(options: InitOptions): Promise<void> {
         console.log(chalk.gray('• Shared settings (notifications, storage) are in ~/.claude/'));
       }
       console.log(chalk.gray('• Project-specific settings (repo, test) are in this directory'));
-      console.log(chalk.gray('• Use .env file for sensitive values or temporary overrides'));
+      console.log(chalk.gray('• Use environment variables for sensitive values or temporary overrides'));
     } else {
       // User-only initialization
       console.log(chalk.blue('User configuration saved:'));

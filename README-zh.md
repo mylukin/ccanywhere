@@ -128,20 +128,22 @@ ccanywhere register --remove  # 移除钩子
 
 ### 环境变量
 
+设置系统环境变量以覆盖配置：
+
 ```bash
 # 存储
-STORAGE_PROVIDER=r2
-R2_ACCOUNT_ID=your-account-id
-R2_ACCESS_KEY_ID=your-key
-R2_SECRET_ACCESS_KEY=your-secret
-R2_BUCKET=my-bucket
+export STORAGE_PROVIDER=r2
+export R2_ACCOUNT_ID=your-account-id
+export R2_ACCESS_KEY_ID=your-key
+export R2_SECRET_ACCESS_KEY=your-secret
+export R2_BUCKET=my-bucket
 
 # 通知
-BOT_TOKEN_TELEGRAM=your-token
-CHAT_ID_TELEGRAM=your-chat-id
+export BOT_TOKEN_TELEGRAM=your-token
+export CHAT_ID_TELEGRAM=your-chat-id
 
 # 可选
-DEPLOYMENT_WEBHOOK_URL=https://deploy.example.com/webhook
+export DEPLOYMENT_WEBHOOK_URL=https://deploy.example.com/webhook
 ```
 
 ## 📬 通知
